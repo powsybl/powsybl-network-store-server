@@ -480,6 +480,84 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
+    public void modifyExtensionsNetwork() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            service.flush(createExtensionsNetwork(service.getNetworkFactory()));
+        }
+
+        // modify extension
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            assertEquals(1, networkIds.size());
+
+            Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
+            assertEquals("Extensions network", readNetwork.getId());
+
+            Load load = readNetwork.getLoad("v1load");
+            TwoWindingsTransformer twt2 = readNetwork.getTwoWindingsTransformer("TWT2");
+            ThreeWindingsTransformer twt3 = readNetwork.getThreeWindingsTransformer("TWT3");
+            assertNotNull(load);
+            assertNotNull(twt2);
+            assertNotNull(twt3);
+
+            ConnectablePosition connectablePositionload = load.getExtension(ConnectablePosition.class);
+            assertNotNull(connectablePositionload);
+            connectablePositionload.getFeeder().setName("v1loadModified").setOrder(10).setDirection(ConnectablePosition.Direction.BOTTOM);
+            ConnectablePosition connectablePositionTwt2 = twt2.getExtension(ConnectablePosition.class);
+            assertNotNull(connectablePositionTwt2);
+            connectablePositionTwt2.getFeeder1().setName("TWT2Modified.1").setOrder(20).setDirection(ConnectablePosition.Direction.BOTTOM);
+            connectablePositionTwt2.getFeeder2().setName("TWT2Modified.2").setOrder(20).setDirection(ConnectablePosition.Direction.BOTTOM);
+            ConnectablePosition connectablePositionTwt3 = twt3.getExtension(ConnectablePosition.class);
+            assertNotNull(connectablePositionTwt3);
+            connectablePositionTwt3.getFeeder1().setName("TWT3Modified.1").setOrder(30).setDirection(ConnectablePosition.Direction.BOTTOM);
+            connectablePositionTwt3.getFeeder2().setName("TWT3Modified.2").setOrder(30).setDirection(ConnectablePosition.Direction.BOTTOM);
+            connectablePositionTwt3.getFeeder3().setName("TWT3Modified.3").setOrder(30).setDirection(ConnectablePosition.Direction.BOTTOM);
+            service.flush(readNetwork);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            assertEquals(1, networkIds.size());
+
+            Network readModifiedNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
+            assertEquals("Extensions network", readModifiedNetwork.getId());
+
+            Load load = readModifiedNetwork.getLoad("v1load");
+            TwoWindingsTransformer twt2 = readModifiedNetwork.getTwoWindingsTransformer("TWT2");
+            ThreeWindingsTransformer twt3 = readModifiedNetwork.getThreeWindingsTransformer("TWT3");
+            assertNotNull(load);
+            assertNotNull(twt2);
+            assertNotNull(twt3);
+
+            ConnectablePosition connectablePositionload = load.getExtension(ConnectablePosition.class);
+            assertNotNull(connectablePositionload);
+            ConnectablePosition connectablePositionTwt2 = twt2.getExtension(ConnectablePosition.class);
+            assertNotNull(connectablePositionTwt2);
+            ConnectablePosition connectablePositionTwt3 = twt3.getExtension(ConnectablePosition.class);
+            assertNotNull(connectablePositionTwt3);
+
+            assertEquals("v1loadModified", connectablePositionload.getFeeder().getName().orElseThrow());
+            assertEquals(10, connectablePositionload.getFeeder().getOrder().orElseThrow().intValue());
+            assertEquals(ConnectablePosition.Direction.BOTTOM, connectablePositionload.getFeeder().getDirection());
+            assertEquals("TWT2Modified.1", connectablePositionTwt2.getFeeder1().getName().orElseThrow());
+            assertEquals(20, connectablePositionTwt2.getFeeder1().getOrder().orElseThrow().intValue());
+            assertEquals(ConnectablePosition.Direction.BOTTOM, connectablePositionTwt2.getFeeder1().getDirection());
+            assertEquals("TWT2Modified.2", connectablePositionTwt2.getFeeder2().getName().orElseThrow());
+            assertEquals(20, connectablePositionTwt2.getFeeder2().getOrder().orElseThrow().intValue());
+            assertEquals(ConnectablePosition.Direction.BOTTOM, connectablePositionTwt2.getFeeder2().getDirection());
+            assertEquals("TWT3Modified.1", connectablePositionTwt3.getFeeder1().getName().orElseThrow());
+            assertEquals(30, connectablePositionTwt3.getFeeder1().getOrder().orElseThrow().intValue());
+            assertEquals(ConnectablePosition.Direction.BOTTOM, connectablePositionTwt3.getFeeder1().getDirection());
+            assertEquals("TWT3Modified.2", connectablePositionTwt3.getFeeder2().getName().orElseThrow());
+            assertEquals(30, connectablePositionTwt3.getFeeder2().getOrder().orElseThrow().intValue());
+            assertEquals(ConnectablePosition.Direction.BOTTOM, connectablePositionTwt3.getFeeder2().getDirection());
+            assertEquals("TWT3Modified.3", connectablePositionTwt3.getFeeder3().getName().orElseThrow());
+            assertEquals(30, connectablePositionTwt3.getFeeder3().getOrder().orElseThrow().intValue());
+            assertEquals(ConnectablePosition.Direction.BOTTOM, connectablePositionTwt3.getFeeder3().getDirection());
+        }
+    }
+
+    @Test
     public void extensionsTest() {
         // create network and save it
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
