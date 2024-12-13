@@ -6,9 +6,9 @@
  */
 package com.powsybl.network.store.server;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
@@ -22,6 +22,8 @@ import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import com.powsybl.network.store.server.json.PermanentLimitSqlData;
+import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
 import com.powsybl.ws.commons.LogUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
@@ -30,10 +32,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.UncheckedIOException;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -1770,6 +1770,24 @@ public class NetworkStoreRepository {
         }
     }
 
+    public Map<OwnerInfo, List<TemporaryLimitAttributes>> getOldTemporaryLimitsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        if (valuesForInClause.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try (var connection = dataSource.getConnection()) {
+            var preparedStmt = connection.prepareStatement(QueryCatalog.buildOldTemporaryLimitWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()));
+            preparedStmt.setString(1, networkUuid.toString());
+            preparedStmt.setInt(2, variantNum);
+            for (int i = 0; i < valuesForInClause.size(); i++) {
+                preparedStmt.setString(3 + i, valuesForInClause.get(i));
+            }
+
+            return innerGetOldTemporaryLimits(preparedStmt);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimitsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
@@ -1788,13 +1806,58 @@ public class NetworkStoreRepository {
         }
     }
 
+    public Map<OwnerInfo, List<PermanentLimitAttributes>> getOldPermanentLimitsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        if (valuesForInClause.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try (var connection = dataSource.getConnection()) {
+            var preparedStmt = connection.prepareStatement(QueryCatalog.buildOldPermanentLimitWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()));
+            preparedStmt.setString(1, networkUuid.toString());
+            preparedStmt.setInt(2, variantNum);
+            for (int i = 0; i < valuesForInClause.size(); i++) {
+                preparedStmt.setString(3 + i, valuesForInClause.get(i));
+            }
+
+            return innerGetOldPermanentLimits(preparedStmt);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Map<OwnerInfo, LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        // migrate data from old limit table to new limit table
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> oldTemporaryLimits = getOldTemporaryLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
+        insertTemporaryLimitsAttributes(oldTemporaryLimits);
+        Map<OwnerInfo, List<PermanentLimitAttributes>> oldPermanentLimits = getOldPermanentLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
+        insertPermanentLimitsAttributes(oldPermanentLimits);
+
+        // delete in old table
+        if (!oldPermanentLimits.keySet().isEmpty()) {
+            deleteOldPermanentLimits(networkUuid, variantNum, oldPermanentLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
+        }
+        if (!oldTemporaryLimits.keySet().isEmpty()) {
+            deleteOldTemporaryLimits(networkUuid, variantNum, oldTemporaryLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
+        }
+
+        // get data from the new limit table
         Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = getTemporaryLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
         Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = getPermanentLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
         return mergeLimitsIntoLimitsInfos(temporaryLimits, permanentLimits);
     }
 
     public Map<OwnerInfo, LimitsInfos> getLimitsInfosWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        // migrate data from old limit table to new limit table
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> oldTemporaryLimits = getOldTemporaryLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
+        insertTemporaryLimitsAttributes(oldTemporaryLimits);
+        Map<OwnerInfo, List<PermanentLimitAttributes>> oldPermanentLimits = getOldPermanentLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
+        insertPermanentLimitsAttributes(oldPermanentLimits);
+        // delete in old table
+        if (!oldPermanentLimits.keySet().isEmpty()) {
+            deleteOldPermanentLimits(networkUuid, variantNum, oldPermanentLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
+        }
+        if (!oldTemporaryLimits.keySet().isEmpty()) {
+            deleteOldTemporaryLimits(networkUuid, variantNum, oldTemporaryLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
+        }
         Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = getTemporaryLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
         Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = getPermanentLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
         return mergeLimitsIntoLimitsInfos(temporaryLimits, permanentLimits);
@@ -1814,14 +1877,43 @@ public class NetworkStoreRepository {
         return limitsInfos;
     }
 
+    public Map<OwnerInfo, List<TemporaryLimitAttributes>> getOldTemporaryLimits(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+
+            // get from old table
+            var preparedStmt = connection.prepareStatement(QueryCatalog.buildOldTemporaryLimitQuery(columnNameForWhereClause));
+            preparedStmt.setString(1, networkUuid.toString());
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetOldTemporaryLimits(preparedStmt);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Map<OwnerInfo, List<TemporaryLimitAttributes>> getTemporaryLimits(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
+            // get from new table
             var preparedStmt = connection.prepareStatement(QueryCatalog.buildTemporaryLimitQuery(columnNameForWhereClause));
             preparedStmt.setString(1, networkUuid.toString());
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
 
             return innerGetTemporaryLimits(preparedStmt);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<PermanentLimitAttributes>> getOldPermanentLimits(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+            var preparedStmt = connection.prepareStatement(QueryCatalog.buildOldPermanentLimitQuery(columnNameForWhereClause));
+            preparedStmt.setString(1, networkUuid.toString());
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetOldPermanentLimits(preparedStmt);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -1844,7 +1936,30 @@ public class NetworkStoreRepository {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<TemporaryLimitAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
+                OwnerInfo owner = new OwnerInfo();
+                // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
+                // equipmentId, equipmentType, networkUuid, variantNum, side, limitType, name, value, acceptableDuration, fictitious
+                owner.setEquipmentId(resultSet.getString(1));
+                owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
+                owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
+                owner.setVariantNum(resultSet.getInt(4));
+                String temporaryLimitData = resultSet.getString(5);
+                List<TemporaryLimitSqlData> parsedTemporaryLimitData = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
+                List<TemporaryLimitAttributes> temporaryLimits = parsedTemporaryLimitData.stream().map(TemporaryLimitSqlData::toTemporaryLimitAttributes).toList();
+                if (!temporaryLimits.isEmpty()) {
+                    map.put(owner, temporaryLimits);
+                }
+            }
+            return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
+    private Map<OwnerInfo, List<TemporaryLimitAttributes>> innerGetOldTemporaryLimits(PreparedStatement preparedStmt) throws SQLException {
+        try (ResultSet resultSet = preparedStmt.executeQuery()) {
+            Map<OwnerInfo, List<TemporaryLimitAttributes>> map = new HashMap<>();
+            while (resultSet.next()) {
                 OwnerInfo owner = new OwnerInfo();
                 TemporaryLimitAttributes temporaryLimit = new TemporaryLimitAttributes();
                 // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
@@ -1860,7 +1975,6 @@ public class NetworkStoreRepository {
                 temporaryLimit.setValue(resultSet.getDouble(9));
                 temporaryLimit.setAcceptableDuration(resultSet.getInt(10));
                 temporaryLimit.setFictitious(resultSet.getBoolean(11));
-
                 map.computeIfAbsent(owner, k -> new ArrayList<>());
                 map.get(owner).add(temporaryLimit);
             }
@@ -1872,7 +1986,28 @@ public class NetworkStoreRepository {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<PermanentLimitAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
+                OwnerInfo owner = new OwnerInfo();
+                owner.setEquipmentId(resultSet.getString(1));
+                owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
+                owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
+                owner.setVariantNum(resultSet.getInt(4));
+                String permanentLimitData = resultSet.getString(5);
+                List<PermanentLimitSqlData> parsedTemporaryLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
+                List<PermanentLimitAttributes> permanentLimits = parsedTemporaryLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
+                if (!permanentLimits.isEmpty()) {
+                    map.put(owner, permanentLimits);
+                }
+            }
+            return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
+    private Map<OwnerInfo, List<PermanentLimitAttributes>> innerGetOldPermanentLimits(PreparedStatement preparedStmt) throws SQLException {
+        try (ResultSet resultSet = preparedStmt.executeQuery()) {
+            Map<OwnerInfo, List<PermanentLimitAttributes>> map = new HashMap<>();
+            while (resultSet.next()) {
                 OwnerInfo owner = new OwnerInfo();
                 PermanentLimitAttributes permanentLimit = new PermanentLimitAttributes();
                 // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
@@ -1914,29 +2049,27 @@ public class NetworkStoreRepository {
     public void insertTemporaryLimits(Map<OwnerInfo, LimitsInfos> limitsInfos) {
         Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = limitsInfos.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getTemporaryLimits()));
+        insertTemporaryLimitsAttributes(temporaryLimits);
+    }
+
+    public void insertTemporaryLimitsAttributes(Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildInsertTemporaryLimitsQuery())) {
-                List<Object> values = new ArrayList<>(11);
+                List<Object> values = new ArrayList<>(5);
                 List<Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>>> list = new ArrayList<>(temporaryLimits.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>> entry : subUnit) {
-                        for (TemporaryLimitAttributes temporaryLimit : entry.getValue()) {
+                        if (!entry.getValue().isEmpty()) {
                             values.clear();
-                            // In order, from the QueryCatalog.buildInsertTemporaryLimitsQuery SQL query :
-                            // equipmentId, equipmentType, networkUuid, variantNum, operationalLimitsGroupId, side, limitType, name, value, acceptableDuration, fictitious
                             values.add(entry.getKey().getEquipmentId());
                             values.add(entry.getKey().getEquipmentType().toString());
                             values.add(entry.getKey().getNetworkUuid());
                             values.add(entry.getKey().getVariantNum());
-                            values.add(temporaryLimit.getOperationalLimitsGroupId());
-                            values.add(temporaryLimit.getSide());
-                            values.add(temporaryLimit.getLimitType().toString());
-                            values.add(temporaryLimit.getName());
-                            values.add(temporaryLimit.getValue());
-                            values.add(temporaryLimit.getAcceptableDuration());
-                            values.add(temporaryLimit.isFictitious());
+                            values.add(entry.getValue().stream()
+                                .map(TemporaryLimitSqlData::of).toList());
                             bindValues(preparedStmt, values, mapper);
                             preparedStmt.addBatch();
+
                         }
                     }
                     preparedStmt.executeBatch();
@@ -1950,27 +2083,25 @@ public class NetworkStoreRepository {
     public void insertPermanentLimits(Map<OwnerInfo, LimitsInfos> limitsInfos) {
         Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = limitsInfos.entrySet().stream()
             .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getPermanentLimits()));
+        insertPermanentLimitsAttributes(permanentLimits);
+    }
+
+    public void insertPermanentLimitsAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildInsertPermanentLimitsQuery())) {
                 List<Object> values = new ArrayList<>(8);
                 List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> list = new ArrayList<>(permanentLimits.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : subUnit) {
-                        for (PermanentLimitAttributes permanentLimit : entry.getValue()) {
-                            values.clear();
-                            // In order, from the QueryCatalog.buildInsertTemporaryLimitsQuery SQL query :
-                            // equipmentId, equipmentType, networkUuid, variantNum, operationalLimitsGroupId, side, limitType, value
-                            values.add(entry.getKey().getEquipmentId());
-                            values.add(entry.getKey().getEquipmentType().toString());
-                            values.add(entry.getKey().getNetworkUuid());
-                            values.add(entry.getKey().getVariantNum());
-                            values.add(permanentLimit.getOperationalLimitsGroupId());
-                            values.add(permanentLimit.getSide());
-                            values.add(permanentLimit.getLimitType().toString());
-                            values.add(permanentLimit.getValue());
-                            bindValues(preparedStmt, values, mapper);
-                            preparedStmt.addBatch();
-                        }
+                        values.clear();
+                        values.add(entry.getKey().getEquipmentId());
+                        values.add(entry.getKey().getEquipmentType().toString());
+                        values.add(entry.getKey().getNetworkUuid());
+                        values.add(entry.getKey().getVariantNum());
+                        values.add(entry.getValue().stream()
+                            .map(PermanentLimitSqlData::of).toList());
+                        bindValues(preparedStmt, values, mapper);
+                        preparedStmt.addBatch();
                     }
                     preparedStmt.executeBatch();
                 }
@@ -2034,9 +2165,47 @@ public class NetworkStoreRepository {
         deletePermanentLimits(networkUuid, variantNum, List.of(equipmentId));
     }
 
+    private void deleteOldTemporaryLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteOldTemporaryLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
+                preparedStmt.setString(1, networkUuid.toString());
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < equipmentIds.size(); i++) {
+                    preparedStmt.setString(3 + i, equipmentIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     private void deleteTemporaryLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
         try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteOldTemporaryLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
+                preparedStmt.setString(1, networkUuid.toString());
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < equipmentIds.size(); i++) {
+                    preparedStmt.setString(3 + i, equipmentIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteTemporaryLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
+                preparedStmt.setString(1, networkUuid.toString());
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < equipmentIds.size(); i++) {
+                    preparedStmt.setString(3 + i, equipmentIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private void deleteOldPermanentLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteOldPermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
                 preparedStmt.setString(1, networkUuid.toString());
                 preparedStmt.setInt(2, variantNum);
                 for (int i = 0; i < equipmentIds.size(); i++) {
@@ -2051,6 +2220,14 @@ public class NetworkStoreRepository {
 
     private void deletePermanentLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
         try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteOldPermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
+                preparedStmt.setString(1, networkUuid.toString());
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < equipmentIds.size(); i++) {
+                    preparedStmt.setString(3 + i, equipmentIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeletePermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
                 preparedStmt.setString(1, networkUuid.toString());
                 preparedStmt.setInt(2, variantNum);
