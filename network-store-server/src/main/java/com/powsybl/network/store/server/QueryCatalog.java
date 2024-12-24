@@ -103,6 +103,14 @@ public final class QueryCatalog {
                 " and " + ID_COLUMN + " = ?";
     }
 
+    public static String buildDeleteIdentifiableListQuery(String tableName, int idCount) {
+        return "delete from " + tableName + " where " +
+                NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " in (" +
+                "?, ".repeat(idCount - 1) + "?)";
+    }
+
     public static String buildDeleteNetworkQuery() {
         return "delete from " + NETWORK_TABLE + " where " + UUID_COLUMN + " = ?";
     }
