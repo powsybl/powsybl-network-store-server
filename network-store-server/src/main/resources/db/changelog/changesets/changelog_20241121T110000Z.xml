@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2986331049275-1" author="lesoteti">
+        <createTable tableName="newtemporarylimits">
+            <column name="networkuuid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="newtemporarylimits_pkey"/>
+            </column>
+            <column name="variantnum" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="newtemporarylimits_pkey"/>
+            </column>
+            <column name="equipmentid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="newtemporarylimits_pkey"/>
+            </column>
+            <column name="equipmenttype" type="VARCHAR(255)">
+            </column>
+                <column name="temporarylimits" type="TEXT"/>
+        </createTable>
+        <createTable tableName="newpermanentlimits">
+            <column name="networkuuid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="newpermanentlimits_pkey"/>
+            </column>
+            <column name="variantnum" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="newpermanentlimits_pkey"/>
+            </column>
+            <column name="equipmentid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="newpermanentlimits_pkey"/>
+            </column>
+            <column name="equipmenttype" type="VARCHAR(255)">
+            </column>
+            <column name="permanentlimits" type="TEXT"/>
+        </createTable>
+        <createIndex indexName="permanentlimits_networkuuid_variantnum_equipmenttype_idx" tableName="newpermanentlimits">
+            <column name="networkuuid"/>
+            <column name="variantnum"/>
+            <column name="equipmenttype"/>
+        </createIndex>
+        <createIndex indexName="temporarylimits_networkuuid_variantnum_equipmenttype_idx" tableName="newtemporarylimits">
+            <column name="networkuuid"/>
+            <column name="variantnum"/>
+            <column name="equipmenttype"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>
