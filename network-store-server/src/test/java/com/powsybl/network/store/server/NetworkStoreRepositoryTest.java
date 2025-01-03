@@ -14,13 +14,23 @@ import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @SpringBootTest
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreRepositoryTest {
+
+    @DynamicPropertySource
+    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
+        UUID uuid = UUID.randomUUID();
+        registry.add("testDbSuffix", () -> uuid);
+    }
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
 
@@ -765,6 +775,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void test() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String loadId = "load1";
         String lineId = "line1";
         Resource<LineAttributes> line1 = Resource.lineBuilder()
@@ -793,6 +807,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForGenerator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String generatorId = "gen1";
         Resource<GeneratorAttributes> gen = Resource.generatorBuilder()
             .id(generatorId)
@@ -847,7 +865,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(generatorId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
+                        .regulatingEquipmentId(generatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .build())
                 .build())
@@ -878,6 +898,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForShuntCompensator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId").build()));
+
         String shuntCompensatorId = "shunt1";
         Resource<ShuntCompensatorAttributes> shunt = Resource.shuntCompensatorBuilder()
             .id(shuntCompensatorId)
@@ -932,7 +956,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(shuntCompensatorId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(shuntCompensatorId).build())
+                        .regulatingEquipmentId(shuntCompensatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .build())
                 .build())
@@ -963,6 +989,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForStaticVarCompensator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String staticVarCompensatorId = "svc1";
         Resource<StaticVarCompensatorAttributes> staticVarCompensator = Resource.staticVarCompensatorBuilder()
             .id(staticVarCompensatorId)
@@ -1018,7 +1048,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(staticVarCompensatorId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
+                        .regulatingEquipmentId(staticVarCompensatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .regulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER.toString())
                     .build())
@@ -1050,6 +1082,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForVSC() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String vscId = "vsc1";
         Resource<VscConverterStationAttributes> staticVarCompensator = Resource.vscConverterStationBuilder()
             .id(vscId)
@@ -1104,7 +1140,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(vscId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(vscId).build())
+                        .regulatingEquipmentId(vscId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .build())
                 .build())

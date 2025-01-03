@@ -144,8 +144,8 @@ public class NetworkStoreController {
     public ResponseEntity<Void> cloneNetworkVariant(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                              @Parameter(description = "Source variant number", required = true) @PathVariable("sourceVariantNum") int sourceVariantNum,
                                              @Parameter(description = "Target variant number", required = true) @PathVariable("targetVariantNum") int targetVariantNum,
-                                             @Parameter(description = "Target variant id", required = true) @RequestParam(required = false) String targetVariantId) {
-        repository.cloneNetworkVariant(networkId, sourceVariantNum, targetVariantNum, targetVariantId);
+                                             @Parameter(description = "Target variant id") @RequestParam(required = false) String targetVariantId) {
+        repository.cloneNetworkVariant(networkId, sourceVariantNum, targetVariantNum, targetVariantId, null);
         return ResponseEntity.ok().build();
     }
 
@@ -169,8 +169,9 @@ public class NetworkStoreController {
     public ResponseEntity<Void> cloneNetwork(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                              @Parameter(description = "Source variant Id", required = true) @PathVariable("sourceVariantId") String sourceVariantId,
                                              @Parameter(description = "Target variant Id", required = true) @PathVariable("targetVariantId") String targetVariantId,
-                                             @Parameter(description = "mayOverwrite", required = false) @RequestParam(required = false) boolean mayOverwrite) {
-        repository.cloneNetwork(networkId, sourceVariantId, targetVariantId, mayOverwrite);
+                                             @Parameter(description = "mayOverwrite") @RequestParam(required = false) boolean mayOverwrite,
+                                             @Parameter(description = "Clone strategy") @RequestParam(required = false) CloneStrategy cloneStrategy) {
+        repository.cloneNetwork(networkId, sourceVariantId, targetVariantId, mayOverwrite, cloneStrategy);
         return ResponseEntity.ok().build();
     }
 
