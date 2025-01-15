@@ -65,7 +65,6 @@ public class V211LimitsMigration implements CustomTaskChange {
                 migrateV211Limits(repository, networkId, variantNum, exceptions);
             }
         } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
             throw new CustomChangeException("V2.11 limits migration : error when getting the variants list", e);
         }
         if (!exceptions.isEmpty()) {
