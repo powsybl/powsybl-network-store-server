@@ -62,7 +62,7 @@ public class V211LimitsMigration implements CustomTaskChange {
             while (variants.next()) {
                 UUID networkId = UUID.fromString(variants.getString(1));
                 int variantNum = variants.getInt(2);
-                migrateV211Limits(repository, networkId, variantNum, exceptions);
+                migrateV211LimitsQuietly(repository, networkId, variantNum, exceptions);
             }
         } catch (Exception e) {
             throw new CustomChangeException("V2.11 limits migration : error when getting the variants list", e);
@@ -154,11 +154,11 @@ public class V211LimitsMigration implements CustomTaskChange {
         }
     }
 
-    public static void migrateV211Limits(NetworkStoreRepository repository, UUID networkId, int variantNum, List<Exception> exceptions) {
+    public static void migrateV211LimitsQuietly(NetworkStoreRepository repository, UUID networkId, int variantNum, List<Exception> exceptions) {
         try {
             migrateV211Limits(repository, networkId, variantNum);
         } catch (Exception e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("V2.11 limits migration : failure for network " + networkId + "/variantNum=" + variantNum, e);
             exceptions.add(e);
         }
     }
