@@ -663,7 +663,7 @@ public class NetworkStoreRepository {
         Resource<GeneratorAttributes> generatorAttributesResource = (Resource<GeneratorAttributes>) resource;
         Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertReactiveCapabilityCurvePointsInEquipments(networkUuid, List.of(generatorAttributesResource), reactiveCapabilityCurvePoints);
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, generatorAttributesResource, ResourceType.GENERATOR);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, generatorAttributesResource, ResourceType.GENERATOR);
         return resource;
     }
 
@@ -705,7 +705,7 @@ public class NetworkStoreRepository {
         Resource<VscConverterStationAttributes> vscConverterStationAttributesResource = (Resource<VscConverterStationAttributes>) resource;
         Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertReactiveCapabilityCurvePointsInEquipments(networkUuid, List.of(vscConverterStationAttributesResource), reactiveCapabilityCurvePoints);
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, vscConverterStationAttributesResource, ResourceType.VSC_CONVERTER_STATION);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, vscConverterStationAttributesResource, ResourceType.VSC_CONVERTER_STATION);
         return resource;
     }
 
@@ -717,13 +717,13 @@ public class NetworkStoreRepository {
 
     private <T extends IdentifiableAttributes> Resource<T> completeStaticVarCompensatorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<StaticVarCompensatorAttributes> staticVarCompensatorAttributesResource = (Resource<StaticVarCompensatorAttributes>) resource;
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, staticVarCompensatorAttributesResource, ResourceType.STATIC_VAR_COMPENSATOR);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, staticVarCompensatorAttributesResource, ResourceType.STATIC_VAR_COMPENSATOR);
         return resource;
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeShuntCompensatorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<ShuntCompensatorAttributes> shuntCompensatorAttributesResource = (Resource<ShuntCompensatorAttributes>) resource;
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, shuntCompensatorAttributesResource, ResourceType.SHUNT_COMPENSATOR);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, shuntCompensatorAttributesResource, ResourceType.SHUNT_COMPENSATOR);
         return resource;
     }
 
@@ -996,7 +996,7 @@ public class NetworkStoreRepository {
 
         // Now that generators are created, we will insert in the database the corresponding reactive capability curve points.
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<GeneratorAttributes>> getGenerator(UUID networkUuid, int variantNum, String generatorId) {
@@ -1039,7 +1039,7 @@ public class NetworkStoreRepository {
         deleteReactiveCapabilityCurvePoints(networkUuid, resources);
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
         // regulating points
-        updateRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        updateRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public void updateGeneratorsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -1143,7 +1143,7 @@ public class NetworkStoreRepository {
     // shunt compensator
     public void createShuntCompensators(UUID networkUuid, List<Resource<ShuntCompensatorAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getShuntCompensatorMappings());
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<ShuntCompensatorAttributes>> getShuntCompensator(UUID networkUuid, int variantNum, String shuntCompensatorId) {
@@ -1171,7 +1171,7 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getShuntCompensatorMappings(), VOLTAGE_LEVEL_ID_COLUMN);
 
         // regulating points
-        updateRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        updateRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public void updateShuntCompensatorsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -1190,7 +1190,7 @@ public class NetworkStoreRepository {
 
         // Now that vsc converter stations are created, we will insert in the database the corresponding reactive capability curve points.
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<VscConverterStationAttributes>> getVscConverterStation(UUID networkUuid, int variantNum, String vscConverterStationId) {
@@ -1232,7 +1232,7 @@ public class NetworkStoreRepository {
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
 
         // regulating points
-        updateRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        updateRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public void updateVscConverterStationsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -1278,7 +1278,7 @@ public class NetworkStoreRepository {
     // static var compensators
     public void createStaticVarCompensators(UUID networkUuid, List<Resource<StaticVarCompensatorAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getStaticVarCompensatorMappings());
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<StaticVarCompensatorAttributes>> getStaticVarCompensator(UUID networkUuid, int variantNum, String staticVarCompensatorId) {
@@ -1306,7 +1306,7 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getStaticVarCompensatorMappings(), VOLTAGE_LEVEL_ID_COLUMN);
 
         // regulating points
-        updateRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        updateRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public void updateStaticVarCompensatorsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -2538,7 +2538,7 @@ public class NetworkStoreRepository {
         });
     }
 
-    protected <T extends AbstractRegulatingEquipmentAttributes> Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromEquipment(UUID networkUuid, List<Resource<T>> resources) {
+    protected <T extends AbstractRegulatingEquipmentAttributes> Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
         Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
         if (!resources.isEmpty()) {
             for (Resource<T> resource : resources) {
@@ -2757,7 +2757,7 @@ public class NetworkStoreRepository {
         return map;
     }
 
-    private <T extends AbstractRegulatingEquipmentAttributes> void insertRegulatingPointIntoEquipment(UUID networkUuid, int variantNum, String equipmentId, Resource<T> resource, ResourceType resourceType) {
+    private <T extends AbstractRegulatingEquipmentAttributes> void insertRegulatingPointIntoInjection(UUID networkUuid, int variantNum, String equipmentId, Resource<T> resource, ResourceType resourceType) {
         Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
             REGULATING_EQUIPMENT_ID, Collections.singletonList(equipmentId), resourceType);
         if (regulatingPointAttributes.size() != 1) {
