@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.network.store.model.ResourceType;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
 import com.powsybl.network.store.server.ExtensionHandler;
+import com.powsybl.network.store.server.LimitsHandler;
 import com.powsybl.network.store.server.Mappings;
 import com.powsybl.network.store.server.NetworkStoreRepository;
 import com.powsybl.network.store.server.dto.OwnerInfo;
@@ -49,7 +50,8 @@ public class V211LimitsMigration implements CustomTaskChange {
     public void init(Database database) {
         DataSource dataSource = new SingleConnectionDataSource(((JdbcConnection) database.getConnection()).getUnderlyingConnection(), true);
         ObjectMapper mapper = new ObjectMapper();
-        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(), new ExtensionHandler(dataSource, mapper));
+        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(),
+            new ExtensionHandler(dataSource, mapper), new LimitsHandler(dataSource, mapper));
     }
 
     @Override
