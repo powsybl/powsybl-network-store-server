@@ -24,8 +24,6 @@ import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.PermanentLimitSqlData;
 import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
-import com.powsybl.network.store.server.migration.v211limits.V211LimitsMigration;
-import com.powsybl.network.store.server.migration.v211limits.V211LimitsQueryCatalog;
 import com.powsybl.ws.commons.LogUtils;
 import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -284,23 +282,11 @@ public class NetworkStoreRepository {
                     preparedStmt.execute();
                 }
             }
-            // Delete of the temporary limits (which are not Identifiables objects)
-            //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-            try (var preparedStmt = connection.prepareStatement(V211LimitsQueryCatalog.buildDeleteV211TemporaryLimitsQuery())) {
-                preparedStmt.setObject(1, uuid.toString());
-                preparedStmt.executeUpdate();
-            }
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteTemporaryLimitsQuery())) {
                 preparedStmt.setObject(1, uuid.toString());
                 preparedStmt.executeUpdate();
             }
 
-            // Delete permanent limits (which are not Identifiables objects)
-            //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-            try (var preparedStmt = connection.prepareStatement(V211LimitsQueryCatalog.buildDeleteV211PermanentLimitsQuery())) {
-                preparedStmt.setObject(1, uuid.toString());
-                preparedStmt.executeUpdate();
-            }
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeletePermanentLimitsQuery())) {
                 preparedStmt.setObject(1, uuid.toString());
                 preparedStmt.executeUpdate();
@@ -354,26 +340,12 @@ public class NetworkStoreRepository {
                     preparedStmt.execute();
                 }
             }
-            // Delete of the temporary limits (which are not Identifiables objects)
-            //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-            try (var preparedStmt = connection.prepareStatement(V211LimitsQueryCatalog.buildDeleteV211TemporaryLimitsVariantQuery())) {
-                preparedStmt.setObject(1, uuid.toString());
-                preparedStmt.setInt(2, variantNum);
-                preparedStmt.executeUpdate();
-            }
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteTemporaryLimitsVariantQuery())) {
                 preparedStmt.setObject(1, uuid.toString());
                 preparedStmt.setInt(2, variantNum);
                 preparedStmt.executeUpdate();
             }
 
-            // Delete permanent limits (which are not Identifiables objects)
-            //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-            try (var preparedStmt = connection.prepareStatement(V211LimitsQueryCatalog.buildDeleteV211PermanentLimitsVariantQuery())) {
-                preparedStmt.setObject(1, uuid.toString());
-                preparedStmt.setInt(2, variantNum);
-                preparedStmt.executeUpdate();
-            }
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeletePermanentLimitsVariantQuery())) {
                 preparedStmt.setObject(1, uuid.toString());
                 preparedStmt.setInt(2, variantNum);
@@ -481,17 +453,6 @@ public class NetworkStoreRepository {
             }
         }
         // Copy of the temporary limits (which are not Identifiables objects)
-        //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-        ///////////////////////////////////////////////////////////////////////////////////////
-        int insertedRows = 0;
-        try (var preparedStmt = connection.prepareStatement(V211LimitsQueryCatalog.buildCloneV211TemporaryLimitsQuery())) {
-            preparedStmt.setString(1, targetUuid.toString());
-            preparedStmt.setInt(2, targetVariantNum);
-            preparedStmt.setString(3, uuid.toString());
-            preparedStmt.setInt(4, sourceVariantNum);
-            insertedRows += preparedStmt.executeUpdate();
-        }
-        ///////////////////////////////////////////////////////////////////////////////////////
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildCloneTemporaryLimitsQuery())) {
             preparedStmt.setString(1, targetUuid.toString());
             preparedStmt.setInt(2, targetVariantNum);
@@ -501,29 +462,12 @@ public class NetworkStoreRepository {
         }
 
         // Copy of the permanent limits (which are not Identifiables objects)
-        //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-        ///////////////////////////////////////////////////////////////////////////////////////
-        try (var preparedStmt = connection.prepareStatement(V211LimitsQueryCatalog.buildCloneV211PermanentLimitsQuery())) {
-            preparedStmt.setString(1, targetUuid.toString());
-            preparedStmt.setInt(2, targetVariantNum);
-            preparedStmt.setString(3, uuid.toString());
-            preparedStmt.setInt(4, sourceVariantNum);
-            insertedRows += preparedStmt.executeUpdate();
-        }
-        ///////////////////////////////////////////////////////////////////////////////////////
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildClonePermanentLimitsQuery())) {
             preparedStmt.setString(1, targetUuid.toString());
             preparedStmt.setInt(2, targetVariantNum);
             preparedStmt.setString(3, uuid.toString());
             preparedStmt.setInt(4, sourceVariantNum);
             preparedStmt.execute();
-        }
-
-        //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-        // We don't want the V2.12 code to create V2.11 limits in the database and to inflate the remainder of the limits to migrate.
-        // So after the clone of the V2.11 limits, if some v2.11 limits were cloned, we migrate them.
-        if (insertedRows > 0) {
-            V211LimitsMigration.migrateV211Limits(this, targetUuid, targetVariantNum);
         }
 
         // Copy of the reactive capability curve points (which are not Identifiables objects)
@@ -1854,14 +1798,6 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
-        //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-        ///////////////////////////////////////////////////////////////////////////////////////
-        Map<OwnerInfo, List<TemporaryLimitAttributes>> v211TemporaryLimits = getV211TemporaryLimits(this, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        Map<OwnerInfo, List<PermanentLimitAttributes>> v211PermanentLimits = getV211PermanentLimits(this, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        if (!v211TemporaryLimits.isEmpty() || !v211PermanentLimits.isEmpty()) {
-            return mergeLimitsIntoLimitsInfos(v211TemporaryLimits, v211PermanentLimits);
-        }
-        ///////////////////////////////////////////////////////////////////////////////////////
 
         Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = getTemporaryLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
         Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = getPermanentLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
@@ -1869,15 +1805,6 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, LimitsInfos> getLimitsInfosWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
-        //TODO: to be removed when limits are fully migrated — should be after v2.13 deployment
-        ///////////////////////////////////////////////////////////////////////////////////////
-        Map<OwnerInfo, List<TemporaryLimitAttributes>> v211TemporaryLimits = getV211TemporaryLimitsWithInClause(this, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
-        Map<OwnerInfo, List<PermanentLimitAttributes>> v211PermanentLimits = getV211PermanentLimitsWithInClause(this, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
-        if (!v211TemporaryLimits.isEmpty() || !v211PermanentLimits.isEmpty()) {
-            return mergeLimitsIntoLimitsInfos(v211TemporaryLimits, v211PermanentLimits);
-        }
-        ///////////////////////////////////////////////////////////////////////////////////////
-
         Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = getTemporaryLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
         Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = getPermanentLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
         return mergeLimitsIntoLimitsInfos(temporaryLimits, permanentLimits);
@@ -2099,9 +2026,6 @@ public class NetworkStoreRepository {
 
     private void deleteTemporaryLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
         try (var connection = dataSource.getConnection()) {
-            //TODO: To be removed when limits are fully migrated — should be after v2.13 deployment
-            deleteV211TemporaryLimits(connection, networkUuid, variantNum, equipmentIds);
-
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteTemporaryLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
                 preparedStmt.setString(1, networkUuid.toString());
                 preparedStmt.setInt(2, variantNum);
@@ -2117,8 +2041,6 @@ public class NetworkStoreRepository {
 
     private void deletePermanentLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
         try (var connection = dataSource.getConnection()) {
-            //TODO: To be removed when limits are fully migrated — should be after v2.13 deployment
-            deleteV211PermanentLimits(connection, networkUuid, variantNum, equipmentIds);
 
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeletePermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
                 preparedStmt.setString(1, networkUuid.toString());
