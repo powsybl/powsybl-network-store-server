@@ -2118,6 +2118,7 @@ public class NetworkStoreRepository {
     private void deletePermanentLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
         try (var connection = dataSource.getConnection()) {
             //TODO: To be removed when limits are fully migrated — should be after v2.13 deployment
+            //TODO
             deleteV211PermanentLimits(connection, networkUuid, variantNum, equipmentIds);
 
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeletePermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
