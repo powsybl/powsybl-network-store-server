@@ -32,7 +32,7 @@ class NetworkStoreRepositoryTest {
     private NetworkStoreRepository networkStoreRepository;
 
     @DynamicPropertySource
-    private static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
+    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
         UUID uuid = UUID.randomUUID();
         registry.add("testDbSuffix", () -> uuid);
     }
