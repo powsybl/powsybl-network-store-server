@@ -26,7 +26,6 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.iidm.impl.ConfiguredBusImpl;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
 import com.powsybl.network.store.iidm.impl.NetworkImpl;
-import com.powsybl.network.store.model.CloneStrategy;
 import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
@@ -3731,7 +3730,7 @@ class NetworkStoreIT {
         // For an empty cache and buffer this should be the same as network.getVariantManager().cloneVariant()
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // clone initial variant to variant "v2" while nothing has been cached or modified
-            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v2", CloneStrategy.FULL);
+            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v2");
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.getNetwork(networkUuid);
@@ -3759,7 +3758,7 @@ class NetworkStoreIT {
 
             // clone initial variant after flush
             service.flush(network);
-            service.cloneVariant(networkUuid, "v2", "v3", CloneStrategy.FULL);
+            service.cloneVariant(networkUuid, "v2", "v3");
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.getNetwork(networkUuid);
@@ -3776,7 +3775,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // clone initial variant over existing
             PowsyblException ex = assertThrows(PowsyblException.class,
-                    () -> service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v3", CloneStrategy.FULL));
+                    () -> service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v3"));
             assertTrue(ex.getMessage().contains("already exists"));
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -3793,7 +3792,7 @@ class NetworkStoreIT {
         // Using NetworkStoreService.cloneVariant, testing maybeOverwrite
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // clone initial variant over existing with mayOverwrite=true
-            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v3", true, CloneStrategy.FULL);
+            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v3", true);
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.getNetwork(networkUuid);
@@ -3810,7 +3809,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // clone initial variant over existing with mayOverwrite=true
             PowsyblException ex = assertThrows(PowsyblException.class,
-                    () -> service.cloneVariant(networkUuid, "v2", INITIAL_VARIANT_ID, true, CloneStrategy.FULL));
+                    () -> service.cloneVariant(networkUuid, "v2", INITIAL_VARIANT_ID, true));
             assertTrue(ex.getMessage().contains("forbidden"));
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -4146,13 +4145,10 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Map<UUID, String> networkIds = service.getNetworkIds();
             UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
-            Network network = service.getNetwork(networkUuid);
             // Initial variant -> v1 (full clone)
-            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v1", CloneStrategy.FULL);
+            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v1");
             // v1 -> v2 (partial clone)
-            service.cloneVariant(networkUuid, "v1", "v2", CloneStrategy.PARTIAL);
-            // v2 -> v3 (partial clone)
-            network.getVariantManager().cloneVariant("v2", "v3");
+            service.cloneVariant(networkUuid, "v1", "v2");
         }
 
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -4161,65 +4157,15 @@ class NetworkStoreIT {
             NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
             // Initial variant (full variant)
             NetworkAttributes networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.PARTIAL, networkAttributes.getCloneStrategy());
-            assertEquals(-1, networkAttributes.getFullVariantNum());
-            // For a new network (cloned or created), we always set the clone strategy to PARTIAL
-            // v1 variant (full variant)
-            network.getVariantManager().setWorkingVariant("v1");
-            networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.PARTIAL, networkAttributes.getCloneStrategy());
-            assertEquals(-1, networkAttributes.getFullVariantNum());
-            // v2 variant (partial variant)
-            network.getVariantManager().setWorkingVariant("v2");
-            networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.PARTIAL, networkAttributes.getCloneStrategy());
-            assertEquals(1, networkAttributes.getFullVariantNum());
-            // v3 variant (partial variant)
-            network.getVariantManager().setWorkingVariant("v3");
-            networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.PARTIAL, networkAttributes.getCloneStrategy());
-            assertEquals(1, networkAttributes.getFullVariantNum());
-        }
-    }
-
-    @Test
-    void testPartialClone1() {
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
-            service.flush(network);
-        }
-
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Map<UUID, String> networkIds = service.getNetworkIds();
-            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
-            Network network = service.getNetwork(networkUuid);
-            // Initial variant -> v1 (full clone)
-            service.setCloneStrategy(network, CloneStrategy.FULL);
-            network.getVariantManager().cloneVariant(INITIAL_VARIANT_ID, "v1");
-            // v1 -> v2 (partial clone because clone strategy is overridden)
-            network.getVariantManager().setWorkingVariant("v1");
-            service.setCloneStrategy(network, CloneStrategy.FULL);
-            service.cloneVariant(networkUuid, "v1", "v2", CloneStrategy.PARTIAL);
-        }
-
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Map<UUID, String> networkIds = service.getNetworkIds();
-            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
-            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
-            // Initial variant (full variant)
-            NetworkAttributes networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.FULL, networkAttributes.getCloneStrategy());
             assertEquals(-1, networkAttributes.getFullVariantNum());
             // v1 variant (full variant)
             network.getVariantManager().setWorkingVariant("v1");
             networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.FULL, networkAttributes.getCloneStrategy());
-            assertEquals(-1, networkAttributes.getFullVariantNum());
+            assertEquals(0, networkAttributes.getFullVariantNum());
             // v2 variant (partial variant)
             network.getVariantManager().setWorkingVariant("v2");
             networkAttributes = network.getResource().getAttributes();
-            assertEquals(CloneStrategy.PARTIAL, networkAttributes.getCloneStrategy());
-            assertEquals(1, networkAttributes.getFullVariantNum());
+            assertEquals(0, networkAttributes.getFullVariantNum());
         }
     }
 }

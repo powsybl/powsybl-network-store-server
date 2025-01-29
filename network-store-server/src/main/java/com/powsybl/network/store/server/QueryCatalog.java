@@ -27,7 +27,6 @@ public final class QueryCatalog {
     static final String NETWORK_UUID_COLUMN = "networkUuid";
     static final String VARIANT_NUM_COLUMN = "variantNum";
     static final String SRC_VARIANT_NUM_COLUMN = "fullVariantNum";
-    static final String VARIANT_MODE_COLUMN = "cloneStrategy";
     static final String ID_COLUMN = "id";
     static final String VOLTAGE_LEVEL_ID_COLUMN = "voltageLevelId";
     static final String VOLTAGE_LEVEL_ID_1_COLUMN = "voltageLevelId1";
@@ -51,7 +50,7 @@ public final class QueryCatalog {
     static final String REGULATING = "regulating";
 
     static final Predicate<String> CLONE_PREDICATE = column -> !column.equals(UUID_COLUMN) && !column.equals(VARIANT_ID_COLUMN)
-            && !column.equals(NAME_COLUMN) && !column.equals(VARIANT_MODE_COLUMN) && !column.equals(SRC_VARIANT_NUM_COLUMN);
+            && !column.equals(NAME_COLUMN) && !column.equals(SRC_VARIANT_NUM_COLUMN);
     public static final String TOMBSTONED_IDENTIFIABLE_TABLE = "tombstonedidentifiable";
     public static final String TOMBSTONED_TAPCHANGER_STEP_TABLE = "tombstonedtapchangerstep";
     private static final String TOMBSTONED_TEMPORARY_LIMITS_TABLE = "tombstonedtemporarylimit";
@@ -186,7 +185,7 @@ public final class QueryCatalog {
     }
 
     public static String buildGetVariantsInfos() {
-        return "select " + VARIANT_ID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + VARIANT_MODE_COLUMN + ", " + SRC_VARIANT_NUM_COLUMN +
+        return "select " + VARIANT_ID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + SRC_VARIANT_NUM_COLUMN +
                 " from " + NETWORK_TABLE +
                 " where " + UUID_COLUMN + " = ?";
     }
@@ -296,7 +295,6 @@ public final class QueryCatalog {
                 VARIANT_ID_COLUMN + ", " +
                 UUID_COLUMN + ", " +
                 ID_COLUMN + ", " +
-                VARIANT_MODE_COLUMN + ", " +
                 SRC_VARIANT_NUM_COLUMN + ", " +
                 columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
                 ") " +
@@ -305,7 +303,6 @@ public final class QueryCatalog {
                 "?" + ", " +
                 UUID_COLUMN + ", " +
                 ID_COLUMN + ", " +
-                "?" + ", " +
                 "?" + ", " +
                 columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
                 " from network" + " " +

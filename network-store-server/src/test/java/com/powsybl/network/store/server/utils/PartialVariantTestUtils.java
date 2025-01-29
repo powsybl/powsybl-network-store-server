@@ -49,21 +49,20 @@ public final class PartialVariantTestUtils {
                 .build();
     }
 
-    public static void createNetwork(NetworkStoreRepository repository, UUID networkUuid, String networkId, int variantNum, String variantId, CloneStrategy cloneStrategy, int fullVariantNum) {
+    public static void createNetwork(NetworkStoreRepository repository, UUID networkUuid, String networkId, int variantNum, String variantId, int fullVariantNum) {
         Resource<NetworkAttributes> network1 = Resource.networkBuilder()
                 .id(networkId)
                 .variantNum(variantNum)
                 .attributes(NetworkAttributes.builder()
                         .uuid(networkUuid)
                         .variantId(variantId)
-                        .cloneStrategy(cloneStrategy)
                         .fullVariantNum(fullVariantNum)
                         .build())
                 .build();
         repository.createNetworks(List.of(network1));
     }
 
-    public static void createFullVariantNetwork(NetworkStoreRepository repository, UUID networkUuid, String networkId, int variantNum, String variantId, CloneStrategy cloneStrategy) {
-        createNetwork(repository, networkUuid, networkId, variantNum, variantId, cloneStrategy, -1);
+    public static void createFullVariantNetwork(NetworkStoreRepository repository, UUID networkUuid, String networkId, int variantNum, String variantId) {
+        createNetwork(repository, networkUuid, networkId, variantNum, variantId, -1);
     }
 }

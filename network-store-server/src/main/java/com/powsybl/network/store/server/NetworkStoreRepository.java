@@ -31,8 +31,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import javax.sql.DataSource;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -443,45 +441,37 @@ public class NetworkStoreRepository {
         LOGGER.info("Network clone done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    public void cloneNetworkVariant(UUID uuid, int sourceVariantNum, int targetVariantNum, String targetVariantId, CloneStrategy cloneStrategy) {
+    public void cloneNetworkVariant(UUID uuid, int sourceVariantNum, int targetVariantNum, String targetVariantId) {
         String nonNullTargetVariantId = targetVariantId == null ? "variant-" + UUID.randomUUID() : targetVariantId;
         var stopwatch = Stopwatch.createStarted();
 
         try (var connection = dataSource.getConnection()) {
             NetworkAttributes sourceNetwork = getNetworkAttributes(connection, uuid, sourceVariantNum);
-            CloneStrategy nonNullCloneStrategy = cloneStrategy == null ? sourceNetwork.getCloneStrategy() : cloneStrategy;
-            LOGGER.info("Cloning network {} variant {} to variant {} ({} clone)", uuid, sourceVariantNum, targetVariantNum, nonNullCloneStrategy);
-            int fullVariantNum = getFullVariantNum(sourceVariantNum, sourceNetwork, nonNullCloneStrategy);
+            LOGGER.info("Cloning network {} variant {} to variant {}", uuid, sourceVariantNum, targetVariantNum);
+            int fullVariantNum = getFullVariantNum(sourceVariantNum, sourceNetwork);
             try (var preparedStmt = connection.prepareStatement(buildCloneNetworksQuery(mappings.getNetworkMappings().getColumnsMapping().keySet()))) {
                 preparedStmt.setInt(1, targetVariantNum);
                 preparedStmt.setString(2, nonNullTargetVariantId);
-                // For a new network (cloned or created), we reset the clone strategy to default
-                preparedStmt.setString(3, mapper.writeValueAsString(NetworkAttributes.DEFAULT_CLONE_STRATEGY));
-                preparedStmt.setInt(4, fullVariantNum);
-                preparedStmt.setObject(5, uuid);
-                preparedStmt.setInt(6, sourceVariantNum);
+                preparedStmt.setInt(3, fullVariantNum);
+                preparedStmt.setObject(4, uuid);
+                preparedStmt.setInt(5, sourceVariantNum);
                 preparedStmt.execute();
             }
-            boolean cloneNetworkElements = nonNullCloneStrategy == CloneStrategy.FULL || nonNullCloneStrategy == CloneStrategy.PARTIAL && !sourceNetwork.isFullVariant();
+            boolean cloneNetworkElements = !sourceNetwork.isFullVariant();
             cloneNetworkElements(connection, uuid, uuid, sourceVariantNum, targetVariantNum, cloneNetworkElements);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
 
         stopwatch.stop();
         LOGGER.info("Network variant clone done in {} ms", stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    private static int getFullVariantNum(int sourceVariantNum, NetworkAttributes sourceNetwork, CloneStrategy cloneStrategy) {
+    private static int getFullVariantNum(int sourceVariantNum, NetworkAttributes sourceNetwork) {
         int fullVariantNum = sourceNetwork.getFullVariantNum();
-        if (cloneStrategy == CloneStrategy.PARTIAL && sourceNetwork.isFullVariant()) {
+        if (sourceNetwork.isFullVariant()) {
             // Override fullVariantNum when it's a clone from full to partial variant
             fullVariantNum = sourceVariantNum;
-        } else if (cloneStrategy == CloneStrategy.FULL && !sourceNetwork.isFullVariant()) {
-            // Clone partial to full variant is not implemented yet
-            throw new PowsyblException("Not implemented");
         }
         return fullVariantNum;
     }
@@ -558,7 +548,7 @@ public class NetworkStoreRepository {
         LOGGER.info("Cloned {} identifiables in {}ms", totalIdentifiablesCloned, stopwatch.elapsed(TimeUnit.MILLISECONDS));
     }
 
-    public void cloneNetwork(UUID networkUuid, String sourceVariantId, String targetVariantId, boolean mayOverwrite, CloneStrategy cloneStrategy) {
+    public void cloneNetwork(UUID networkUuid, String sourceVariantId, String targetVariantId, boolean mayOverwrite) {
         List<VariantInfos> variantsInfos = getVariantsInfos(networkUuid);
         Optional<VariantInfos> targetVariant = VariantUtils.getVariant(targetVariantId, variantsInfos);
         if (targetVariant.isPresent()) {
@@ -573,7 +563,7 @@ public class NetworkStoreRepository {
         }
         int sourceVariantNum = VariantUtils.getVariantNum(sourceVariantId, variantsInfos);
         int targetVariantNum = VariantUtils.findFistAvailableVariantNum(variantsInfos);
-        cloneNetworkVariant(networkUuid, sourceVariantNum, targetVariantNum, targetVariantId, cloneStrategy);
+        cloneNetworkVariant(networkUuid, sourceVariantNum, targetVariantNum, targetVariantId);
     }
 
     public <T extends IdentifiableAttributes> void createIdentifiables(UUID networkUuid, List<Resource<T>> resources,

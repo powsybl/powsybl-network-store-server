@@ -52,11 +52,10 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
 
     @Test
-    void getNetworkContainsCloneStrategyFullVariantNum() {
+    void getNetworkContainsFullVariantNum() {
         String networkId = "network1";
         int variantNum = 12;
         String variantId = VariantManagerConstants.INITIAL_VARIANT_ID;
-        CloneStrategy cloneStrategy = CloneStrategy.FULL;
         int fullVariantNum = 8;
         Resource<NetworkAttributes> network1 = Resource.networkBuilder()
                 .id(networkId)
@@ -64,7 +63,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(variantId)
-                        .cloneStrategy(cloneStrategy)
                         .fullVariantNum(fullVariantNum)
                         .build())
                 .build();
@@ -78,12 +76,11 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(variantNum, networkAttributes.getVariantNum());
         assertEquals(NETWORK_UUID, networkAttributes.getAttributes().getUuid());
         assertEquals(variantId, networkAttributes.getAttributes().getVariantId());
-        assertEquals(cloneStrategy, networkAttributes.getAttributes().getCloneStrategy());
         assertEquals(fullVariantNum, networkAttributes.getAttributes().getFullVariantNum());
     }
 
     @Test
-    void updateNetworkUpdatesCloneStrategyFullVariantNum() {
+    void updateNetworkUpdatesFullVariantNum() {
         String networkId = "network1";
         int variantNum = 3;
         String variantId = VariantManagerConstants.INITIAL_VARIANT_ID;
@@ -93,13 +90,11 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(variantId)
-                        .cloneStrategy(CloneStrategy.PARTIAL)
                         .fullVariantNum(-1)
                         .build())
                 .build();
         networkStoreRepository.createNetworks(List.of(network1));
 
-        CloneStrategy cloneStrategy = CloneStrategy.FULL;
         int fullVariantNum = 2;
         network1 = Resource.networkBuilder()
                 .id(networkId)
@@ -107,7 +102,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(variantId)
-                        .cloneStrategy(cloneStrategy)
                         .fullVariantNum(fullVariantNum)
                         .build())
                 .build();
@@ -120,7 +114,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(variantNum, networkAttributes.getVariantNum());
         assertEquals(NETWORK_UUID, networkAttributes.getAttributes().getUuid());
         assertEquals(variantId, networkAttributes.getAttributes().getVariantId());
-        assertEquals(cloneStrategy, networkAttributes.getAttributes().getCloneStrategy());
         assertEquals(fullVariantNum, networkAttributes.getAttributes().getFullVariantNum());
     }
 
@@ -131,9 +124,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String lineId1 = "line1";
         String loadId2 = "load2";
         String lineId2 = "line2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId2, lineId2, "vl1", "vl2");
         UUID targetNetworkUuid = UUID.fromString("0dd45074-009d-49b8-877f-8ae648a8e8b4");
 
@@ -147,7 +140,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(0, networkAttributesVariant0.getVariantNum());
         assertEquals(targetNetworkUuid, networkAttributesVariant0.getAttributes().getUuid());
         assertEquals("variant0", networkAttributesVariant0.getAttributes().getVariantId());
-        assertEquals(CloneStrategy.PARTIAL, networkAttributesVariant0.getAttributes().getCloneStrategy());
         assertEquals(-1, networkAttributesVariant0.getAttributes().getFullVariantNum());
         assertEquals(List.of(loadId1, lineId1), getIdentifiableIdsForVariant(targetNetworkUuid, 0));
 
@@ -159,7 +151,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(1, networkAttributesVariant1.getVariantNum());
         assertEquals(targetNetworkUuid, networkAttributesVariant1.getAttributes().getUuid());
         assertEquals("variant1", networkAttributesVariant1.getAttributes().getVariantId());
-        assertEquals(CloneStrategy.PARTIAL, networkAttributesVariant1.getAttributes().getCloneStrategy());
         assertEquals(0, networkAttributesVariant1.getAttributes().getFullVariantNum());
         assertEquals(List.of(loadId2, lineId2), getIdentifiableIdsForVariant(targetNetworkUuid, 1));
     }
@@ -171,9 +162,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String lineId1 = "line1";
         String loadId2 = "load2";
         String lineId2 = "line2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId2, lineId2, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(lineId1), LINE_TABLE);
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(loadId1), LOAD_TABLE);
@@ -192,11 +183,11 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId2 = "load2";
         String lineId2 = "line2";
-        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", CloneStrategy.PARTIAL, 0);
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId2, lineId2, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(loadId2), LOAD_TABLE);
 
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
 
         assertEquals(List.of(lineId2), getIdentifiableIdsForVariant(NETWORK_UUID, 2));
         assertEquals(Set.of(loadId2), getTombstonedIdentifiableIds(NETWORK_UUID, 2));
@@ -212,39 +203,14 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String lineId1 = "line1";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(loadId1), LOAD_TABLE);
 
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
         assertTrue(getIdentifiableIdsForVariant(NETWORK_UUID, 1).isEmpty());
         assertTrue(getTombstonedIdentifiableIds(NETWORK_UUID, 1).isEmpty());
-    }
-
-    @Test
-    void cloneFullVariantInFullMode() {
-        String networkId = "network1";
-        String loadId1 = "load1";
-        String lineId1 = "line1";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.FULL);
-        createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.FULL);
-
-        assertEquals(List.of(loadId1, lineId1), getIdentifiableIdsForVariant(NETWORK_UUID, 1));
-    }
-
-    @Test
-    void clonePartialVariantInFullModeShouldThrow() {
-        String networkId = "network1";
-        String loadId1 = "load1";
-        String lineId1 = "line1";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
-        createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
-        Exception exception = assertThrows(PowsyblException.class, () -> networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2", CloneStrategy.FULL));
-        assertEquals("Not implemented", exception.getMessage());
     }
 
     @Test
@@ -270,10 +236,10 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String lineId1 = "line1";
         String loadId2 = "load2";
         String lineId2 = "line2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId2, lineId2, "vl3", "vl4");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
         List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, 1);
         assertEquals(List.of(loadId1, loadId2, lineId1, lineId2), identifiablesIds);
@@ -299,9 +265,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String lineId1 = "line1";
         String loadId2 = "load2";
         String lineId2 = "line2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId2, lineId2, "vl1", "vl2");
 
         List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, 1);
@@ -322,9 +288,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String lineId1 = "line1";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId1, lineId1, "vl2", "vl3");
 
         List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, 1);
@@ -345,7 +311,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String lineId1 = "line1";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 2, "variant2", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 2, "variant2");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 2, loadId1, lineId1, "vl1", "vl2");
 
         List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, 2);
@@ -367,9 +333,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String lineId1 = "line1";
         String loadId2 = "load2";
         String lineId2 = "line2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId2, lineId2, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(lineId1), LINE_TABLE);
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(loadId1), LOAD_TABLE);
@@ -394,7 +360,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String lineId1 = "line1";
         String lineId2 = "line2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LineAttributes> line1 = Resource.lineBuilder()
                 .id(lineId1)
                 .variantNum(0)
@@ -408,7 +374,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLines(NETWORK_UUID, List.of(line1));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         Resource<LineAttributes> line2 = Resource.lineBuilder()
                 .id(lineId2)
                 .variantNum(1)
@@ -462,7 +428,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String lineId1 = "line1";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(loadId1), LOAD_TABLE);
 
@@ -475,7 +441,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String lineId1 = "line1";
-        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", CloneStrategy.PARTIAL, 0);
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId1, lineId1, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(loadId1), LOAD_TABLE);
 
@@ -489,7 +455,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     @Test
     void createIdentifiablesInPartialVariant() {
         String networkId = "network1";
-        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", CloneStrategy.PARTIAL, 0);
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
         Resource<LineAttributes> line2 = createLine(networkStoreRepository, NETWORK_UUID, 1, "line2", "vl2", "vl3");
 
         assertEquals(List.of(line2), getIdentifiablesForVariant(NETWORK_UUID, 1, mappings.getLineMappings()));
@@ -500,11 +466,11 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     void createIdentifiablesWithRecreatedTombstonedIdentifiable() {
         String networkId = "network1";
         // Variant 0
-        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", CloneStrategy.PARTIAL, 0);
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
         String lineId1 = "line1";
         createLine(networkStoreRepository, NETWORK_UUID, 1, lineId1, "vl1", "vl2");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(lineId1), LINE_TABLE);
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant1");
         // Variant 2
         Resource<LineAttributes> lineVariant2 = createLine(networkStoreRepository, NETWORK_UUID, 2, lineId1, "vl2", "vl3");
 
@@ -549,7 +515,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     private void testUpdateIdentifiablesNotExistingInPartialVariant(BiConsumer<UUID, List<Resource<LoadAttributes>>> updateMethod) {
         String networkId = "network1";
         String loadId = "load";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LoadAttributes> initialLoad = Resource.loadBuilder()
                 .id(loadId)
                 .variantNum(0)
@@ -560,7 +526,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(initialLoad));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
         Resource<LoadAttributes> updatedLoad = Resource.loadBuilder()
                 .id(loadId)
@@ -580,7 +546,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     void updateIdentifiablesSvNotExistingInPartialVariant() {
         String networkId = "network1";
         String loadId = "load";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LoadAttributes> initialLoad = Resource.loadBuilder()
                 .id(loadId)
                 .variantNum(0)
@@ -591,7 +557,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(initialLoad));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
         InjectionSvAttributes injectionSvAttributes = InjectionSvAttributes.builder()
                 .p(5.6)
@@ -638,7 +604,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     private void testUpdateIdentifiablesAlreadyExistingInPartialVariant(BiConsumer<UUID, List<Resource<LoadAttributes>>> updateMethod) {
         String networkId = "network1";
         String loadId = "load";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LoadAttributes> initialLoad = Resource.loadBuilder()
                 .id(loadId)
                 .variantNum(0)
@@ -649,7 +615,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(initialLoad));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         Resource<LoadAttributes> updatedLoad = Resource.loadBuilder()
                 .id(loadId)
                 .variantNum(1)
@@ -679,7 +645,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     void updateIdentifiablesSvAlreadyExistingInPartialVariant() {
         String networkId = "network1";
         String loadId = "load";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LoadAttributes> initialLoad = Resource.loadBuilder()
                 .id(loadId)
                 .variantNum(0)
@@ -690,7 +656,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(initialLoad));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         InjectionSvAttributes injectionSvAttributes = InjectionSvAttributes.builder()
                 .p(5.6)
                 .q(6.6)
@@ -744,7 +710,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String loadId2 = "load2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LoadAttributes> initialLoad1 = Resource.loadBuilder()
                 .id(loadId1)
                 .variantNum(0)
@@ -764,7 +730,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(initialLoad1, initialLoad2));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         Resource<LoadAttributes> updatedLoad2 = Resource.loadBuilder()
                 .id(loadId2)
                 .variantNum(1)
@@ -805,7 +771,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String networkId = "network1";
         String loadId1 = "load1";
         String loadId2 = "load2";
-        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0", CloneStrategy.PARTIAL);
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
         Resource<LoadAttributes> initialLoad1 = Resource.loadBuilder()
                 .id(loadId1)
                 .variantNum(0)
@@ -825,7 +791,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .build())
                 .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(initialLoad1, initialLoad2));
-        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1", CloneStrategy.PARTIAL);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         InjectionSvAttributes injectionSvAttributes = InjectionSvAttributes.builder()
                 .p(5.6)
                 .q(6.6)
