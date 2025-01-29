@@ -7,3 +7,7 @@ powsybl-ws:
     hostPort: ":"
     name: iidm_${testDbSuffix}
     customQuery: ~
+
+logging:
+  level:
+    liquibase: ERROR #  too verbose to dump liquibase operations at the begining of each test
