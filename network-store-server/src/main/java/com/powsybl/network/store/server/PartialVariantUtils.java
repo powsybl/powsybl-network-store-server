@@ -13,6 +13,7 @@ import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.apache.commons.lang3.function.TriFunction;
 
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -182,10 +183,9 @@ public final class PartialVariantUtils {
     }
 
     public static <T extends Attributes> Optional<Resource<T>> getOptionalIdentifiable(
-            String identifiableId,
             int variantNum,
             int fullVariantNum,
-            Supplier<Set<String>> fetchTombstonedIdentifiableIds,
+            BooleanSupplier fetchIsTombstonedIdentifiable,
             IntFunction<Optional<Resource<T>>> fetchIdentifiableInVariant) {
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve identifiables directly
@@ -198,8 +198,7 @@ public final class PartialVariantUtils {
             return partialVariantIdentifiable;
         }
 
-        Set<String> tombstonedIds = fetchTombstonedIdentifiableIds.get();
-        if (tombstonedIds.contains(identifiableId)) {
+        if (fetchIsTombstonedIdentifiable.getAsBoolean()) {
             // Return empty if the identifiable is marked as tombstoned
             return Optional.empty();
         }

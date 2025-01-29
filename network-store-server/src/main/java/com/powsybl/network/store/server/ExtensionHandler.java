@@ -20,6 +20,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 import static com.powsybl.network.store.server.NetworkStoreRepository.BATCH_SIZE;
@@ -93,7 +94,7 @@ public class ExtensionHandler {
             String identifiableId,
             String extensionName,
             int fullVariantNum,
-            Supplier<Set<String>> tombstonedIdsSupplier) throws SQLException {
+            BooleanSupplier isTombstonedIdentifiableSupplier) throws SQLException {
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve extensions for the specified variant directly
             return getExtensionAttributesForVariant(connection, networkId, variantNum, identifiableId, extensionName);
@@ -108,8 +109,7 @@ public class ExtensionHandler {
         // Return empty if it's a tombstoned extension or identifiable
         Map<String, Set<String>> tombstonedExtensions = getTombstonedExtensions(connection, networkId, variantNum);
         boolean isTombstonedExtension = tombstonedExtensions.containsKey(identifiableId) && tombstonedExtensions.get(identifiableId).contains(extensionName);
-        Set<String> tombstonedIds = tombstonedIdsSupplier.get();
-        boolean isTombstonedIdentifiable = tombstonedIds.contains(identifiableId);
+        boolean isTombstonedIdentifiable = isTombstonedIdentifiableSupplier.getAsBoolean();
         if (isTombstonedIdentifiable || isTombstonedExtension) {
             return Optional.empty();
         }
@@ -119,7 +119,7 @@ public class ExtensionHandler {
     }
 
     public Optional<ExtensionAttributes> getExtensionAttributesForVariant(Connection connection, UUID networkUuid, int variantNum, String identifiableId, String extensionName) {
-        try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildGetExtensionsQuery());) {
+        try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildGetExtensionsQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, identifiableId);
@@ -203,14 +203,13 @@ public class ExtensionHandler {
             int variantNum,
             String identifiableId,
             int fullVariantNum,
-            Supplier<Set<String>> tombstonedIdsSupplier) throws SQLException {
+            BooleanSupplier isTombstonedIdentifiableSupplier) throws SQLException {
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve extensions for the specified variant directly
             return getAllExtensionsAttributesByIdentifiableIdForVariant(connection, networkId, variantNum, identifiableId);
         }
 
-        Set<String> tombstonedIds = tombstonedIdsSupplier.get();
-        if (tombstonedIds.contains(identifiableId)) {
+        if (isTombstonedIdentifiableSupplier.getAsBoolean()) {
             // If the identifiable is tombstoned, we return directly
             return Map.of();
         }

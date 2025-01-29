@@ -321,6 +321,11 @@ public final class QueryCatalog {
         return TombstonedQueryUtils.buildGetQuery(TOMBSTONED_IDENTIFIABLE_TABLE);
     }
 
+    public static String buildIsTombstonedIdentifiableQuery() {
+        return "select 1 from " + TOMBSTONED_IDENTIFIABLE_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? and " + EQUIPMENT_ID_COLUMN + " = ? limit 1";
+    }
+
     public static String buildDeleteTombstonedIdentifiablesQuery() {
         return TombstonedQueryUtils.buildDeleteQuery(TOMBSTONED_IDENTIFIABLE_TABLE);
     }

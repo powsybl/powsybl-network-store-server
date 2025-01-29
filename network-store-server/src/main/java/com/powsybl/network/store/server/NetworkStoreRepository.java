@@ -615,10 +615,9 @@ public class NetworkStoreRepository {
                                                                                      TableMapping tableMapping) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOptionalIdentifiable(
-                    equipmentId,
                     variantNum,
                     getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
-                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    () -> isTombstonedIdentifiable(connection, networkUuid, variantNum, equipmentId),
                     variant -> getIdentifiableForVariant(connection, networkUuid, variant, equipmentId, tableMapping, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
@@ -1229,6 +1228,19 @@ public class NetworkStoreRepository {
             throw new UncheckedSqlException(e);
         }
         return tombstonedIdentifiableIds;
+    }
+
+    private boolean isTombstonedIdentifiable(Connection connection, UUID networkUuid, int variantNum, String equipmentId) {
+        try (var preparedStmt = connection.prepareStatement(buildIsTombstonedIdentifiableQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, equipmentId);
+            try (var resultSet = preparedStmt.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
     }
 
     public List<Resource<GeneratorAttributes>> getVoltageLevelGenerators(UUID networkUuid, int variantNum, String voltageLevelId) {
@@ -2149,10 +2161,9 @@ public class NetworkStoreRepository {
     public Optional<Resource<IdentifiableAttributes>> getIdentifiable(UUID networkUuid, int variantNum, String id) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOptionalIdentifiable(
-                    id,
                     variantNum,
                     getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
-                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    () -> isTombstonedIdentifiable(connection, networkUuid, variantNum, id),
                     variant -> getIdentifiableForVariant(connection, networkUuid, variant, id, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
@@ -3580,7 +3591,7 @@ public class NetworkStoreRepository {
                     identifiableId,
                     extensionName,
                     fullVariantNum,
-                    () -> getTombstonedIdentifiableIds(connection, networkId, variantNum));
+                    () -> isTombstonedIdentifiable(connection, networkId, variantNum, identifiableId));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -3611,7 +3622,7 @@ public class NetworkStoreRepository {
                     variantNum,
                     identifiableId,
                     fullVariantNum,
-                    () -> getTombstonedIdentifiableIds(connection, networkId, variantNum));
+                    () -> isTombstonedIdentifiable(connection, networkId, variantNum, identifiableId));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
