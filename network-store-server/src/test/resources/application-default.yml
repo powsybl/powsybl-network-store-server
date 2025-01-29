@@ -10,5 +10,7 @@ powsybl-ws:
 
 logging:
   level:
+    # suppress db config startup logs, they appear hundred of times
+    # because we don't reuse spring context to drop the in memory db
+    com.zaxxer.hikari.HikariConfig: INFO
     liquibase: ERROR #  too verbose to dump liquibase operations at the begining of each test
-    com.zaxxer.hikari.HikariConfig: INFO # too verbose to dump the full config at the begining of each test
