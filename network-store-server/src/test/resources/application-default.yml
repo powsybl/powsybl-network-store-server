@@ -11,3 +11,4 @@ powsybl-ws:
 logging:
   level:
     liquibase: ERROR #  too verbose to dump liquibase operations at the begining of each test
+    com.zaxxer.hikari.HikariConfig: INFO # too verbose to dump the full config at the begining of each test
