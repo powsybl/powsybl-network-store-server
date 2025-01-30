@@ -40,8 +40,6 @@ public final class QueryCatalog {
     static final String INDEX_COLUMN = "index";
     static final String TAPCHANGER_TYPE_COLUMN = "tapChangerType";
     static final String ALPHA_COLUMN = "alpha";
-    public static final String V211_TEMPORARY_LIMIT_TABLE = "v211temporarylimit";
-    public static final String V211_PERMANENT_LIMIT_TABLE = "v211permanentlimit";
     static final String TEMPORARY_LIMITS_TABLE = "temporarylimits";
     static final String TEMPORARY_LIMITS_COLUMN = "temporarylimits";
     static final String PERMANENT_LIMITS_TABLE = "permanentlimits";

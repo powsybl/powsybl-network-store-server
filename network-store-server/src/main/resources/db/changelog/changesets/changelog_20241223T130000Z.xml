@@ -5,7 +5,7 @@
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet author="homereti" id="8428118131015-1">
-        <customChange class="com.powsybl.network.store.server.migration.V211LimitsMigration"/>
+        <customChange class="com.powsybl.network.store.server.migration.v211limits.V211LimitsMigration"/>
     </changeSet>
 
 </databaseChangeLog>

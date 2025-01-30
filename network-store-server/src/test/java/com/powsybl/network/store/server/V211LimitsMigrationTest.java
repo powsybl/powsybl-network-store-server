@@ -36,6 +36,8 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static com.powsybl.network.store.server.NetworkStoreRepository.BATCH_SIZE;
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.Utils.bindValues;
+import static com.powsybl.network.store.server.migration.v211limits.V211LimitsQueryCatalog.V211_PERMANENT_LIMIT_TABLE;
+import static com.powsybl.network.store.server.migration.v211limits.V211LimitsQueryCatalog.V211_TEMPORARY_LIMIT_TABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
