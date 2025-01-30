@@ -6,23 +6,28 @@
  */
 package com.powsybl.network.store.server;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.model.utils.VariantUtils;
 import com.powsybl.network.store.server.dto.LimitsInfos;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
+import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import com.powsybl.network.store.server.json.PermanentLimitSqlData;
+import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
 import com.powsybl.ws.commons.LogUtils;
+import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
@@ -31,10 +36,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.UncheckedIOException;
+import java.sql.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -64,6 +67,7 @@ public class NetworkStoreRepository {
         this.extensionHandler = extensionHandler;
     }
 
+    @Getter
     private final DataSource dataSource;
 
     private final ObjectMapper mapper;
@@ -666,7 +670,7 @@ public class NetworkStoreRepository {
         Resource<GeneratorAttributes> generatorAttributesResource = (Resource<GeneratorAttributes>) resource;
         Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertReactiveCapabilityCurvePointsInEquipments(networkUuid, List.of(generatorAttributesResource), reactiveCapabilityCurvePoints);
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, generatorAttributesResource, ResourceType.GENERATOR);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, generatorAttributesResource, ResourceType.GENERATOR);
         return resource;
     }
 
@@ -683,20 +687,24 @@ public class NetworkStoreRepository {
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeTwoWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
+        Resource<TwoWindingsTransformerAttributes> twoWindingsTransformerResource = (Resource<TwoWindingsTransformerAttributes>) resource;
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        insertLimitsInEquipments(networkUuid, List.of((Resource<TwoWindingsTransformerAttributes>) resource), limitsInfos);
+        insertLimitsInEquipments(networkUuid, List.of(twoWindingsTransformerResource), limitsInfos);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        insertTapChangerStepsInEquipments(networkUuid, List.of((Resource<TwoWindingsTransformerAttributes>) resource), tapChangerSteps);
+        insertTapChangerStepsInEquipments(networkUuid, List.of(twoWindingsTransformerResource), tapChangerSteps);
+        insertRegulatingPointIntoTwoWindingsTransformer(networkUuid, variantNum, equipmentId, twoWindingsTransformerResource);
         return resource;
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeThreeWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
+        Resource<ThreeWindingsTransformerAttributes> threeWindingsTransformerResource = (Resource<ThreeWindingsTransformerAttributes>) resource;
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        insertLimitsInEquipments(networkUuid, List.of((Resource<ThreeWindingsTransformerAttributes>) resource), limitsInfos);
+        insertLimitsInEquipments(networkUuid, List.of(threeWindingsTransformerResource), limitsInfos);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        insertTapChangerStepsInEquipments(networkUuid, List.of((Resource<ThreeWindingsTransformerAttributes>) resource), tapChangerSteps);
+        insertTapChangerStepsInEquipments(networkUuid, List.of(threeWindingsTransformerResource), tapChangerSteps);
+        insertRegulatingPointIntoThreeWindingsTransformer(networkUuid, variantNum, equipmentId, threeWindingsTransformerResource);
         return resource;
     }
 
@@ -704,7 +712,7 @@ public class NetworkStoreRepository {
         Resource<VscConverterStationAttributes> vscConverterStationAttributesResource = (Resource<VscConverterStationAttributes>) resource;
         Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertReactiveCapabilityCurvePointsInEquipments(networkUuid, List.of(vscConverterStationAttributesResource), reactiveCapabilityCurvePoints);
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, vscConverterStationAttributesResource, ResourceType.VSC_CONVERTER_STATION);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, vscConverterStationAttributesResource, ResourceType.VSC_CONVERTER_STATION);
         return resource;
     }
 
@@ -716,13 +724,13 @@ public class NetworkStoreRepository {
 
     private <T extends IdentifiableAttributes> Resource<T> completeStaticVarCompensatorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<StaticVarCompensatorAttributes> staticVarCompensatorAttributesResource = (Resource<StaticVarCompensatorAttributes>) resource;
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, staticVarCompensatorAttributesResource, ResourceType.STATIC_VAR_COMPENSATOR);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, staticVarCompensatorAttributesResource, ResourceType.STATIC_VAR_COMPENSATOR);
         return resource;
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeShuntCompensatorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<ShuntCompensatorAttributes> shuntCompensatorAttributesResource = (Resource<ShuntCompensatorAttributes>) resource;
-        insertRegulatingPointIntoEquipment(networkUuid, variantNum, equipmentId, shuntCompensatorAttributesResource, ResourceType.SHUNT_COMPENSATOR);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, shuntCompensatorAttributesResource, ResourceType.SHUNT_COMPENSATOR);
         return resource;
     }
 
@@ -1123,7 +1131,7 @@ public class NetworkStoreRepository {
 
         // Now that generators are created, we will insert in the database the corresponding reactive capability curve points.
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<GeneratorAttributes>> getGenerator(UUID networkUuid, int variantNum, String generatorId) {
@@ -1404,7 +1412,7 @@ public class NetworkStoreRepository {
     // shunt compensator
     public void createShuntCompensators(UUID networkUuid, List<Resource<ShuntCompensatorAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getShuntCompensatorMappings());
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<ShuntCompensatorAttributes>> getShuntCompensator(UUID networkUuid, int variantNum, String shuntCompensatorId) {
@@ -1451,7 +1459,7 @@ public class NetworkStoreRepository {
 
         // Now that vsc converter stations are created, we will insert in the database the corresponding reactive capability curve points.
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<VscConverterStationAttributes>> getVscConverterStation(UUID networkUuid, int variantNum, String vscConverterStationId) {
@@ -1533,7 +1541,7 @@ public class NetworkStoreRepository {
     // static var compensators
     public void createStaticVarCompensators(UUID networkUuid, List<Resource<StaticVarCompensatorAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getStaticVarCompensatorMappings());
-        insertRegulatingPoints(getRegulatingPointFromEquipment(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<StaticVarCompensatorAttributes>> getStaticVarCompensator(UUID networkUuid, int variantNum, String staticVarCompensatorId) {
@@ -1638,6 +1646,7 @@ public class NetworkStoreRepository {
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfosFromEquipments(networkUuid, resources);
         insertTemporaryLimits(limitsInfos);
         insertPermanentLimits(limitsInfos);
+        insertRegulatingPoints(getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
 
         // Now that twowindingstransformers are created, we will insert in the database the corresponding tap Changer steps.
         insertTapChangerSteps(getTapChangerStepsFromEquipment(networkUuid, resources));
@@ -1655,8 +1664,8 @@ public class NetworkStoreRepository {
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.TWO_WINDINGS_TRANSFORMER.toString());
         insertTapChangerStepsInEquipments(networkUuid, twoWindingsTransformers, tapChangerSteps);
-
-        setRegulatingEquipments(twoWindingsTransformers, networkUuid, variantNum, ResourceType.TWO_WINDINGS_TRANSFORMER);
+        // regulating points
+        setRegulatingPointAndRegulatingEquipmentsForTwoWindingsTransformers(twoWindingsTransformers, networkUuid, variantNum);
 
         return twoWindingsTransformers;
     }
@@ -1672,7 +1681,8 @@ public class NetworkStoreRepository {
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerStepsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
         insertTapChangerStepsInEquipments(networkUuid, twoWindingsTransformers, tapChangerSteps);
 
-        setRegulatingEquipmentsWithIds(twoWindingsTransformers, networkUuid, variantNum, ResourceType.TWO_WINDINGS_TRANSFORMER, equipmentsIds);
+        // regulating points
+        setRegulatingPointAndRegulatingEquipmentsWithIdsForTwoWindingsTransformers(twoWindingsTransformers, networkUuid, variantNum);
 
         return twoWindingsTransformers;
     }
@@ -1684,6 +1694,7 @@ public class NetworkStoreRepository {
         updateTemporaryLimits(networkUuid, resources, limitsInfos);
         updatePermanentLimits(networkUuid, resources, limitsInfos);
         updateTapChangerSteps(networkUuid, resources);
+        updateRegulatingPoints(networkUuid, resources, ResourceType.TWO_WINDINGS_TRANSFORMER);
     }
 
     public <T extends IdentifiableAttributes> void updateTapChangerSteps(UUID networkUuid, List<Resource<T>> resources) {
@@ -1742,12 +1753,13 @@ public class NetworkStoreRepository {
         deleteTemporaryLimits(networkUuid, variantNum, twoWindingsTransformerIds);
         deletePermanentLimits(networkUuid, variantNum, twoWindingsTransformerIds);
         deleteTapChangerSteps(networkUuid, variantNum, twoWindingsTransformerIds);
+        deleteRegulatingPoints(networkUuid, variantNum, twoWindingsTransformerIds, ResourceType.TWO_WINDINGS_TRANSFORMER);
     }
 
     // 3 windings transformer
-
     public void createThreeWindingsTransformers(UUID networkUuid, List<Resource<ThreeWindingsTransformerAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getThreeWindingsTransformerMappings());
+        insertRegulatingPoints(getRegulatingPointFromThreeWindingTransformers(networkUuid, resources));
 
         // Now that threewindingstransformers are created, we will insert in the database the corresponding temporary limits.
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfosFromEquipments(networkUuid, resources);
@@ -1771,8 +1783,7 @@ public class NetworkStoreRepository {
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
         insertTapChangerStepsInEquipments(networkUuid, threeWindingsTransformers, tapChangerSteps);
 
-        setRegulatingEquipments(threeWindingsTransformers, networkUuid, variantNum, ResourceType.THREE_WINDINGS_TRANSFORMER);
-
+        setRegulatingPointAndRegulatingEquipmentsForThreeWindingsTransformers(threeWindingsTransformers, networkUuid, variantNum);
         return threeWindingsTransformers;
     }
 
@@ -1786,7 +1797,7 @@ public class NetworkStoreRepository {
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerStepsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
         insertTapChangerStepsInEquipments(networkUuid, threeWindingsTransformers, tapChangerSteps);
-        setRegulatingEquipmentsWithIds(threeWindingsTransformers, networkUuid, variantNum, ResourceType.THREE_WINDINGS_TRANSFORMER, equipmentsIds);
+        setRegulatingPointAndRegulatingEquipmentsForThreeWindingsTransformersWithIds(threeWindingsTransformers, networkUuid, variantNum);
         return threeWindingsTransformers;
     }
 
@@ -1797,6 +1808,7 @@ public class NetworkStoreRepository {
         updateTemporaryLimits(networkUuid, resources, limitsInfos);
         updatePermanentLimits(networkUuid, resources, limitsInfos);
         updateTapChangerSteps(networkUuid, resources);
+        updateRegulatingPoints(networkUuid, resources, ResourceType.THREE_WINDINGS_TRANSFORMER);
     }
 
     public void updateThreeWindingsTransformersSv(UUID networkUuid, List<Resource<ThreeWindingsTransformerSvAttributes>> resources) {
@@ -1815,6 +1827,7 @@ public class NetworkStoreRepository {
         deleteTemporaryLimits(networkUuid, variantNum, threeWindingsTransformerIds);
         deletePermanentLimits(networkUuid, variantNum, threeWindingsTransformerIds);
         deleteTapChangerSteps(networkUuid, variantNum, threeWindingsTransformerIds);
+        deleteRegulatingPoints(networkUuid, variantNum, threeWindingsTransformerIds, ResourceType.THREE_WINDINGS_TRANSFORMER);
     }
 
     // line
@@ -2341,27 +2354,23 @@ public class NetworkStoreRepository {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<TemporaryLimitAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
-
                 OwnerInfo owner = new OwnerInfo();
-                TemporaryLimitAttributes temporaryLimit = new TemporaryLimitAttributes();
                 // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
                 // equipmentId, equipmentType, networkUuid, variantNum, side, limitType, name, value, acceptableDuration, fictitious
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
                 owner.setVariantNum(variantNumOverride);
-                temporaryLimit.setOperationalLimitsGroupId(resultSet.getString(5));
-                temporaryLimit.setSide(resultSet.getInt(6));
-                temporaryLimit.setLimitType(LimitType.valueOf(resultSet.getString(7)));
-                temporaryLimit.setName(resultSet.getString(8));
-                temporaryLimit.setValue(resultSet.getDouble(9));
-                temporaryLimit.setAcceptableDuration(resultSet.getInt(10));
-                temporaryLimit.setFictitious(resultSet.getBoolean(11));
-
-                map.computeIfAbsent(owner, k -> new ArrayList<>());
-                map.get(owner).add(temporaryLimit);
+                String temporaryLimitData = resultSet.getString(5);
+                List<TemporaryLimitSqlData> parsedTemporaryLimitData = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
+                List<TemporaryLimitAttributes> temporaryLimits = parsedTemporaryLimitData.stream().map(TemporaryLimitSqlData::toTemporaryLimitAttributes).toList();
+                if (!temporaryLimits.isEmpty()) {
+                    map.put(owner, temporaryLimits);
+                }
             }
             return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -2369,24 +2378,21 @@ public class NetworkStoreRepository {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<PermanentLimitAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
-
                 OwnerInfo owner = new OwnerInfo();
-                PermanentLimitAttributes permanentLimit = new PermanentLimitAttributes();
-                // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
-                // equipmentId, equipmentType, networkUuid, variantNum, side, limitType, name, value, acceptableDuration, fictitious
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
                 owner.setVariantNum(variantNumOverride);
-                permanentLimit.setOperationalLimitsGroupId(resultSet.getString(5));
-                permanentLimit.setSide(resultSet.getInt(6));
-                permanentLimit.setLimitType(LimitType.valueOf(resultSet.getString(7)));
-                permanentLimit.setValue(resultSet.getDouble(8));
-
-                map.computeIfAbsent(owner, k -> new ArrayList<>());
-                map.get(owner).add(permanentLimit);
+                String permanentLimitData = resultSet.getString(5);
+                List<PermanentLimitSqlData> parsedTemporaryLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
+                List<PermanentLimitAttributes> permanentLimits = parsedTemporaryLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
+                if (!permanentLimits.isEmpty()) {
+                    map.put(owner, permanentLimits);
+                }
             }
             return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -2410,28 +2416,25 @@ public class NetworkStoreRepository {
 
     public void insertTemporaryLimits(Map<OwnerInfo, LimitsInfos> limitsInfos) {
         Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = limitsInfos.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getTemporaryLimits()));
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getTemporaryLimits()));
+        insertTemporaryLimitsAttributes(temporaryLimits);
+    }
+
+    public void insertTemporaryLimitsAttributes(Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
         try (var connection = dataSource.getConnection()) {
-            try (var preparedStmt = connection.prepareStatement(buildInsertTemporaryLimitsQuery())) {
-                List<Object> values = new ArrayList<>(11);
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildInsertTemporaryLimitsQuery())) {
+                List<Object> values = new ArrayList<>(5);
                 List<Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>>> list = new ArrayList<>(temporaryLimits.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>> entry : subUnit) {
-                        for (TemporaryLimitAttributes temporaryLimit : entry.getValue()) {
+                        if (!entry.getValue().isEmpty()) {
                             values.clear();
-                            // In order, from the QueryCatalog.buildInsertTemporaryLimitsQuery SQL query :
-                            // equipmentId, equipmentType, networkUuid, variantNum, operationalLimitsGroupId, side, limitType, name, value, acceptableDuration, fictitious
                             values.add(entry.getKey().getEquipmentId());
                             values.add(entry.getKey().getEquipmentType().toString());
                             values.add(entry.getKey().getNetworkUuid());
                             values.add(entry.getKey().getVariantNum());
-                            values.add(temporaryLimit.getOperationalLimitsGroupId());
-                            values.add(temporaryLimit.getSide());
-                            values.add(temporaryLimit.getLimitType().toString());
-                            values.add(temporaryLimit.getName());
-                            values.add(temporaryLimit.getValue());
-                            values.add(temporaryLimit.getAcceptableDuration());
-                            values.add(temporaryLimit.isFictitious());
+                            values.add(entry.getValue().stream()
+                                    .map(TemporaryLimitSqlData::of).toList());
                             bindValues(preparedStmt, values, mapper);
                             preparedStmt.addBatch();
                         }
@@ -2446,28 +2449,26 @@ public class NetworkStoreRepository {
 
     public void insertPermanentLimits(Map<OwnerInfo, LimitsInfos> limitsInfos) {
         Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = limitsInfos.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getPermanentLimits()));
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getPermanentLimits()));
+        insertPermanentLimitsAttributes(permanentLimits);
+    }
+
+    public void insertPermanentLimitsAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertPermanentLimitsQuery())) {
                 List<Object> values = new ArrayList<>(8);
                 List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> list = new ArrayList<>(permanentLimits.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : subUnit) {
-                        for (PermanentLimitAttributes permanentLimit : entry.getValue()) {
-                            values.clear();
-                            // In order, from the QueryCatalog.buildInsertTemporaryLimitsQuery SQL query :
-                            // equipmentId, equipmentType, networkUuid, variantNum, operationalLimitsGroupId, side, limitType, value
-                            values.add(entry.getKey().getEquipmentId());
-                            values.add(entry.getKey().getEquipmentType().toString());
-                            values.add(entry.getKey().getNetworkUuid());
-                            values.add(entry.getKey().getVariantNum());
-                            values.add(permanentLimit.getOperationalLimitsGroupId());
-                            values.add(permanentLimit.getSide());
-                            values.add(permanentLimit.getLimitType().toString());
-                            values.add(permanentLimit.getValue());
-                            bindValues(preparedStmt, values, mapper);
-                            preparedStmt.addBatch();
-                        }
+                        values.clear();
+                        values.add(entry.getKey().getEquipmentId());
+                        values.add(entry.getKey().getEquipmentType().toString());
+                        values.add(entry.getKey().getNetworkUuid());
+                        values.add(entry.getKey().getVariantNum());
+                        values.add(entry.getValue().stream()
+                                .map(PermanentLimitSqlData::of).toList());
+                        bindValues(preparedStmt, values, mapper);
+                        preparedStmt.addBatch();
                     }
                     preparedStmt.executeBatch();
                 }
@@ -2584,18 +2585,19 @@ public class NetworkStoreRepository {
     }
 
     // Regulating Points
-    public void insertRegulatingPoints(Map<OwnerInfo, RegulatingPointAttributes> regulatingPoints) {
+    public void insertRegulatingPoints(Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPoints) {
         try (var connection = dataSource.getConnection()) {
-            try (var preparedStmt = connection.prepareStatement(buildInsertRegulatingPointsQuery())) {
-                List<Object> values = new ArrayList<>(11);
-                List<Map.Entry<OwnerInfo, RegulatingPointAttributes>> list = new ArrayList<>(regulatingPoints.entrySet());
-                for (List<Map.Entry<OwnerInfo, RegulatingPointAttributes>> subUnit : Lists.partition(list, BATCH_SIZE)) {
-                    for (Map.Entry<OwnerInfo, RegulatingPointAttributes> attributes : subUnit) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildInsertRegulatingPointsQuery())) {
+                List<Object> values = new ArrayList<>(12);
+                List<Map.Entry<RegulatingOwnerInfo, RegulatingPointAttributes>> list = new ArrayList<>(regulatingPoints.entrySet());
+                for (List<Map.Entry<RegulatingOwnerInfo, RegulatingPointAttributes>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<RegulatingOwnerInfo, RegulatingPointAttributes> attributes : subUnit) {
                         values.clear();
                         values.add(attributes.getKey().getNetworkUuid());
                         values.add(attributes.getKey().getVariantNum());
                         values.add(attributes.getKey().getEquipmentId());
                         values.add(attributes.getKey().getEquipmentType().toString());
+                        values.add(attributes.getKey().getRegulatingTapChangerType().toString());
                         if (attributes.getValue() != null) {
                             values.add(attributes.getValue().getRegulationMode());
                             values.add(attributes.getValue().getLocalTerminal() != null
@@ -2636,7 +2638,7 @@ public class NetworkStoreRepository {
 
     public <T extends AbstractRegulatingEquipmentAttributes> void updateRegulatingPoints(UUID networkUuid, List<Resource<T>> resources, ResourceType resourceType) {
         deleteRegulatingPoints(networkUuid, resources, resourceType);
-        Map<OwnerInfo, RegulatingPointAttributes> regulatingPointToInsert = getRegulatingPointFromEquipment(networkUuid, resources);
+        Map<OwnerInfo, RegulatingPointAttributes> regulatingPointToInsert = getRegulatingPointFromEquipments(networkUuid, resources);
         insertRegulatingPoints(regulatingPointToInsert);
         insertTombstonedRegulatingPoints(networkUuid, regulatingPointToInsert, resources, resourceType);
     }
@@ -2743,7 +2745,7 @@ public class NetworkStoreRepository {
         }
     }
 
-    public Map<OwnerInfo, RegulatingPointAttributes> getRegulatingPointsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, ResourceType type) {
+    public Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, ResourceType type) {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -2907,12 +2909,14 @@ public class NetworkStoreRepository {
     private <T extends AbstractRegulatingEquipmentAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipmentsWithIds(List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
         // regulating points
         List<String> elementIds = elements.stream().map(Resource::getId).toList();
-        Map<OwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum, REGULATING_EQUIPMENT_ID, elementIds, type);
-        Map<OwnerInfo, Map<String, ResourceType>> regulatingEquipments = getRegulatingEquipmentsWithInClause(networkUuid, variantNum, "regulatingterminalconnectableid", elementIds, type);
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
+            REGULATING_EQUIPMENT_ID, elementIds, type);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipmentsWithInClause(networkUuid, variantNum, "regulatingterminalconnectableid", elementIds, type);
         elements.forEach(element -> {
             OwnerInfo ownerInfo = new OwnerInfo(element.getId(), type, networkUuid, variantNum);
+            RegulatingOwnerInfo regulatingOwnerInfo = new RegulatingOwnerInfo(element.getId(), type, RegulatingTapChangerType.NONE, networkUuid, variantNum);
             element.getAttributes().setRegulatingPoint(
-                regulatingPointAttributes.get(ownerInfo));
+                regulatingPointAttributes.get(regulatingOwnerInfo));
             element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(ownerInfo));
         });
     }
@@ -2920,14 +2924,107 @@ public class NetworkStoreRepository {
     // on all elements of the network
     private <T extends AbstractRegulatingEquipmentAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipments(List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
         // regulating points
-        Map<OwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPoints(networkUuid, variantNum, type);
-        Map<OwnerInfo, Map<String, ResourceType>> regulatingEquipments = getRegulatingEquipments(networkUuid, variantNum, type);
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPoints(networkUuid, variantNum, type);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipments(networkUuid, variantNum, type);
         elements.forEach(element -> {
             OwnerInfo ownerInfo = new OwnerInfo(element.getId(), type, networkUuid, variantNum);
+            RegulatingOwnerInfo regulatingOwnerInfo = new RegulatingOwnerInfo(element.getId(), type, RegulatingTapChangerType.NONE, networkUuid, variantNum);
             element.getAttributes().setRegulatingPoint(
-                regulatingPointAttributes.get(ownerInfo));
+                regulatingPointAttributes.get(regulatingOwnerInfo));
             element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(ownerInfo));
         });
+    }
+
+    // for two winding transformers
+    // using the request on a small number of ids and not on all elements
+    private void setRegulatingPointAndRegulatingEquipmentsWithIdsForTwoWindingsTransformers(List<Resource<TwoWindingsTransformerAttributes>> elements, UUID networkUuid, int variantNum) {
+        // regulating points
+        List<String> elementIds = elements.stream().map(Resource::getId).toList();
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> twoWindingsTransformerTapChangerRegulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
+            REGULATING_EQUIPMENT_ID, elementIds, ResourceType.TWO_WINDINGS_TRANSFORMER);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipmentsWithInClause(networkUuid, variantNum,
+            "regulatingterminalconnectableid", elementIds, ResourceType.TWO_WINDINGS_TRANSFORMER);
+        elements.forEach(element -> {
+            PhaseTapChangerAttributes phaseTapChangerAttributes = element.getAttributes().getPhaseTapChangerAttributes();
+            RatioTapChangerAttributes ratioTapChangerAttributes = element.getAttributes().getRatioTapChangerAttributes();
+            setRegulatingPointForTapChanger(ratioTapChangerAttributes, phaseTapChangerAttributes,
+                RegulatingTapChangerType.RATIO_TAP_CHANGER, RegulatingTapChangerType.PHASE_TAP_CHANGER,
+                twoWindingsTransformerTapChangerRegulatingPointAttributes, element.getId(), ResourceType.TWO_WINDINGS_TRANSFORMER, networkUuid, variantNum);
+            element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(
+                new OwnerInfo(element.getId(), ResourceType.TWO_WINDINGS_TRANSFORMER, networkUuid, variantNum)));
+        });
+    }
+
+    // on all elements of the network
+    private void setRegulatingPointAndRegulatingEquipmentsForTwoWindingsTransformers(List<Resource<TwoWindingsTransformerAttributes>> twoWindingTransformers, UUID networkUuid, int variantNum) {
+        // regulating points
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> twoWindingsTransformerRegulatingPointAttributes = getRegulatingPoints(networkUuid, variantNum, ResourceType.TWO_WINDINGS_TRANSFORMER);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipments(networkUuid, variantNum, ResourceType.TWO_WINDINGS_TRANSFORMER);
+        twoWindingTransformers.forEach(element -> {
+            PhaseTapChangerAttributes phaseTapChangerAttributes = element.getAttributes().getPhaseTapChangerAttributes();
+            RatioTapChangerAttributes ratioTapChangerAttributes = element.getAttributes().getRatioTapChangerAttributes();
+            setRegulatingPointForTapChanger(ratioTapChangerAttributes, phaseTapChangerAttributes,
+                RegulatingTapChangerType.RATIO_TAP_CHANGER, RegulatingTapChangerType.PHASE_TAP_CHANGER,
+                twoWindingsTransformerRegulatingPointAttributes, element.getId(), ResourceType.TWO_WINDINGS_TRANSFORMER, networkUuid, variantNum);
+            element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(
+                new OwnerInfo(element.getId(), ResourceType.TWO_WINDINGS_TRANSFORMER, networkUuid, variantNum)));
+        });
+    }
+
+    // three windings transformers
+    private void setRegulatingPointAndRegulatingEquipmentsForThreeWindingsTransformers(List<Resource<ThreeWindingsTransformerAttributes>> threeWindingTransformers, UUID networkUuid, int variantNum) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> threeWindingsTransformerRegulatingPointAttributes = getRegulatingPoints(networkUuid, variantNum, ResourceType.THREE_WINDINGS_TRANSFORMER);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipments(networkUuid, variantNum, ResourceType.THREE_WINDINGS_TRANSFORMER);
+        threeWindingTransformers.forEach(threeWindingsTransformer -> {
+            for (ThreeSides side : ThreeSides.values()) {
+                PhaseTapChangerAttributes phaseTapChangerAttributes = threeWindingsTransformer.getAttributes().getLeg(side.getNum()).getPhaseTapChangerAttributes();
+                RatioTapChangerAttributes ratioTapChangerAttributes = threeWindingsTransformer.getAttributes().getLeg(side.getNum()).getRatioTapChangerAttributes();
+                setRegulatingPointForTapChanger(ratioTapChangerAttributes, phaseTapChangerAttributes,
+                    RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.RATIO_TAP_CHANGER),
+                    RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.PHASE_TAP_CHANGER),
+                    threeWindingsTransformerRegulatingPointAttributes, threeWindingsTransformer.getId(), ResourceType.THREE_WINDINGS_TRANSFORMER, networkUuid, variantNum);
+            }
+            threeWindingsTransformer.getAttributes().setRegulatingEquipments(regulatingEquipments.get(
+                new OwnerInfo(threeWindingsTransformer.getId(), ResourceType.THREE_WINDINGS_TRANSFORMER, networkUuid, variantNum)));
+        });
+    }
+
+    private void setRegulatingPointAndRegulatingEquipmentsForThreeWindingsTransformersWithIds(List<Resource<ThreeWindingsTransformerAttributes>> threeWindingTransformers, UUID networkUuid, int variantNum) {
+        List<String> elementIds = threeWindingTransformers.stream().map(Resource::getId).toList();
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> threeWindingsTransformerRegulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
+            REGULATING_EQUIPMENT_ID, elementIds, ResourceType.THREE_WINDINGS_TRANSFORMER);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipmentsWithInClause(networkUuid, variantNum,
+            "regulatingterminalconnectableid", elementIds, ResourceType.THREE_WINDINGS_TRANSFORMER);
+        threeWindingTransformers.forEach(element -> {
+            for (ThreeSides side : ThreeSides.values()) {
+                PhaseTapChangerAttributes phaseTapChangerAttributes = element.getAttributes().getLeg(side.getNum()).getPhaseTapChangerAttributes();
+                RatioTapChangerAttributes ratioTapChangerAttributes = element.getAttributes().getLeg(side.getNum()).getRatioTapChangerAttributes();
+                setRegulatingPointForTapChanger(ratioTapChangerAttributes, phaseTapChangerAttributes,
+                    RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.RATIO_TAP_CHANGER),
+                    RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.PHASE_TAP_CHANGER),
+                    threeWindingsTransformerRegulatingPointAttributes, element.getId(), ResourceType.THREE_WINDINGS_TRANSFORMER, networkUuid, variantNum);
+            }
+            element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(
+                new OwnerInfo(element.getId(), ResourceType.THREE_WINDINGS_TRANSFORMER, networkUuid, variantNum)));
+        });
+    }
+
+    private void setRegulatingPointForTapChanger(RatioTapChangerAttributes ratioTapChangerAttributes, PhaseTapChangerAttributes phaseTapChangerAttributes,
+                                                 RegulatingTapChangerType ratioRegulatingTapChangerType, RegulatingTapChangerType phaseRegulatingTapChangerType,
+                                                 Map<RegulatingOwnerInfo, RegulatingPointAttributes> map, String transformerId, ResourceType resourceType,
+                                                 UUID networkUuid, int variantNum) {
+        if (ratioTapChangerAttributes != null) {
+            RegulatingOwnerInfo ratioTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
+                transformerId, resourceType,
+                ratioRegulatingTapChangerType, networkUuid, variantNum);
+            ratioTapChangerAttributes.setRegulatingPoint(map.get(ratioTapChangerRegulatingOwnerInfo));
+        }
+        if (phaseTapChangerAttributes != null) {
+            RegulatingOwnerInfo phaseTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
+                transformerId, resourceType,
+                phaseRegulatingTapChangerType, networkUuid, variantNum);
+            phaseTapChangerAttributes.setRegulatingPoint(map.get(phaseTapChangerRegulatingOwnerInfo));
+        }
     }
 
     private <T extends RegulatedEquipmentAttributes> void setRegulatingEquipmentsWithIds(List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
@@ -2938,7 +3035,7 @@ public class NetworkStoreRepository {
     // using the request on a small number of ids and not on all elements
     private <T extends RegulatedEquipmentAttributes> void setRegulatingEquipmentsWithIds(List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type, List<String> elementIds) {
         // regulating equipments
-        Map<OwnerInfo, Map<String, ResourceType>> regulatingEquipments = getRegulatingEquipmentsWithInClause(networkUuid, variantNum, "regulatingterminalconnectableid", elementIds, type);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipmentsWithInClause(networkUuid, variantNum, "regulatingterminalconnectableid", elementIds, type);
         elements.forEach(element -> {
             OwnerInfo ownerInfo = new OwnerInfo(element.getId(), type, networkUuid, variantNum);
             element.getAttributes().setRegulatingEquipments(regulatingEquipments.getOrDefault(ownerInfo, Map.of()));
@@ -2948,20 +3045,21 @@ public class NetworkStoreRepository {
     // on all elements of the network
     private <T extends RegulatedEquipmentAttributes> void setRegulatingEquipments(List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
         // regulating equipments
-        Map<OwnerInfo, Map<String, ResourceType>> regulatingEquipments = getRegulatingEquipments(networkUuid, variantNum, type);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipments(networkUuid, variantNum, type);
         elements.forEach(element -> {
             OwnerInfo ownerInfo = new OwnerInfo(element.getId(), type, networkUuid, variantNum);
             element.getAttributes().setRegulatingEquipments(regulatingEquipments.getOrDefault(ownerInfo, Map.of()));
         });
     }
 
-    protected <T extends AbstractRegulatingEquipmentAttributes> Map<OwnerInfo, RegulatingPointAttributes> getRegulatingPointFromEquipment(UUID networkUuid, List<Resource<T>> resources) {
-        Map<OwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
+    protected <T extends AbstractRegulatingEquipmentAttributes> Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
         if (!resources.isEmpty()) {
             for (Resource<T> resource : resources) {
-                OwnerInfo info = new OwnerInfo(
+                RegulatingOwnerInfo info = new RegulatingOwnerInfo(
                     resource.getId(),
                     resource.getType(),
+                    RegulatingTapChangerType.NONE,
                     networkUuid,
                     resource.getVariantNum()
                 );
@@ -2971,11 +3069,66 @@ public class NetworkStoreRepository {
         return map;
     }
 
-    private Map<OwnerInfo, RegulatingPointAttributes> innerGetRegulatingPoints(PreparedStatement preparedStmt, ResourceType type, int variantNumOverride) throws SQLException {
+    //TODO
+    protected Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromTwoWindingTransformers(UUID networkUuid, List<Resource<TwoWindingsTransformerAttributes>> twoWindingTransformers) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
+        if (!twoWindingTransformers.isEmpty()) {
+            for (Resource<TwoWindingsTransformerAttributes> twoWindingsTransformer : twoWindingTransformers) {
+                RatioTapChangerAttributes ratioTapChangerAttributes = twoWindingsTransformer.getAttributes().getRatioTapChangerAttributes();
+                PhaseTapChangerAttributes phaseTapChangerAttributes = twoWindingsTransformer.getAttributes().getPhaseTapChangerAttributes();
+                addTapChangerRegulatingPoint(ratioTapChangerAttributes, phaseTapChangerAttributes, RegulatingTapChangerType.RATIO_TAP_CHANGER,
+                    RegulatingTapChangerType.PHASE_TAP_CHANGER, map, twoWindingsTransformer.getId(),
+                    ResourceType.TWO_WINDINGS_TRANSFORMER, networkUuid, twoWindingsTransformer.getVariantNum());
+            }
+        }
+        return map;
+    }
+
+    //TODO
+    protected Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromThreeWindingTransformers(UUID networkUuid, List<Resource<ThreeWindingsTransformerAttributes>> threeWindingTransformers) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
+        if (!threeWindingTransformers.isEmpty()) {
+            for (Resource<ThreeWindingsTransformerAttributes> threeWindingsTransformer : threeWindingTransformers) {
+                for (ThreeSides side : ThreeSides.values()) {
+                    LegAttributes legAttributes = threeWindingsTransformer.getAttributes().getLeg(side.getNum());
+                    if (legAttributes != null) {
+                        RatioTapChangerAttributes ratioTapChangerAttributes = legAttributes.getRatioTapChangerAttributes();
+                        PhaseTapChangerAttributes phaseTapChangerAttributes = legAttributes.getPhaseTapChangerAttributes();
+                        addTapChangerRegulatingPoint(ratioTapChangerAttributes, phaseTapChangerAttributes,
+                            RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.RATIO_TAP_CHANGER),
+                            RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.PHASE_TAP_CHANGER),
+                            map, threeWindingsTransformer.getId(), ResourceType.THREE_WINDINGS_TRANSFORMER, networkUuid, threeWindingsTransformer.getVariantNum());
+                    }
+                }
+            }
+        }
+        return map;
+    }
+
+    //TODO
+    private void addTapChangerRegulatingPoint(RatioTapChangerAttributes ratioTapChangerAttributes, PhaseTapChangerAttributes phaseTapChangerAttributes,
+                                              RegulatingTapChangerType ratioRegulatingTapChangerType, RegulatingTapChangerType phaseRegulatingTapChangerType,
+                                              Map<RegulatingOwnerInfo, RegulatingPointAttributes> map, String transformerId, ResourceType resourceType,
+                                              UUID networkUuid, int variantNum) {
+        if (ratioTapChangerAttributes != null) {
+            RegulatingOwnerInfo ratioTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
+                transformerId, resourceType,
+                ratioRegulatingTapChangerType, networkUuid, variantNum);
+            map.put(ratioTapChangerRegulatingOwnerInfo, ratioTapChangerAttributes.getRegulatingPoint());
+        }
+        if (phaseTapChangerAttributes != null) {
+            RegulatingOwnerInfo phaseTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
+                transformerId, resourceType,
+                phaseRegulatingTapChangerType, networkUuid, variantNum);
+            map.put(phaseTapChangerRegulatingOwnerInfo, phaseTapChangerAttributes.getRegulatingPoint());
+        }
+    }
+
+    private Map<RegulatingOwnerInfo, RegulatingPointAttributes> innerGetRegulatingPoints(PreparedStatement preparedStmt, ResourceType type) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            Map<OwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
+            Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
             while (resultSet.next()) {
-                OwnerInfo owner = new OwnerInfo();
+                RegulatingOwnerInfo owner = new RegulatingOwnerInfo();
                 RegulatingPointAttributes regulatingPointAttributes = new RegulatingPointAttributes();
                 // In order, from the QueryCatalog.buildRegulatingPointQuery SQL query :
                 // equipmentId, networkUuid, variantNum, regulatingEquipmentId, localTerminal and regulatingTerminal
@@ -2984,25 +3137,30 @@ public class NetworkStoreRepository {
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(1)));
                 owner.setVariantNum(variantNumOverride);
                 owner.setEquipmentType(type);
+                String regulatingTapChangerType = resultSet.getString(4);
+                // regulatingTapChangerType can not be null because it is part of primary key of table RegulatingPoint
+                // it will be NONE for injection
+                owner.setRegulatingTapChangerType(RegulatingTapChangerType.valueOf(regulatingTapChangerType));
                 regulatingPointAttributes.setRegulatingEquipmentId(regulatingEquipmentId);
-                regulatingPointAttributes.setRegulationMode(resultSet.getString(4));
+                regulatingPointAttributes.setRegulationMode(resultSet.getString(5));
                 regulatingPointAttributes.setRegulatingResourceType(type);
-                Optional<String> localConnectableId = Optional.ofNullable(resultSet.getString(5));
+                regulatingPointAttributes.setRegulatingTapChangerType(RegulatingTapChangerType.valueOf(regulatingTapChangerType));
+                Optional<String> localConnectableId = Optional.ofNullable(resultSet.getString(6));
                 if (localConnectableId.isPresent()) {
-                    regulatingPointAttributes.setLocalTerminal(new TerminalRefAttributes(localConnectableId.get(), resultSet.getString(6)));
+                    regulatingPointAttributes.setLocalTerminal(new TerminalRefAttributes(localConnectableId.get(), resultSet.getString(7)));
                 }
-                Optional<String> regulatingConnectableId = Optional.ofNullable(resultSet.getString(7));
+                Optional<String> regulatingConnectableId = Optional.ofNullable(resultSet.getString(8));
                 if (regulatingConnectableId.isPresent()) {
-                    regulatingPointAttributes.setRegulatingTerminal(new TerminalRefAttributes(resultSet.getString(7), resultSet.getString(8)));
+                    regulatingPointAttributes.setRegulatingTerminal(new TerminalRefAttributes(resultSet.getString(8), resultSet.getString(9)));
                 }
-                regulatingPointAttributes.setRegulating(resultSet.getBoolean(9));
+                regulatingPointAttributes.setRegulating(resultSet.getBoolean(10));
                 map.put(owner, regulatingPointAttributes);
             }
             return map;
         }
     }
 
-    public Map<OwnerInfo, Map<String, ResourceType>> getRegulatingEquipments(UUID networkUuid, int variantNum, ResourceType type) {
+    private Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> getRegulatingEquipments(UUID networkUuid, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getRegulatingEquipments(
                     variantNum,
@@ -3029,7 +3187,7 @@ public class NetworkStoreRepository {
         }
     }
 
-    public Map<OwnerInfo, Map<String, ResourceType>> getRegulatingEquipmentsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, ResourceType type) {
+    public Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> getRegulatingEquipmentsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, ResourceType type) {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -3062,9 +3220,9 @@ public class NetworkStoreRepository {
         }
     }
 
-    public Map<OwnerInfo, Map<String, ResourceType>> innerGetRegulatingEquipments(PreparedStatement preparedStmt, ResourceType type, int variantNumOverride) throws SQLException {
+    public Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> innerGetRegulatingEquipments(PreparedStatement preparedStmt, ResourceType type) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            Map<OwnerInfo, Map<String, ResourceType>> map = new HashMap<>();
+            Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> map = new HashMap<>();
             while (resultSet.next()) {
                 OwnerInfo owner = new OwnerInfo();
                 String regulatingEquipmentId = resultSet.getString(3);
@@ -3074,11 +3232,13 @@ public class NetworkStoreRepository {
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(1)));
                 owner.setVariantNum(variantNumOverride);
                 owner.setEquipmentType(type);
+                String regulatingTapChangerType = resultSet.getString(6);
+                RegulatingEquipmentIdentifier identifier = new RegulatingEquipmentIdentifier(regulatingEquipmentId, regulatingEquipmentType, RegulatingTapChangerType.valueOf(regulatingTapChangerType));
                 if (map.containsKey(owner)) {
-                    map.get(owner).put(regulatingEquipmentId, regulatingEquipmentType);
+                    map.get(owner).add(identifier);
                 } else {
-                    Map<String, ResourceType> regulatedEquipmentIds = new HashMap<>();
-                    regulatedEquipmentIds.put(regulatingEquipmentId, regulatingEquipmentType);
+                    Set<RegulatingEquipmentIdentifier> regulatedEquipmentIds = new HashSet<>();
+                    regulatedEquipmentIds.add(identifier);
                     map.put(owner, regulatedEquipmentIds);
                 }
             }
@@ -3125,11 +3285,15 @@ public class NetworkStoreRepository {
         return regulatingEquipments;
     }
 
-    private Map<String, ResourceType> getRegulatingEquipments(PreparedStatement preparedStmt) throws SQLException {
+    private Set<RegulatingEquipmentIdentifier> getRegulatingEquipments(PreparedStatement preparedStmt) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            Map<String, ResourceType> regulatingEquipements = new HashMap<>();
+            Set<RegulatingEquipmentIdentifier> regulatingEquipements = new HashSet<>();
             while (resultSet.next()) {
-                regulatingEquipements.put(resultSet.getString(1), ResourceType.valueOf(resultSet.getString(2)));
+                String regulatingEquipmentId = resultSet.getString(1);
+                ResourceType regulatingEquipmentType = ResourceType.valueOf(resultSet.getString(2));
+                String regulatingTapChangerType = resultSet.getString(3);
+                RegulatingEquipmentIdentifier identifier = new RegulatingEquipmentIdentifier(regulatingEquipmentId, regulatingEquipmentType, RegulatingTapChangerType.valueOf(regulatingTapChangerType));
+                regulatingEquipements.add(identifier);
             }
             return regulatingEquipements;
         }
@@ -3159,16 +3323,46 @@ public class NetworkStoreRepository {
         return map;
     }
 
-    private <T extends AbstractRegulatingEquipmentAttributes> void insertRegulatingPointIntoEquipment(UUID networkUuid, int variantNum, String equipmentId, Resource<T> resource, ResourceType resourceType) {
-        Map<OwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
+    private <T extends AbstractRegulatingEquipmentAttributes> void insertRegulatingPointIntoInjection(UUID networkUuid, int variantNum, String equipmentId, Resource<T> resource, ResourceType resourceType) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
             REGULATING_EQUIPMENT_ID, Collections.singletonList(equipmentId), resourceType);
         if (regulatingPointAttributes.size() != 1) {
-            throw new PowsyblException("a regulating element must have one regulating point");
-        } else {
-            regulatingPointAttributes.values().forEach(regulatingPointAttribute ->
-                resource.getAttributes().setRegulatingPoint(regulatingPointAttribute));
+            throw new PowsyblException("a regulating injection must have one regulating point");
         }
+        regulatingPointAttributes.values().forEach(regulatingPointAttribute ->
+                resource.getAttributes().setRegulatingPoint(regulatingPointAttribute));
+    }
 
+    private void insertRegulatingPointIntoTwoWindingsTransformer(UUID networkUuid, int variantNum, String equipmentId, Resource<TwoWindingsTransformerAttributes> resource) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> twoWindingsTransformerRegulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
+            REGULATING_EQUIPMENT_ID, Collections.singletonList(equipmentId), ResourceType.TWO_WINDINGS_TRANSFORMER);
+        RatioTapChangerAttributes ratioTapChangerAttributes = resource.getAttributes().getRatioTapChangerAttributes();
+        setTapChangerRegulatingPoint(ratioTapChangerAttributes, twoWindingsTransformerRegulatingPointAttributes, new RegulatingOwnerInfo(equipmentId,
+            ResourceType.TWO_WINDINGS_TRANSFORMER, RegulatingTapChangerType.RATIO_TAP_CHANGER, networkUuid, variantNum));
+        PhaseTapChangerAttributes phaseTapChangerAttributes = resource.getAttributes().getPhaseTapChangerAttributes();
+        setTapChangerRegulatingPoint(phaseTapChangerAttributes, twoWindingsTransformerRegulatingPointAttributes, new RegulatingOwnerInfo(equipmentId,
+            ResourceType.TWO_WINDINGS_TRANSFORMER, RegulatingTapChangerType.PHASE_TAP_CHANGER, networkUuid, variantNum));
+    }
+
+    private void insertRegulatingPointIntoThreeWindingsTransformer(UUID networkUuid, int variantNum, String equipmentId, Resource<ThreeWindingsTransformerAttributes> resource) {
+        Map<RegulatingOwnerInfo, RegulatingPointAttributes> threeWindingsTransformerRegulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
+            REGULATING_EQUIPMENT_ID, Collections.singletonList(equipmentId), ResourceType.THREE_WINDINGS_TRANSFORMER);
+        for (ThreeSides side : ThreeSides.values()) {
+            RatioTapChangerAttributes ratioTapChangerAttributes = resource.getAttributes().getLeg(side.getNum()).getRatioTapChangerAttributes();
+            setTapChangerRegulatingPoint(ratioTapChangerAttributes, threeWindingsTransformerRegulatingPointAttributes, new RegulatingOwnerInfo(equipmentId, ResourceType.THREE_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.RATIO_TAP_CHANGER), networkUuid, variantNum));
+            PhaseTapChangerAttributes phaseTapChangerAttributes = resource.getAttributes().getLeg(side.getNum()).getPhaseTapChangerAttributes();
+            setTapChangerRegulatingPoint(phaseTapChangerAttributes, threeWindingsTransformerRegulatingPointAttributes, new RegulatingOwnerInfo(equipmentId, ResourceType.THREE_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.getThreeWindingsTransformerTapChangerType(side, RegulatingTapChangerType.PHASE_TAP_CHANGER), networkUuid, variantNum));
+        }
+    }
+
+    private void setTapChangerRegulatingPoint(TapChangerAttributes tapChangerAttributes, Map<RegulatingOwnerInfo, RegulatingPointAttributes> transformerRegulatingPointAttributes, RegulatingOwnerInfo regulatingOwnerInfo) {
+        if (tapChangerAttributes != null) {
+            tapChangerAttributes.setRegulatingPoint(
+                transformerRegulatingPointAttributes.get(regulatingOwnerInfo)
+            );
+        }
     }
 
     protected <T extends ReactiveLimitHolder & IdentifiableAttributes> void insertReactiveCapabilityCurvePointsInEquipments(UUID networkUuid, List<Resource<T>> equipments, Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints) {
