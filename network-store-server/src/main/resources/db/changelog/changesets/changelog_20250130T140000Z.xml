@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="2986875648969-1" author="lesoteti">
+        <renameTable newTableName="v214tapchangerstep" oldTableName="tapchangerstep"/>
+        <createTable tableName="tapchangerstep">
+            <column name="networkuuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="tapchangersteps_pkey"/>
+            </column>
+            <column name="variantnum" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="tapchangersteps_pkey"/>
+            </column>
+            <column name="equipmentid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="tapchangersteps_pkey"/>
+            </column>
+            <column name="tapchangertype" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="tapchangersteps_pkey"/>
+            </column>
+            <column name="equipmenttype" type="VARCHAR(255)">
+            </column>
+            <column name="tapchangersteps" type="TEXT"/>
+        </createTable>
+        <createIndex indexName="tapchangersteps_networkuuid_variantnum_equipmenttype_idx" tableName="tapchangerstep">
+            <column name="networkuuid"/>
+            <column name="variantnum"/>
+            <column name="equipmenttype"/>
+        </createIndex>
+    </changeSet>
+
+</databaseChangeLog>

@@ -37,14 +37,15 @@ public final class QueryCatalog {
     static final String REGULATING_TAP_CHANGER_TYPE = "regulatingTapChangerType";
     public static final String EQUIPMENT_ID_COLUMN = "equipmentId";
     static final String REGULATING_EQUIPMENT_ID = "regulatingEquipmentId";
-    static final String INDEX_COLUMN = "index";
-    static final String TAPCHANGER_TYPE_COLUMN = "tapChangerType";
-    static final String ALPHA_COLUMN = "alpha";
+    public static final String INDEX_COLUMN = "index";
+    public static final String TAPCHANGER_TYPE_COLUMN = "tapChangerType";
+    public static final String TAPCHANGER_STEPS_COLUMN = "tapchangersteps";
+    public static final String ALPHA_COLUMN = "alpha";
     static final String TEMPORARY_LIMITS_TABLE = "temporarylimits";
     static final String TEMPORARY_LIMITS_COLUMN = "temporarylimits";
     static final String PERMANENT_LIMITS_TABLE = "permanentlimits";
     static final String PERMANENT_LIMITS_COLUMN = "permanentlimits";
-    static final String TAP_CHANGER_STEP_TABLE = "tapChangerStep";
+    public static final String TAP_CHANGER_STEP_TABLE = "tapChangerStep";
     static final String REGULATING_POINT_TABLE = "regulatingPoint";
     static final String REGULATION_MODE = "regulationMode";
     public static final String SIDE_COLUMN = "side";
@@ -606,31 +607,16 @@ public final class QueryCatalog {
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + "," +
                 VARIANT_NUM_COLUMN + "," +
-                INDEX_COLUMN + ", " +
-                SIDE_COLUMN + ", " +
                 TAPCHANGER_TYPE_COLUMN + ", " +
-                "rho" + ", " +
-                "r" + ", " +
-                "x" + ", " +
-                "g" + ", " +
-                "b" + ", " +
-                ALPHA_COLUMN + ") " +
+                TAPCHANGER_STEPS_COLUMN + ") " +
                 "select " +
                 EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
-                "?" + "," +
-                "?" + "," +
-                INDEX_COLUMN + ", " +
-                SIDE_COLUMN + ", " +
+                "?, ?, " +
                 TAPCHANGER_TYPE_COLUMN + ", " +
-                "rho" + ", " +
-                "r" + ", " +
-                "x" + ", " +
-                "g" + ", " +
-                "b" + ", " +
-                ALPHA_COLUMN +
-                " from " + TAP_CHANGER_STEP_TABLE + " " +
-                "where " +
+                TAPCHANGER_STEPS_COLUMN +
+                " from " + TAP_CHANGER_STEP_TABLE +
+                " where " +
                 NETWORK_UUID_COLUMN + " = ?" + " and " +
                 VARIANT_NUM_COLUMN + " = ? ";
     }
@@ -639,22 +625,14 @@ public final class QueryCatalog {
         return "select " +
             EQUIPMENT_ID_COLUMN + ", " +
             EQUIPMENT_TYPE_COLUMN + ", " +
-            NETWORK_UUID_COLUMN + "," +
-            VARIANT_NUM_COLUMN + "," +
-            INDEX_COLUMN + ", " +
-            SIDE_COLUMN + ", " +
-            TAPCHANGER_TYPE_COLUMN + ", " +
-            "rho" + ", " +
-            "r" + ", " +
-            "x" + ", " +
-            "g" + ", " +
-            "b" + ", " +
-            ALPHA_COLUMN +
+            NETWORK_UUID_COLUMN + ", " +
+            VARIANT_NUM_COLUMN + ", " +
+            TAPCHANGER_STEPS_COLUMN +
             " from " + TAP_CHANGER_STEP_TABLE + " " +
             "where " +
             NETWORK_UUID_COLUMN + " = ?" + " and " +
             VARIANT_NUM_COLUMN + " = ? and " +
-            columnNameForWhereClause + " = ? order by " + INDEX_COLUMN;
+            columnNameForWhereClause + " = ?";
     }
 
     public static String buildTapChangerStepWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
@@ -664,17 +642,9 @@ public final class QueryCatalog {
         return "select " +
                 EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + "," +
-                VARIANT_NUM_COLUMN + "," +
-                INDEX_COLUMN + ", " +
-                SIDE_COLUMN + ", " +
-                TAPCHANGER_TYPE_COLUMN + ", " +
-                "rho" + ", " +
-                "r" + ", " +
-                "x" + ", " +
-                "g" + ", " +
-                "b" + ", " +
-                ALPHA_COLUMN +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                TAPCHANGER_STEPS_COLUMN +
                 " from " + TAP_CHANGER_STEP_TABLE + " " +
                 "where " +
                 NETWORK_UUID_COLUMN + " = ?" + " and " +
@@ -690,16 +660,9 @@ public final class QueryCatalog {
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + "," +
                 VARIANT_NUM_COLUMN + "," +
-                INDEX_COLUMN + ", " +
-                SIDE_COLUMN + ", " +
                 TAPCHANGER_TYPE_COLUMN + ", " +
-                "rho" + ", " +
-                "r" + ", " +
-                "x" + ", " +
-                "g" + ", " +
-                "b" + ", " +
-                ALPHA_COLUMN + ")" +
-                " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                TAPCHANGER_STEPS_COLUMN + ") " +
+                " values (?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildDeleteTapChangerStepQuery() {
