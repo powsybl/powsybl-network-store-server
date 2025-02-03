@@ -1958,15 +1958,17 @@ public class NetworkStoreRepository {
                 List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> list = new ArrayList<>(permanentLimits.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : subUnit) {
-                        values.clear();
-                        values.add(entry.getKey().getEquipmentId());
-                        values.add(entry.getKey().getEquipmentType().toString());
-                        values.add(entry.getKey().getNetworkUuid());
-                        values.add(entry.getKey().getVariantNum());
-                        values.add(entry.getValue().stream()
-                                .map(PermanentLimitSqlData::of).toList());
-                        bindValues(preparedStmt, values, mapper);
-                        preparedStmt.addBatch();
+                        if (!entry.getValue().isEmpty()) {
+                            values.clear();
+                            values.add(entry.getKey().getEquipmentId());
+                            values.add(entry.getKey().getEquipmentType().toString());
+                            values.add(entry.getKey().getNetworkUuid());
+                            values.add(entry.getKey().getVariantNum());
+                            values.add(entry.getValue().stream()
+                                    .map(PermanentLimitSqlData::of).toList());
+                            bindValues(preparedStmt, values, mapper);
+                            preparedStmt.addBatch();
+                        }
                     }
                     preparedStmt.executeBatch();
                 }
