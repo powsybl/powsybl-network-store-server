@@ -469,7 +469,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
         String lineId1 = "line1";
         createLine(networkStoreRepository, NETWORK_UUID, 1, lineId1, "vl1", "vl2");
-        networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(lineId1), LINE_TABLE);
+        networkStoreRepository.deleteLines(NETWORK_UUID, 1, Collections.singletonList(lineId1));
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant1");
         // Variant 2
         Resource<LineAttributes> lineVariant2 = createLine(networkStoreRepository, NETWORK_UUID, 2, lineId1, "vl2", "vl3");

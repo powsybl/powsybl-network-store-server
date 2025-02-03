@@ -3775,7 +3775,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // clone initial variant over existing
             PowsyblException ex = assertThrows(PowsyblException.class,
-                    () -> service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v3"));
+                () -> service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v3"));
             assertTrue(ex.getMessage().contains("already exists"));
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -3809,7 +3809,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // clone initial variant over existing with mayOverwrite=true
             PowsyblException ex = assertThrows(PowsyblException.class,
-                    () -> service.cloneVariant(networkUuid, "v2", INITIAL_VARIANT_ID, true));
+                () -> service.cloneVariant(networkUuid, "v2", INITIAL_VARIANT_ID, true));
             assertTrue(ex.getMessage().contains("forbidden"));
         }
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {

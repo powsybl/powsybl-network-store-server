@@ -26,12 +26,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreRepositoryTest {
 
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
-
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
 
     @Autowired
@@ -1171,6 +1165,9 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForTwoWindingsTransformers() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
         String twtId = "twt1";
         Resource<TwoWindingsTransformerAttributes> twt = Resource.twoWindingsTransformerBuilder()
             .id(twtId)
@@ -1294,6 +1291,9 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForThreeWindingsTransformers() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
         String twtId = "twt1";
         Resource<ThreeWindingsTransformerAttributes> twt = Resource.threeWindingsTransformerBuilder()
             .id(twtId)
@@ -1410,6 +1410,7 @@ class NetworkStoreRepositoryTest {
                         .regulatingPoint(RegulatingPointAttributes.builder()
                             .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
                             .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_ONE)
+                            .regulatedResourceType(ResourceType.LOAD)
                             .regulatingEquipmentId(twtId)
                             .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                             .build())

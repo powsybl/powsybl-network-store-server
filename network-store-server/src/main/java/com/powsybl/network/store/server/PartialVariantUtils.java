@@ -34,25 +34,6 @@ public final class PartialVariantUtils {
             Supplier<Set<String>> fetchTombstonedIdentifiableIds,
             IntFunction<Map<T, U>> fetchExternalAttributesInVariant,
             Function<T, String> idExtractor) {
-        return getExternalAttributes(
-                variantNum,
-                fullVariantNum,
-                fetchTombstonedExternalAttributesIds,
-                fetchTombstonedIdentifiableIds,
-                null,
-                fetchExternalAttributesInVariant,
-                idExtractor
-        );
-    }
-
-    private static <T, U> Map<T, U> getExternalAttributes(
-            int variantNum,
-            int fullVariantNum,
-            Supplier<Set<String>> fetchTombstonedExternalAttributesIdentifiableIds,
-            Supplier<Set<String>> fetchTombstonedIdentifiableIds,
-            Supplier<Set<String>> fetchAdditionalIdentifiableIdsToExclude,
-            IntFunction<Map<T, U>> fetchExternalAttributesInVariant,
-            Function<T, String> idExtractor) {
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve external attributes directly
             return fetchExternalAttributesInVariant.apply(variantNum);
@@ -63,12 +44,10 @@ public final class PartialVariantUtils {
 
         // Remove external attributes associated to tombstoned resources, tombstoned external attributes and any other additional identifiable ids
         Set<String> tombstonedIds = fetchTombstonedIdentifiableIds.get();
-        Set<String> tombstonedExternalAttributesIds = fetchTombstonedExternalAttributesIdentifiableIds.get();
-        Set<String> additionalIdentifiableIdsToExclude = fetchAdditionalIdentifiableIdsToExclude != null ? fetchAdditionalIdentifiableIdsToExclude.get() : Set.of();
+        Set<String> tombstonedExternalAttributesIds = fetchTombstonedExternalAttributesIds.get();
         externalAttributes.keySet().removeIf(ownerInfo ->
                         tombstonedIds.contains(idExtractor.apply(ownerInfo)) ||
-                        tombstonedExternalAttributesIds.contains(idExtractor.apply(ownerInfo)) ||
-                        additionalIdentifiableIdsToExclude.contains(idExtractor.apply(ownerInfo))
+                        tombstonedExternalAttributesIds.contains(idExtractor.apply(ownerInfo))
         );
 
         // Retrieve external attributes in partial variant
@@ -80,50 +59,18 @@ public final class PartialVariantUtils {
         return externalAttributes;
     }
 
-    /*
-    Regulating equipments are derived from the regulating points table using a WHERE clause on the column `regulatedequipmenttype`.
-    Due to this filtering, the system that overrides OwnerInfo in the full variant with updated regulating points in the
-    partial variant does not behave as expected because of the additional WHERE clause.
-
-    For example, consider a generator in the full variant with local regulation (`regulatedequipmenttype = generator`).
-    If this is updated in the partiverifal variant to regulate a load (`regulatedequipmenttype = load`), calling `getRegulatingEquipments`
-    with `type = generator` for the partial variant will yield unexpected results. The system will retrieve the
-    regulation from the full variant (as it matches `regulatedequipmenttype = generator`).
-
-    To address this inconsistency, an additional fetch is performed to exclude any regulating points in the full variant
-    that have been updated in the partial variant. This ensures that the results reflect the changes made in the partial variant.
-    */
-    public static <T, U> Map<T, U> getRegulatingEquipments(
-            int variantNum,
-            int fullVariantNum,
-            Supplier<Set<String>> fetchTombstonedRegulatingPointsIds,
-            Supplier<Set<String>> fetchTombstonedIdentifiableIds,
-            Supplier<Set<String>> fetchRegulatingPointIdsInVariant,
-            IntFunction<Map<T, U>> fetchExternalAttributesInVariant,
-            Function<T, String> idExtractor) {
-        return getExternalAttributes(
-                variantNum,
-                fullVariantNum,
-                fetchTombstonedRegulatingPointsIds,
-                fetchTombstonedIdentifiableIds,
-                fetchRegulatingPointIdsInVariant,
-                fetchExternalAttributesInVariant,
-                idExtractor
-        );
-    }
-
-    public static Set<OwnerInfo> getExternalAttributesToTombstone(
+    public static <T extends OwnerInfo> Set<T> getExternalAttributesToTombstone(
             Map<Integer, List<String>> externalAttributesResourcesIdsByVariant,
             IntFunction<NetworkAttributes> fetchNetworkAttributes,
-            TriFunction<Integer, Integer, List<String>, Set<OwnerInfo>> fetchExternalAttributesOwnerInfoInVariant,
+            TriFunction<Integer, Integer, List<String>, Set<T>> fetchExternalAttributesOwnerInfoInVariant,
             IntFunction<Set<String>> fetchTombstonedExternalAttributesIds,
-            Set<OwnerInfo> externalAttributesToTombstoneFromEquipments
+            Set<T> externalAttributesToTombstoneFromEquipments
     ) {
         if (externalAttributesToTombstoneFromEquipments.isEmpty()) {
             return Set.of();
         }
 
-        Set<OwnerInfo> externalAttributesResourcesInFullVariant = new HashSet<>();
+        Set<T> externalAttributesResourcesInFullVariant = new HashSet<>();
         Set<String> tombstonedExternalAttributes = new HashSet<>();
         Set<Integer> fullVariant = new HashSet<>();
         // Retrieve external attributes from full variant

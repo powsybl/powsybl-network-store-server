@@ -209,23 +209,21 @@ public class ExtensionHandler {
             return getAllExtensionsAttributesByIdentifiableIdForVariant(connection, networkId, variantNum, identifiableId);
         }
 
-        if (isTombstonedIdentifiableSupplier.getAsBoolean()) {
-            // If the identifiable is tombstoned, we return directly
-            return Map.of();
+        Map<String, ExtensionAttributes> extensionsAttributesByIdentifiableId = new HashMap<>();
+        if (!isTombstonedIdentifiableSupplier.getAsBoolean()) {
+            // Add extensions of identifiable from full variant if not tombstoned
+            extensionsAttributesByIdentifiableId.putAll(getAllExtensionsAttributesByIdentifiableIdForVariant(connection, networkId, fullVariantNum, identifiableId));
         }
-
-        // Retrieve extensions from full variant
-        Map<String, ExtensionAttributes> extensionsAttributesByIdentifiableId = getAllExtensionsAttributesByIdentifiableIdForVariant(connection, networkId, fullVariantNum, identifiableId);
 
         // Remove tombstoned extensions
         Map<String, Set<String>> tombstonedExtensions = getTombstonedExtensions(connection, networkId, variantNum);
         extensionsAttributesByIdentifiableId.entrySet().removeIf(entry -> tombstonedExtensions.getOrDefault(identifiableId, Set.of()).contains(entry.getKey()));
 
         // Retrieve extensions in partial variant
-        Map<String, ExtensionAttributes> partialVariantExtensionsAttributesByResourceTypeAndExtensionName = getAllExtensionsAttributesByIdentifiableIdForVariant(connection, networkId, variantNum, identifiableId);
+        Map<String, ExtensionAttributes> partialVariantExtensionsAttributesByIdentifiableId = getAllExtensionsAttributesByIdentifiableIdForVariant(connection, networkId, variantNum, identifiableId);
 
         // Combine extensions from full and partial variants
-        extensionsAttributesByIdentifiableId.putAll(partialVariantExtensionsAttributesByResourceTypeAndExtensionName);
+        extensionsAttributesByIdentifiableId.putAll(partialVariantExtensionsAttributesByIdentifiableId);
         return extensionsAttributesByIdentifiableId;
     }
 

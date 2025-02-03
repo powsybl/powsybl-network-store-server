@@ -14,6 +14,7 @@ import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.LimitsInfos;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
+import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -253,30 +254,28 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         assertEquals(30.0, curvePoints.get(1).getMaxQ());
 
         // Regulating Points
-        RegulatingPointAttributes regulatingPoint = networkStoreRepository.getRegulatingPoints(networkUuid, variantNum, ResourceType.GENERATOR).get(ownerInfoGen);
+        RegulatingOwnerInfo regulatingOwnerInfoGen = new RegulatingOwnerInfo(generatorId, ResourceType.GENERATOR, networkUuid, variantNum);
+        RegulatingPointAttributes regulatingPoint = networkStoreRepository.getRegulatingPoints(networkUuid, variantNum, ResourceType.GENERATOR).get(regulatingOwnerInfoGen);
         assertNotNull(regulatingPoint);
         assertEquals(generatorId, regulatingPoint.getRegulatingEquipmentId());
         assertEquals(generatorId, regulatingPoint.getRegulatingTerminal().getConnectableId());
         assertEquals(generatorId, regulatingPoint.getLocalTerminal().getConnectableId());
-        Map<String, ResourceType> regulatingEquipments = networkStoreRepository.getRegulatingEquipments(networkUuid, variantNum, ResourceType.GENERATOR).get(ownerInfoGen);
+        Set<RegulatingEquipmentIdentifier> regulatingEquipments = networkStoreRepository.getRegulatingEquipments(networkUuid, variantNum, ResourceType.GENERATOR).get(ownerInfoGen);
         assertEquals(1, regulatingEquipments.size());
-        assertTrue(regulatingEquipments.containsKey(generatorId));
-        assertEquals(ResourceType.GENERATOR, regulatingEquipments.get(generatorId));
+        assertTrue(regulatingEquipments.contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
-        regulatingPoint = networkStoreRepository.getRegulatingPointsWithInClause(networkUuid, variantNum, REGULATING_EQUIPMENT_ID, List.of(generatorId), ResourceType.GENERATOR).get(ownerInfoGen);
+        regulatingPoint = networkStoreRepository.getRegulatingPointsWithInClause(networkUuid, variantNum, REGULATING_EQUIPMENT_ID, List.of(generatorId), ResourceType.GENERATOR).get(regulatingOwnerInfoGen);
         assertNotNull(regulatingPoint);
         assertEquals(generatorId, regulatingPoint.getRegulatingEquipmentId());
         assertEquals(generatorId, regulatingPoint.getRegulatingTerminal().getConnectableId());
         assertEquals(generatorId, regulatingPoint.getLocalTerminal().getConnectableId());
         regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsWithInClause(networkUuid, variantNum, "regulatingterminalconnectableid", List.of(generatorId), ResourceType.GENERATOR).get(ownerInfoGen);
         assertEquals(1, regulatingEquipments.size());
-        assertTrue(regulatingEquipments.containsKey(generatorId));
-        assertEquals(ResourceType.GENERATOR, regulatingEquipments.get(generatorId));
+        assertTrue(regulatingEquipments.contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
         regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsForIdentifiable(networkUuid, variantNum, generatorId, ResourceType.GENERATOR);
         assertEquals(1, regulatingEquipments.size());
-        assertTrue(regulatingEquipments.containsKey(generatorId));
-        assertEquals(ResourceType.GENERATOR, regulatingEquipments.get(generatorId));
+        assertTrue(regulatingEquipments.contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
         // Extensions
         Map<String, ExtensionAttributes> extensions = networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(networkUuid, variantNum, lineId);
@@ -555,19 +554,19 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         assertEquals(-120.0, curvePoints.get(0).getMinQ());
 
         // Regulating Points
-        RegulatingPointAttributes regulatingPoint = networkStoreRepository.getRegulatingPoints(networkUuid, variantNum, ResourceType.GENERATOR).get(ownerInfoGen);
+        RegulatingOwnerInfo regulatingOwnerInfoGen = new RegulatingOwnerInfo(generatorId, ResourceType.GENERATOR, networkUuid, variantNum);
+        RegulatingPointAttributes regulatingPoint = networkStoreRepository.getRegulatingPoints(networkUuid, variantNum, ResourceType.GENERATOR).get(regulatingOwnerInfoGen);
         assertNotNull(regulatingPoint);
         assertEquals(generatorId, regulatingPoint.getRegulatingEquipmentId());
         assertEquals(generatorId, regulatingPoint.getLocalTerminal().getConnectableId());
         assertEquals(loadId, regulatingPoint.getRegulatingTerminal().getConnectableId());
-        Map<OwnerInfo, Map<String, ResourceType>> regulatingEquipmentsGen = networkStoreRepository.getRegulatingEquipments(networkUuid, variantNum, ResourceType.GENERATOR);
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipmentsGen = networkStoreRepository.getRegulatingEquipments(networkUuid, variantNum, ResourceType.GENERATOR);
         assertTrue(regulatingEquipmentsGen.isEmpty());
-        Map<String, ResourceType> regulatingEquipmentsLoad = networkStoreRepository.getRegulatingEquipments(networkUuid, variantNum, ResourceType.LOAD).get(ownerInfoLoad);
+        Set<RegulatingEquipmentIdentifier> regulatingEquipmentsLoad = networkStoreRepository.getRegulatingEquipments(networkUuid, variantNum, ResourceType.LOAD).get(ownerInfoLoad);
         assertEquals(1, regulatingEquipmentsLoad.size());
-        assertTrue(regulatingEquipmentsLoad.containsKey(generatorId));
-        assertEquals(ResourceType.GENERATOR, regulatingEquipmentsLoad.get(generatorId));
+        assertTrue(regulatingEquipmentsLoad.contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
-        regulatingPoint = networkStoreRepository.getRegulatingPointsWithInClause(networkUuid, variantNum, REGULATING_EQUIPMENT_ID, List.of(generatorId), ResourceType.GENERATOR).get(ownerInfoGen);
+        regulatingPoint = networkStoreRepository.getRegulatingPointsWithInClause(networkUuid, variantNum, REGULATING_EQUIPMENT_ID, List.of(generatorId), ResourceType.GENERATOR).get(regulatingOwnerInfoGen);
         assertNotNull(regulatingPoint);
         assertEquals(generatorId, regulatingPoint.getRegulatingEquipmentId());
         assertEquals(generatorId, regulatingPoint.getLocalTerminal().getConnectableId());
@@ -576,14 +575,12 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         assertTrue(regulatingEquipmentsGen.isEmpty());
         regulatingEquipmentsLoad = networkStoreRepository.getRegulatingEquipmentsWithInClause(networkUuid, variantNum, "regulatingterminalconnectableid", List.of(loadId), ResourceType.LOAD).get(ownerInfoLoad);
         assertEquals(1, regulatingEquipmentsLoad.size());
-        assertTrue(regulatingEquipmentsLoad.containsKey(generatorId));
-        assertEquals(ResourceType.GENERATOR, regulatingEquipmentsLoad.get(generatorId));
+        assertTrue(regulatingEquipmentsLoad.contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
         assertTrue(networkStoreRepository.getRegulatingEquipmentsForIdentifiable(networkUuid, variantNum, generatorId, ResourceType.GENERATOR).isEmpty());
         regulatingEquipmentsLoad = networkStoreRepository.getRegulatingEquipmentsForIdentifiable(networkUuid, variantNum, loadId, ResourceType.LOAD);
         assertEquals(1, regulatingEquipmentsLoad.size());
-        assertTrue(regulatingEquipmentsLoad.containsKey(generatorId));
-        assertEquals(ResourceType.GENERATOR, regulatingEquipmentsLoad.get(generatorId));
+        assertTrue(regulatingEquipmentsLoad.contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
         // Extensions
         Map<String, ExtensionAttributes> extensions = networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(networkUuid, variantNum, lineId);
@@ -919,6 +916,10 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
         Assertions.assertEquals(Optional.of(extensionAttributesMap1.get(ActivePowerControl.NAME)), networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 1, lineId1, ActivePowerControl.NAME));
         Assertions.assertEquals(extensionAttributesMap1, networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(NETWORK_UUID, 1, lineId1));
+        Map<String, ExtensionAttributes> expExtensionAttributesOsLine = Map.of(lineId1, buildActivePowerControlAttributes(5.6));
+        Assertions.assertEquals(expExtensionAttributesOsLine, networkStoreRepository.getAllExtensionsAttributesByResourceTypeAndExtensionName(NETWORK_UUID, 1, ResourceType.LINE, ActivePowerControl.NAME));
+        Map<String, Map<String, ExtensionAttributes>> expExtensionAttributesLine = Map.of(lineId1, Map.of(OperatingStatus.NAME, buildOperatingStatusAttributes("status1"), ActivePowerControl.NAME, buildActivePowerControlAttributes(5.6)));
+        Assertions.assertEquals(expExtensionAttributesLine, networkStoreRepository.getAllExtensionsAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE));
 
         // Recreate identifiable without extensions
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(lineId1), LINE_TABLE);
@@ -926,6 +927,17 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
         Assertions.assertEquals(Optional.empty(), networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 1, lineId1, ActivePowerControl.NAME));
         Assertions.assertEquals(Map.of(), networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(NETWORK_UUID, 1, lineId1));
+        Assertions.assertEquals(Map.of(), networkStoreRepository.getAllExtensionsAttributesByResourceTypeAndExtensionName(NETWORK_UUID, 1, ResourceType.LINE, ActivePowerControl.NAME));
+        Assertions.assertEquals(Map.of(), networkStoreRepository.getAllExtensionsAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE));
+
+        ownerInfo1 = new OwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 1);
+        insertExtensions(Map.of(ownerInfo1, extensionAttributesMap1));
+        Assertions.assertEquals(Optional.of(extensionAttributesMap1.get(ActivePowerControl.NAME)), networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 1, lineId1, ActivePowerControl.NAME));
+        Assertions.assertEquals(extensionAttributesMap1, networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(NETWORK_UUID, 1, lineId1));
+        expExtensionAttributesOsLine = Map.of(lineId1, buildActivePowerControlAttributes(5.6));
+        Assertions.assertEquals(expExtensionAttributesOsLine, networkStoreRepository.getAllExtensionsAttributesByResourceTypeAndExtensionName(NETWORK_UUID, 1, ResourceType.LINE, ActivePowerControl.NAME));
+        expExtensionAttributesLine = Map.of(lineId1, Map.of(OperatingStatus.NAME, buildOperatingStatusAttributes("status1"), ActivePowerControl.NAME, buildActivePowerControlAttributes(5.6)));
+        Assertions.assertEquals(expExtensionAttributesLine, networkStoreRepository.getAllExtensionsAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE));
     }
 
     @Test
@@ -1003,6 +1015,92 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
     void emptyCreateExtensionsDoesNotThrow() {
         assertDoesNotThrow(() -> insertExtensions(Map.of()));
         assertDoesNotThrow(() -> insertExtensions(Map.of(new OwnerInfo("id", ResourceType.LINE, NETWORK_UUID, 0), Map.of())));
+    }
+
+    @Test
+    void getRegulatingEquipmentsFromTwoVariants() {
+        String networkId = "network1";
+        String generatorId1 = "generator1";
+        String generatorId2 = "generator2";
+        String loadId1 = "load1";
+        // Variant 0
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant1", -1);
+        Resource<GeneratorAttributes> gen = Resource.generatorBuilder()
+                .id(generatorId1)
+                .variantNum(0)
+                .attributes(GeneratorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name(generatorId1)
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                                .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId1).build())
+                                .regulatedResourceType(ResourceType.LOAD)
+                                .regulatingEquipmentId(loadId1)
+                                .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId1).build())
+                                .build())
+                        .build())
+                .build();
+        networkStoreRepository.createGenerators(NETWORK_UUID, List.of(gen));
+        Resource<LoadAttributes> load = Resource.loadBuilder()
+                .id(loadId1)
+                .variantNum(0)
+                .attributes(LoadAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .build())
+                .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load));
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+        // Variant 1
+        Resource<GeneratorAttributes> gen2 = Resource.generatorBuilder()
+                .id(generatorId2)
+                .variantNum(1)
+                .attributes(GeneratorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name(generatorId2)
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                                .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId2).build())
+                                .regulatedResourceType(ResourceType.LOAD)
+                                .regulatingEquipmentId(loadId1)
+                                .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId1).build())
+                                .build())
+                        .build())
+                .build();
+        networkStoreRepository.createGenerators(NETWORK_UUID, List.of(gen2));
+
+        // getRegulatingEquipments
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = networkStoreRepository.getRegulatingEquipments(NETWORK_UUID, 0, ResourceType.LOAD);
+        assertEquals(1, regulatingEquipments.size());
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR)), regulatingEquipments.get(new OwnerInfo(loadId1, ResourceType.LOAD, NETWORK_UUID, 0)));
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipments(NETWORK_UUID, 0, ResourceType.GENERATOR);
+        assertEquals(0, regulatingEquipments.size());
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipments(NETWORK_UUID, 1, ResourceType.LOAD);
+        assertEquals(1, regulatingEquipments.size());
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR), new RegulatingEquipmentIdentifier(generatorId2, ResourceType.GENERATOR)), regulatingEquipments.get(new OwnerInfo(loadId1, ResourceType.LOAD, NETWORK_UUID, 1)));
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipments(NETWORK_UUID, 1, ResourceType.GENERATOR);
+        assertEquals(0, regulatingEquipments.size());
+        // getRegulatingEquipmentsWithInClause
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsWithInClause(NETWORK_UUID, 0, "regulatingterminalconnectableid", List.of(loadId1), ResourceType.LOAD);
+        assertEquals(1, regulatingEquipments.size());
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR)), regulatingEquipments.get(new OwnerInfo(loadId1, ResourceType.LOAD, NETWORK_UUID, 0)));
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsWithInClause(NETWORK_UUID, 0, "regulatingterminalconnectableid", List.of(generatorId1), ResourceType.GENERATOR);
+        assertEquals(0, regulatingEquipments.size());
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsWithInClause(NETWORK_UUID, 1, "regulatingterminalconnectableid", List.of(loadId1), ResourceType.LOAD);
+        assertEquals(1, regulatingEquipments.size());
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR), new RegulatingEquipmentIdentifier(generatorId2, ResourceType.GENERATOR)), regulatingEquipments.get(new OwnerInfo(loadId1, ResourceType.LOAD, NETWORK_UUID, 1)));
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsWithInClause(NETWORK_UUID, 1, "regulatingterminalconnectableid", List.of(generatorId1), ResourceType.GENERATOR);
+        assertEquals(0, regulatingEquipments.size());
+        // getRegulatingEquipmentsForIdentifiable
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR)), networkStoreRepository.getRegulatingEquipmentsForIdentifiable(NETWORK_UUID, 0, loadId1, ResourceType.LOAD));
+        assertEquals(Set.of(), networkStoreRepository.getRegulatingEquipmentsForIdentifiable(NETWORK_UUID, 0, generatorId1, ResourceType.GENERATOR));
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR), new RegulatingEquipmentIdentifier(generatorId2, ResourceType.GENERATOR)), networkStoreRepository.getRegulatingEquipmentsForIdentifiable(NETWORK_UUID, 1, loadId1, ResourceType.LOAD));
+        assertEquals(Set.of(), networkStoreRepository.getRegulatingEquipmentsForIdentifiable(NETWORK_UUID, 1, generatorId1, ResourceType.GENERATOR));
+
+        // Delete generatorId2 and check that it's not in regulating equipments anymore
+        networkStoreRepository.deleteGenerators(NETWORK_UUID, 1, List.of(generatorId2));
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipments(NETWORK_UUID, 1, ResourceType.LOAD);
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR)), regulatingEquipments.get(new OwnerInfo(loadId1, ResourceType.LOAD, NETWORK_UUID, 1)));
+        regulatingEquipments = networkStoreRepository.getRegulatingEquipmentsWithInClause(NETWORK_UUID, 1, "regulatingterminalconnectableid", List.of(loadId1), ResourceType.LOAD);
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR)), regulatingEquipments.get(new OwnerInfo(loadId1, ResourceType.LOAD, NETWORK_UUID, 1)));
+        assertEquals(Set.of(new RegulatingEquipmentIdentifier(generatorId1, ResourceType.GENERATOR)), networkStoreRepository.getRegulatingEquipmentsForIdentifiable(NETWORK_UUID, 1, loadId1, ResourceType.LOAD));
     }
 
     private Map<String, Set<String>> getTombstonedExtensions(UUID networkUuid, int variantNum) {
