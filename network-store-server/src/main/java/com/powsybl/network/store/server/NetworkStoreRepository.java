@@ -3160,44 +3160,13 @@ public class NetworkStoreRepository {
 
     public Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> getRegulatingEquipments(UUID networkUuid, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
-            int fullVariantNum = getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum();
-            if (NetworkAttributes.isFullVariant(fullVariantNum)) {
-                // If the variant is full, retrieve regulating equipments for the specified variant directly
-                return getRegulatingEquipmentsForVariant(connection, networkUuid, variantNum, type, variantNum);
-            }
-
-            // Retrieve regulating equipments from full variant
-            Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipmentsForVariant(connection, networkUuid, fullVariantNum, type, variantNum);
-
-            // Remove tombstoned identifiables and updated regulating points
-            Set<String> tombstonedIds = getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
-            Set<String> updatedRegulatingPointsIds = getRegulatingPointsIdentifiableIdsForVariant(connection, networkUuid, variantNum);
-            regulatingEquipments.keySet().removeIf(ownerInfo ->
-                    tombstonedIds.contains(ownerInfo.getEquipmentId()) ||
-                    updatedRegulatingPointsIds.contains(ownerInfo.getEquipmentId())
-            );
-
-            // Remove tombstoned regulating points
-            Set<String> tombstonedRegulatingPointsIds = getTombstonedRegulatingPointsIds(connection, networkUuid, variantNum);
-            regulatingEquipments.forEach((ownerInfo, regulatingEquipmentIdentifiers) ->
-                    regulatingEquipmentIdentifiers.removeIf(regulatingEquipmentIdentifier ->
-                            tombstonedRegulatingPointsIds.contains(regulatingEquipmentIdentifier.getEquipmentId())
-                    )
-            );
-            // Remove entries with no remaining regulating equipments
-            regulatingEquipments.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-
-            // Retrieve regulating equipments in partial variant
-            Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> partialVariantRegulatingEquipments = getRegulatingEquipmentsForVariant(connection, networkUuid, variantNum, type, variantNum);
-
-            // Combine regulating equipments from full and partial variants
-            partialVariantRegulatingEquipments.forEach((ownerInfo, updatedRegulatingEquipments) ->
-                    regulatingEquipments.merge(ownerInfo, updatedRegulatingEquipments, (existingRegulatingEquipments, newRegulatingEquipments) -> {
-                        existingRegulatingEquipments.addAll(newRegulatingEquipments);
-                        return existingRegulatingEquipments;
-                    })
-            );
-            return regulatingEquipments;
+            return PartialVariantUtils.getRegulatingEquipments(
+                    variantNum,
+                    getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                    () -> getTombstonedRegulatingPointsIds(connection, networkUuid, variantNum),
+                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    () -> getRegulatingPointsIdentifiableIdsForVariant(connection, networkUuid, variantNum),
+                    variant -> getRegulatingEquipmentsForVariant(connection, networkUuid, variant, type, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -3220,44 +3189,13 @@ public class NetworkStoreRepository {
             return Collections.emptyMap();
         }
         try (var connection = dataSource.getConnection()) {
-            int fullVariantNum = getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum();
-            if (NetworkAttributes.isFullVariant(fullVariantNum)) {
-                // If the variant is full, retrieve regulating equipments for the specified variant directly
-                return getRegulatingEquipmentsWithInClauseForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, type, variantNum);
-            }
-
-            // Retrieve regulating equipments from full variant
-            Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments = getRegulatingEquipmentsWithInClauseForVariant(connection, networkUuid, fullVariantNum, columnNameForWhereClause, valuesForInClause, type, variantNum);
-
-            // Remove tombstoned identifiables
-            Set<String> tombstonedIds = getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
-            Set<String> updatedRegulatingPointsIds = getRegulatingPointsIdentifiableIdsForVariant(connection, networkUuid, variantNum);
-            regulatingEquipments.keySet().removeIf(ownerInfo ->
-                    tombstonedIds.contains(ownerInfo.getEquipmentId()) ||
-                            updatedRegulatingPointsIds.contains(ownerInfo.getEquipmentId())
-            );
-
-            // Remove tombstoned regulating points and identifiables
-            Set<String> tombstonedRegulatingPointsIds = getTombstonedRegulatingPointsIds(connection, networkUuid, variantNum);
-            regulatingEquipments.forEach((ownerInfo, regulatingEquipmentIdentifiers) ->
-                    regulatingEquipmentIdentifiers.removeIf(regulatingEquipmentIdentifier ->
-                            tombstonedRegulatingPointsIds.contains(regulatingEquipmentIdentifier.getEquipmentId())
-                    )
-            );
-            // Remove entries with no remaining regulating equipments
-            regulatingEquipments.entrySet().removeIf(entry -> entry.getValue().isEmpty());
-
-            // Retrieve regulating equipments in partial variant
-            Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> partialVariantRegulatingEquipments = getRegulatingEquipmentsWithInClauseForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, type, variantNum);
-
-            // Combine regulating equipments from full and partial variants
-            partialVariantRegulatingEquipments.forEach((ownerInfo, updatedRegulatingEquipments) ->
-                    regulatingEquipments.merge(ownerInfo, updatedRegulatingEquipments, (existingRegulatingEquipments, newRegulatingEquipments) -> {
-                        existingRegulatingEquipments.addAll(newRegulatingEquipments);
-                        return existingRegulatingEquipments;
-                    })
-            );
-            return regulatingEquipments;
+            return PartialVariantUtils.getRegulatingEquipments(
+                    variantNum,
+                    getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                    () -> getTombstonedRegulatingPointsIds(connection, networkUuid, variantNum),
+                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    () -> getRegulatingPointsIdentifiableIdsForVariant(connection, networkUuid, variantNum),
+                    variant -> getRegulatingEquipmentsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, type, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }

@@ -6,9 +6,7 @@
  */
 package com.powsybl.network.store.server;
 
-import com.powsybl.network.store.model.Attributes;
-import com.powsybl.network.store.model.NetworkAttributes;
-import com.powsybl.network.store.model.Resource;
+import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.apache.commons.lang3.function.TriFunction;
 
@@ -57,6 +55,66 @@ public final class PartialVariantUtils {
         externalAttributes.putAll(partialVariantExternalAttributes);
 
         return externalAttributes;
+    }
+
+    /*
+    Regulating equipments are derived from the regulating points table using a WHERE clause on the column `regulatedequipmenttype`.
+    Due to this filtering, the system that overrides OwnerInfo in the full variant with updated regulating points in the
+    partial variant does not behave as expected because of the additional WHERE clause.
+    For example, consider a generator in the full variant with local regulation (`regulatedequipmenttype = generator`).
+    If this is updated in the partial variant to regulate a load (`regulatedequipmenttype = load`), calling `getRegulatingEquipments`
+    with `type = generator` for the partial variant will yield unexpected results. The system will retrieve the
+    regulation from the full variant (as it matches `regulatedequipmenttype = generator`).
+    To address this inconsistency, an additional fetch is performed to exclude any regulating points in the full variant
+    that have been updated in the partial variant. This ensures that the results reflect the changes made in the partial variant.
+    */
+    public static Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> getRegulatingEquipments(
+            int variantNum,
+            int fullVariantNum,
+            Supplier<Set<String>> fetchTombstonedRegulatingPointsIds,
+            Supplier<Set<String>> fetchTombstonedIdentifiableIds,
+            Supplier<Set<String>> fetchUpdatedRegulatingPointsIdsForVariant,
+            IntFunction<Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>>> fetchRegulatingEquipmentsInVariant) {
+
+        if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+            // If the variant is full, retrieve regulating equipments for the specified variant directly
+            return fetchRegulatingEquipmentsInVariant.apply(variantNum);
+        }
+
+        // Retrieve regulating equipments from full variant
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> regulatingEquipments =
+                fetchRegulatingEquipmentsInVariant.apply(fullVariantNum);
+
+        // Remove tombstoned identifiables
+        Set<String> tombstonedIds = fetchTombstonedIdentifiableIds.get();
+        Set<String> updatedRegulatingPointsIds = fetchUpdatedRegulatingPointsIdsForVariant.get();
+        regulatingEquipments.keySet().removeIf(ownerInfo ->
+                tombstonedIds.contains(ownerInfo.getEquipmentId()) ||
+                updatedRegulatingPointsIds.contains(ownerInfo.getEquipmentId())
+        );
+
+        // Remove tombstoned regulating points and identifiables
+        Set<String> tombstonedRegulatingPointsIds = fetchTombstonedRegulatingPointsIds.get();
+        regulatingEquipments.forEach((ownerInfo, regulatingEquipmentIdentifiers) ->
+                regulatingEquipmentIdentifiers.removeIf(regulatingEquipmentIdentifier ->
+                        tombstonedRegulatingPointsIds.contains(regulatingEquipmentIdentifier.getEquipmentId())
+                )
+        );
+        // Remove entries with no remaining regulating equipments
+        regulatingEquipments.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+
+        // Retrieve regulating equipments in partial variant
+        Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> partialVariantRegulatingEquipments =
+                fetchRegulatingEquipmentsInVariant.apply(variantNum);
+
+        // Combine regulating equipments from full and partial variants
+        partialVariantRegulatingEquipments.forEach((ownerInfo, updatedRegulatingEquipments) ->
+                regulatingEquipments.merge(ownerInfo, updatedRegulatingEquipments, (existing, newEquipments) -> {
+                    existing.addAll(newEquipments);
+                    return existing;
+                })
+        );
+        return regulatingEquipments;
     }
 
     public static <T extends OwnerInfo> Set<T> getExternalAttributesToTombstone(
