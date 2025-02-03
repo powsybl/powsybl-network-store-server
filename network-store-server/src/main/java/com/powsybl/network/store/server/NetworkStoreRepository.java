@@ -884,9 +884,19 @@ public class NetworkStoreRepository {
                 resources,
                 tableMapping,
                 buildUpdateInjectionSvQuery(tableName),
-                InjectionSvAttributes::updateAttributes,
-                InjectionSvAttributes::bindAttributes
+                NetworkStoreRepository::updateInjectionSvAttributes,
+                NetworkStoreRepository::bindInjectionSvAttributes
         );
+    }
+
+    static void bindInjectionSvAttributes(InjectionSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getP());
+        values.add(attributes.getQ());
+    }
+
+    static void updateInjectionSvAttributes(InjectionAttributes existingAttributes, InjectionSvAttributes newAttributes) {
+        existingAttributes.setP(newAttributes.getP());
+        existingAttributes.setQ(newAttributes.getQ());
     }
 
     private <T extends IdentifiableAttributes, U extends Attributes> void updateIdentifiablesSv(
@@ -982,9 +992,23 @@ public class NetworkStoreRepository {
                 resources,
                 tableMapping,
                 buildUpdateBranchSvQuery(tableName),
-                BranchSvAttributes::updateAttributes,
-                BranchSvAttributes::bindAttributes
+                NetworkStoreRepository::updateBranchSvAttributes,
+                NetworkStoreRepository::bindBranchSvAttributes
         );
+    }
+
+    static void bindBranchSvAttributes(BranchSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getP1());
+        values.add(attributes.getQ1());
+        values.add(attributes.getP2());
+        values.add(attributes.getQ2());
+    }
+
+    static void updateBranchSvAttributes(BranchAttributes existingAttributes, BranchSvAttributes newAttributes) {
+        existingAttributes.setP1(newAttributes.getP1());
+        existingAttributes.setQ1(newAttributes.getQ1());
+        existingAttributes.setP2(newAttributes.getP2());
+        existingAttributes.setQ2(newAttributes.getQ2());
     }
 
     public <T extends IdentifiableAttributes> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
@@ -1103,9 +1127,19 @@ public class NetworkStoreRepository {
                 resources,
                 mappings.getVoltageLevelMappings(),
                 buildUpdateVoltageLevelSvQuery(),
-                VoltageLevelSvAttributes::updateAttributes,
-                VoltageLevelSvAttributes::bindAttributes
+                NetworkStoreRepository::updateVoltageLevelSvAttributes,
+                NetworkStoreRepository::bindVoltageLevelSvAttributes
         );
+    }
+
+    static void bindVoltageLevelSvAttributes(VoltageLevelSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getCalculatedBusesForBusView());
+        values.add(attributes.getCalculatedBusesForBusBreakerView());
+    }
+
+    static void updateVoltageLevelSvAttributes(VoltageLevelAttributes existingAttributes, VoltageLevelSvAttributes newAttributes) {
+        existingAttributes.setCalculatedBusesForBusView(newAttributes.getCalculatedBusesForBusView());
+        existingAttributes.setCalculatedBusesForBusBreakerView(newAttributes.getCalculatedBusesForBusBreakerView());
     }
 
     public List<Resource<VoltageLevelAttributes>> getVoltageLevels(UUID networkUuid, int variantNum, String substationId) {
@@ -1817,9 +1851,27 @@ public class NetworkStoreRepository {
                 resources,
                 mappings.getThreeWindingsTransformerMappings(),
                 buildUpdateThreeWindingsTransformerSvQuery(),
-                ThreeWindingsTransformerSvAttributes::updateAttributes,
-                ThreeWindingsTransformerSvAttributes::bindAttributes
+                NetworkStoreRepository::updateThreeWindingsTransformerSvAttributes,
+                NetworkStoreRepository::bindThreeWindingsTransformerSvAttributes
         );
+    }
+
+    static void bindThreeWindingsTransformerSvAttributes(ThreeWindingsTransformerSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getP1());
+        values.add(attributes.getQ1());
+        values.add(attributes.getP2());
+        values.add(attributes.getQ2());
+        values.add(attributes.getP3());
+        values.add(attributes.getQ3());
+    }
+
+    static void updateThreeWindingsTransformerSvAttributes(ThreeWindingsTransformerAttributes existingAttributes, ThreeWindingsTransformerSvAttributes newAttributes) {
+        existingAttributes.setP1(newAttributes.getP1());
+        existingAttributes.setQ1(newAttributes.getQ1());
+        existingAttributes.setP2(newAttributes.getP2());
+        existingAttributes.setQ2(newAttributes.getQ2());
+        existingAttributes.setP3(newAttributes.getP3());
+        existingAttributes.setQ3(newAttributes.getQ3());
     }
 
     public void deleteThreeWindingsTransformers(UUID networkUuid, int variantNum, List<String> threeWindingsTransformerIds) {
