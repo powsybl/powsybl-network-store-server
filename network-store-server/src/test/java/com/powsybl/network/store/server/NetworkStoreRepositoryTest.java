@@ -1376,6 +1376,7 @@ class NetworkStoreRepositoryTest {
                         .regulatingPoint(RegulatingPointAttributes.builder()
                             .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
                             .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_ONE)
+                            .regulatedResourceType(ResourceType.LOAD)
                             .regulatingEquipmentId(twtId)
                             .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                             .build())
