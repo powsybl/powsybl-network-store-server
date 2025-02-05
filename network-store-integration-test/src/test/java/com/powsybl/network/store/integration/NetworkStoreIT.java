@@ -200,12 +200,10 @@ class NetworkStoreIT {
             assertNull(voltageLevel1.getNodeBreakerView().getTerminal(4));
             List<Integer> traversedNodes = new ArrayList<>();
             voltageLevel1.getNodeBreakerView().traverse(2, (node1, sw, node2) -> {
-                if (!traversedNodes.contains(node1)) {
-                    traversedNodes.add(node1);
-                }
+                traversedNodes.add(node1);
                 return TraverseResult.CONTINUE;
             });
-            assertEquals(Arrays.asList(2, 3, 0, 1, 6, 5), traversedNodes);
+            assertEquals(Arrays.asList(2, 3, 0, 1, 6), traversedNodes);
         }
     }
 
