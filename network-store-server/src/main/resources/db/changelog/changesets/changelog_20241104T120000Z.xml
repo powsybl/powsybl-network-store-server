@@ -16,8 +16,8 @@
     <!-- Set data type of networkuuid column to UUID for some external attributes for consistency -->
     <changeSet author="bouhoursant" id="2986331049290-3">
         <modifyDataType tableName="reactivecapabilitycurvepoint" columnName="networkuuid" newDataType="UUID"/>
-        <modifyDataType tableName="temporarylimit" columnName="networkuuid" newDataType="UUID"/>
-        <modifyDataType tableName="permanentlimit" columnName="networkuuid" newDataType="UUID"/>
+        <modifyDataType tableName="temporarylimits" columnName="networkuuid" newDataType="UUID"/>
+        <modifyDataType tableName="permanentlimits" columnName="networkuuid" newDataType="UUID"/>
     </changeSet>
     <changeSet author="bouhoursant" id="2986331049290-4">
         <createTable tableName="tombstonedidentifiable">
