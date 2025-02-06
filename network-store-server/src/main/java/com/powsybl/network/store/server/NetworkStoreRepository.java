@@ -331,15 +331,11 @@ public class NetworkStoreRepository {
     private static void deleteExternalAttributes(UUID uuid, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesQueries = List.of(
                 QueryCatalog.buildDeleteTemporaryLimitsQuery(),
-                QueryCatalog.buildDeleteTombstonedTemporaryLimitsQuery(),
                 QueryCatalog.buildDeletePermanentLimitsQuery(),
-                QueryCatalog.buildDeleteTombstonedPermanentLimitsQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
-                QueryCatalog.buildDeleteTombstonedReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
-                QueryCatalog.buildDeleteTombstonedRegulatingPointsQuery(),
                 QueryCatalog.buildDeleteTapChangerStepQuery(),
-                QueryCatalog.buildDeleteTombstonedTapChangerStepsQuery(),
+                QueryCatalog.buildDeleteTombstonedExternalAttributesQuery(),
                 QueryExtensionCatalog.buildDeleteExtensionsQuery(),
                 QueryExtensionCatalog.buildDeleteTombstonedExtensionsQuery()
         );
@@ -371,15 +367,11 @@ public class NetworkStoreRepository {
     private static void deleteExternalAttributesVariant(UUID uuid, int variantNum, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesVariantQueries = List.of(
                 QueryCatalog.buildDeleteTemporaryLimitsVariantQuery(),
-                QueryCatalog.buildDeleteTombstonedTemporaryLimitsVariantQuery(),
                 QueryCatalog.buildDeletePermanentLimitsVariantQuery(),
-                QueryCatalog.buildDeleteTombstonedPermanentLimitsVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
-                QueryCatalog.buildDeleteTombstonedReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
-                QueryCatalog.buildDeleteTombstonedRegulatingPointsVariantQuery(),
                 QueryCatalog.buildDeleteTapChangerStepVariantQuery(),
-                QueryCatalog.buildDeleteTombstonedTapChangerStepsVariantQuery(),
+                QueryCatalog.buildDeleteTombstonedExternalAttributesVariantQuery(),
                 QueryExtensionCatalog.buildDeleteExtensionsVariantQuery(),
                 QueryExtensionCatalog.buildDeleteTombstonedExtensionsVariantQuery()
         );
@@ -516,11 +508,7 @@ public class NetworkStoreRepository {
         Stopwatch stopwatch = Stopwatch.createStarted();
         List<String> tombstonedQueries = List.of(
                 QueryCatalog.buildCloneTombstonedIdentifiablesQuery(),
-                QueryCatalog.buildCloneTombstonedTemporaryLimitsQuery(),
-                QueryCatalog.buildCloneTombstonedPermanentLimitsQuery(),
-                QueryCatalog.buildCloneTombstonedReactiveCapabilityCurvePointsQuery(),
-                QueryCatalog.buildCloneTombstonedRegulatingPointsQuery(),
-                QueryCatalog.buildCloneTombstonedTapChangerStepsQuery(),
+                QueryCatalog.buildCloneTombstonedExternalAttributesQuery(),
                 QueryExtensionCatalog.buildCloneTombstonedExtensionsQuery()
         );
 
@@ -1200,9 +1188,10 @@ public class NetworkStoreRepository {
 
     public Set<String> getTombstonedTapChangerStepsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedTapChangerStepsIdsQuery())) {
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.TAP_CHANGER_STEP.toString());
             try (var resultSet = preparedStmt.executeQuery()) {
                 while (resultSet.next()) {
                     identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
@@ -1216,9 +1205,10 @@ public class NetworkStoreRepository {
 
     public Set<String> getTombstonedTemporaryLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedTemporaryLimitsIdsQuery())) {
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.TEMPORARY_LIMIT.toString());
             try (var resultSet = preparedStmt.executeQuery()) {
                 while (resultSet.next()) {
                     identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
@@ -1232,9 +1222,10 @@ public class NetworkStoreRepository {
 
     public Set<String> getTombstonedPermanentLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedPermanentLimitsIdsQuery())) {
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.PERMANENT_LIMIT.toString());
             try (var resultSet = preparedStmt.executeQuery()) {
                 while (resultSet.next()) {
                     identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
@@ -1319,11 +1310,12 @@ public class NetworkStoreRepository {
                     getExternalAttributesListToTombstoneFromEquipment(networkUuid, reactiveCapabilityCurvePointsToInsert, resources)
             );
 
-            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedReactiveCapabilityCurvePointsQuery())) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
                 for (OwnerInfo reactiveCapabilityCurvePoint : tombstonedReactiveCapabilityCurvePoints) {
                     preparedStmt.setObject(1, reactiveCapabilityCurvePoint.getNetworkUuid());
                     preparedStmt.setInt(2, reactiveCapabilityCurvePoint.getVariantNum());
                     preparedStmt.setString(3, reactiveCapabilityCurvePoint.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.REACTIVE_CAPABILITY_CURVE_POINT.toString());
                     preparedStmt.addBatch();
                 }
                 preparedStmt.executeBatch();
@@ -1335,9 +1327,10 @@ public class NetworkStoreRepository {
 
     private Set<String> getTombstonedReactiveCapabilityCurvePointsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedReactiveCapabilityCurvePointsIdsQuery())) {
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.REACTIVE_CAPABILITY_CURVE_POINT.toString());
             try (var resultSet = preparedStmt.executeQuery()) {
                 while (resultSet.next()) {
                     identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
@@ -1753,11 +1746,12 @@ public class NetworkStoreRepository {
                     getExternalAttributesListToTombstoneFromEquipment(networkUuid, tapChangerStepsToInsert, resources)
             );
 
-            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedTapChangerStepsQuery())) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
                 for (OwnerInfo tapChangerStep : tombstonedTapChangerSteps) {
                     preparedStmt.setObject(1, tapChangerStep.getNetworkUuid());
                     preparedStmt.setInt(2, tapChangerStep.getVariantNum());
                     preparedStmt.setString(3, tapChangerStep.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.TAP_CHANGER_STEP.toString());
                     preparedStmt.addBatch();
                 }
                 preparedStmt.executeBatch();
@@ -1950,11 +1944,12 @@ public class NetworkStoreRepository {
                     getTemporaryLimitsToTombstoneFromEquipment(networkUuid, limitsInfos, resources)
             );
 
-            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedTemporaryLimitsQuery())) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
                 for (OwnerInfo temporaryLimit : tombstonedTemporaryLimits) {
                     preparedStmt.setObject(1, temporaryLimit.getNetworkUuid());
                     preparedStmt.setInt(2, temporaryLimit.getVariantNum());
                     preparedStmt.setString(3, temporaryLimit.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.TEMPORARY_LIMIT.toString());
                     preparedStmt.addBatch();
                 }
                 preparedStmt.executeBatch();
@@ -2017,11 +2012,12 @@ public class NetworkStoreRepository {
                         variantNum -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
                         getPermanentLimitsToTombstoneFromEquipment(networkUuid, limitsInfos, resources)
                 );
-            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedPermanentLimitsQuery())) {
-                for (OwnerInfo temporaryLimit : tombstonedPermanentLimits) {
-                    preparedStmt.setObject(1, temporaryLimit.getNetworkUuid());
-                    preparedStmt.setInt(2, temporaryLimit.getVariantNum());
-                    preparedStmt.setString(3, temporaryLimit.getEquipmentId());
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
+                for (OwnerInfo permanentLimit : tombstonedPermanentLimits) {
+                    preparedStmt.setObject(1, permanentLimit.getNetworkUuid());
+                    preparedStmt.setInt(2, permanentLimit.getVariantNum());
+                    preparedStmt.setString(3, permanentLimit.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.PERMANENT_LIMIT.toString());
                     preparedStmt.addBatch();
                 }
                 preparedStmt.executeBatch();
@@ -2711,11 +2707,12 @@ public class NetworkStoreRepository {
                     getRegulatingPointsToTombstoneFromEquipment(networkUuid, regulatingPointToInsert, resources)
             );
 
-            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedRegulatingPointsQuery())) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
                 for (RegulatingOwnerInfo regulatingPoint : tombstonedRegulatingPoints) {
                     preparedStmt.setObject(1, regulatingPoint.getNetworkUuid());
                     preparedStmt.setInt(2, regulatingPoint.getVariantNum());
                     preparedStmt.setString(3, regulatingPoint.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.REGULATING_POINT.toString());
                     preparedStmt.addBatch();
                 }
                 preparedStmt.executeBatch();
@@ -2743,9 +2740,10 @@ public class NetworkStoreRepository {
 
     private Set<String> getTombstonedRegulatingPointsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedRegulatingPointsIdsQuery())) {
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.REGULATING_POINT.toString());
             try (var resultSet = preparedStmt.executeQuery()) {
                 while (resultSet.next()) {
                     identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));

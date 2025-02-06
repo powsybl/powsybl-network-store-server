@@ -31,10 +31,6 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <createIndex indexName="tombstonedidentifiable_networkuuid_variantnum_idx" tableName="tombstonedidentifiable">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
         <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid" constraintName="tombstonedidentifiable_pkey" tableName="tombstonedidentifiable"/>
         <createTable tableName="tombstonedextension">
             <column name="networkuuid" type="UUID">
@@ -50,90 +46,21 @@
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <createIndex indexName="tombstonedextension_networkuuid_variantnum_idx" tableName="tombstonedextension">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
         <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid, name" constraintName="tombstonedextension_pkey" tableName="tombstonedextension"/>
-        <createTable tableName="tombstonedpermanentlimit">
+        <createTable tableName="tombstonedexternalattributes">
             <column name="networkuuid" type="UUID">
                 <constraints nullable="false"/>
             </column>
             <column name="variantnum" type="INTEGER">
                 <constraints nullable="false"/>
             </column>
-            <column name="equipmentid" type="VARCHAR(255)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-        <createIndex indexName="tombstonedpermanentlimit_networkuuid_variantnum_idx" tableName="tombstonedpermanentlimit">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
-        <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid" constraintName="tombstonedpermanentlimit_pkey" tableName="tombstonedpermanentlimit"/>
-        <createTable tableName="tombstonedreactivecapabilitycurvepoint">
-            <column name="networkuuid" type="UUID">
-                <constraints nullable="false"/>
-            </column>
-            <column name="variantnum" type="INTEGER">
+            <column name="type" type="VARCHAR(50)">
                 <constraints nullable="false"/>
             </column>
             <column name="equipmentid" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
         </createTable>
-        <createIndex indexName="tombstonedreactivecapabilitycurvepoint_networkuuid_variantnum_idx" tableName="tombstonedreactivecapabilitycurvepoint">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
-        <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid" constraintName="tombstonedreactivecapabilitycurvepoint_pkey" tableName="tombstonedreactivecapabilitycurvepoint"/>
-        <createTable tableName="tombstonedregulatingpoint">
-            <column name="networkuuid" type="UUID">
-                <constraints nullable="false"/>
-            </column>
-            <column name="variantnum" type="INTEGER">
-                <constraints nullable="false"/>
-            </column>
-            <column name="equipmentid" type="VARCHAR(255)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-        <createIndex indexName="tombstonedregulatingpoint_networkuuid_variantnum_idx" tableName="tombstonedregulatingpoint">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
-        <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid" constraintName="tombstonedregulatingpoint_pkey" tableName="tombstonedregulatingpoint"/>
-        <createTable tableName="tombstonedtapchangerstep">
-            <column name="networkuuid" type="UUID">
-                <constraints nullable="false"/>
-            </column>
-            <column name="variantnum" type="INTEGER">
-                <constraints nullable="false"/>
-            </column>
-            <column name="equipmentid" type="VARCHAR(255)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-        <createIndex indexName="tombstonedtapchangerstep_networkuuid_variantnum_idx" tableName="tombstonedtapchangerstep">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
-        <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid" constraintName="tombstonedtapchangerstep_pkey" tableName="tombstonedtapchangerstep"/>
-        <createTable tableName="tombstonedtemporarylimit">
-            <column name="networkuuid" type="UUID">
-                <constraints nullable="false"/>
-            </column>
-            <column name="variantnum" type="INTEGER">
-                <constraints nullable="false"/>
-            </column>
-            <column name="equipmentid" type="VARCHAR(255)">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-        <createIndex indexName="tombstonedtemporarylimit_networkuuid_variantnum_idx" tableName="tombstonedtemporarylimit">
-            <column name="networkuuid"/>
-            <column name="variantnum"/>
-        </createIndex>
-        <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid" constraintName="tombstonedtemporarylimit_pkey" tableName="tombstonedtemporarylimit"/>
+        <addPrimaryKey columnNames="networkuuid, variantnum, type, equipmentid" constraintName="tombstonedexternalattributes_pkey" tableName="tombstonedexternalattributes"/>
     </changeSet>
 </databaseChangeLog>

@@ -132,11 +132,16 @@ public final class QueryExtensionCatalog {
     }
 
     public static String buildDeleteTombstonedExtensionsQuery() {
-        return TombstonedQueryUtils.buildDeleteQuery(TOMBSTONED_EXTENSION_TABLE);
+        return "delete from " + TOMBSTONED_EXTENSION_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?";
     }
 
     public static String buildDeleteTombstonedExtensionsVariantQuery() {
-        return TombstonedQueryUtils.buildDeleteVariantQuery(TOMBSTONED_EXTENSION_TABLE);
+        return "delete from " + TOMBSTONED_EXTENSION_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildCloneTombstonedExtensionsQuery() {
