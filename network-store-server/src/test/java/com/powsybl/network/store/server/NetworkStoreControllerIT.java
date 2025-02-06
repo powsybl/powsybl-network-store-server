@@ -520,6 +520,7 @@ class NetworkStoreControllerIT {
         // generator creation and update
         RegulatingPointAttributes regulatingPointAttributes = RegulatingPointAttributes.builder()
             .regulatingEquipmentId("id")
+            .regulatedResourceType(ResourceType.LOAD)
             .regulatingTerminal(TerminalRefAttributes.builder().connectableId("idEq").side("ONE").build())
             .localTerminal(TerminalRefAttributes.builder().connectableId("id").build())
             .build();
