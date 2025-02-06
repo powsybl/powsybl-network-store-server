@@ -131,6 +131,11 @@ public final class QueryExtensionCatalog {
         return "select " + EQUIPMENT_ID_COLUMN + ", " + EXTENSION_NAME_COLUMN + " FROM " + TOMBSTONED_EXTENSION_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ?";
     }
 
+    public static String buildIsTombstonedExtensionQuery() {
+        return "select 1 from " + TOMBSTONED_EXTENSION_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? and " + EQUIPMENT_ID_COLUMN + " = ? and " + EXTENSION_NAME_COLUMN + " = ? limit 1";
+    }
+
     public static String buildDeleteTombstonedExtensionsQuery() {
         return "delete from " + TOMBSTONED_EXTENSION_TABLE +
                 " where " +

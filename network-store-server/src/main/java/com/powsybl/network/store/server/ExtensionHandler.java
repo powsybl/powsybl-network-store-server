@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 import static com.powsybl.network.store.server.NetworkStoreRepository.BATCH_SIZE;
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.QueryExtensionCatalog.EXTENSION_NAME_COLUMN;
+import static com.powsybl.network.store.server.QueryExtensionCatalog.buildIsTombstonedExtensionQuery;
 import static com.powsybl.network.store.server.Utils.bindValues;
 
 /**
@@ -87,6 +88,20 @@ public class ExtensionHandler {
         return tombstonedExtensions;
     }
 
+    private boolean isTombstonedExtension(Connection connection, UUID networkUuid, int variantNum, String identifiableId, String extensionName) {
+        try (var preparedStmt = connection.prepareStatement(buildIsTombstonedExtensionQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, identifiableId);
+            preparedStmt.setString(4, extensionName);
+            try (var resultSet = preparedStmt.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Optional<ExtensionAttributes> getExtensionAttributes(
             Connection connection,
             UUID networkId,
@@ -107,8 +122,7 @@ public class ExtensionHandler {
         }
 
         // Return empty if it's a tombstoned extension or identifiable
-        Map<String, Set<String>> tombstonedExtensions = getTombstonedExtensions(connection, networkId, variantNum);
-        boolean isTombstonedExtension = tombstonedExtensions.containsKey(identifiableId) && tombstonedExtensions.get(identifiableId).contains(extensionName);
+        boolean isTombstonedExtension = isTombstonedExtension(connection, networkId, variantNum, identifiableId, extensionName);
         boolean isTombstonedIdentifiable = isTombstonedIdentifiableSupplier.getAsBoolean();
         if (isTombstonedIdentifiable || isTombstonedExtension) {
             return Optional.empty();
