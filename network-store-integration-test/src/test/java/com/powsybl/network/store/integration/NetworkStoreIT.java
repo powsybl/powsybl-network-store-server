@@ -4143,7 +4143,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Map<UUID, String> networkIds = service.getNetworkIds();
             UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
-            // Initial variant -> v1 (full clone)
+            // Initial variant -> v1 (partial clone)
             service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v1");
             // v1 -> v2 (partial clone)
             service.cloneVariant(networkUuid, "v1", "v2");
@@ -4156,7 +4156,7 @@ class NetworkStoreIT {
             // Initial variant (full variant)
             NetworkAttributes networkAttributes = network.getResource().getAttributes();
             assertEquals(-1, networkAttributes.getFullVariantNum());
-            // v1 variant (full variant)
+            // v1 variant (partial variant)
             network.getVariantManager().setWorkingVariant("v1");
             networkAttributes = network.getResource().getAttributes();
             assertEquals(0, networkAttributes.getFullVariantNum());
