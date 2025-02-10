@@ -775,6 +775,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void test() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String loadId = "load1";
         String lineId = "line1";
         Resource<LineAttributes> line1 = Resource.lineBuilder()
@@ -803,6 +807,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForGenerator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String generatorId = "gen1";
         Resource<GeneratorAttributes> gen = Resource.generatorBuilder()
             .id(generatorId)
@@ -856,7 +864,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(generatorId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
+                        .regulatingEquipmentId(generatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .build())
                 .build())
@@ -886,6 +896,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForShuntCompensator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId").build()));
+
         String shuntCompensatorId = "shunt1";
         Resource<ShuntCompensatorAttributes> shunt = Resource.shuntCompensatorBuilder()
             .id(shuntCompensatorId)
@@ -939,7 +953,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(shuntCompensatorId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(shuntCompensatorId).build())
+                        .regulatingEquipmentId(shuntCompensatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .build())
                 .build())
@@ -969,6 +985,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForStaticVarCompensator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String staticVarCompensatorId = "svc1";
         Resource<StaticVarCompensatorAttributes> staticVarCompensator = Resource.staticVarCompensatorBuilder()
             .id(staticVarCompensatorId)
@@ -1023,7 +1043,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(staticVarCompensatorId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
+                        .regulatingEquipmentId(staticVarCompensatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .regulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER.toString())
                     .build())
@@ -1054,6 +1076,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForVSC() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
         String vscId = "vsc1";
         Resource<VscConverterStationAttributes> staticVarCompensator = Resource.vscConverterStationBuilder()
             .id(vscId)
@@ -1107,7 +1133,9 @@ class NetworkStoreRepositoryTest {
                 .voltageLevelId("vl1")
                 .name(vscId)
                 .regulatingPoint(RegulatingPointAttributes.builder()
-                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(vscId).build())
+                        .regulatingEquipmentId(vscId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
                     .build())
                 .build())
@@ -1137,6 +1165,9 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForTwoWindingsTransformers() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
         String twtId = "twt1";
         Resource<TwoWindingsTransformerAttributes> twt = Resource.twoWindingsTransformerBuilder()
             .id(twtId)
@@ -1260,6 +1291,9 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testRegulatingPointForThreeWindingsTransformers() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
         String twtId = "twt1";
         Resource<ThreeWindingsTransformerAttributes> twt = Resource.threeWindingsTransformerBuilder()
             .id(twtId)
@@ -1435,5 +1469,163 @@ class NetworkStoreRepositoryTest {
         networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(loadId));
         assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
         assertTrue(networkStoreRepository.getThreeWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId).isEmpty());
+    }
+
+    @Test
+    void testBindAttributesForBranch() {
+        BranchSvAttributes attributes = BranchSvAttributes.builder()
+                .p1(100.0)
+                .q1(50.0)
+                .p2(-100.0)
+                .q2(-50.0)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindBranchSvAttributes(attributes, values);
+
+        assertEquals(4, values.size());
+        assertEquals(100.0, values.get(0));
+        assertEquals(50.0, values.get(1));
+        assertEquals(-100.0, values.get(2));
+        assertEquals(-50.0, values.get(3));
+    }
+
+    @Test
+    void testUpdateAttributesForBranch() {
+        BranchAttributes existingAttributes = LineAttributes.builder()
+                .p1(0.0)
+                .q1(0.0)
+                .p2(0.0)
+                .q2(0.0)
+                .build();
+        BranchSvAttributes newAttributes = BranchSvAttributes.builder()
+                .p1(120.0)
+                .q1(60.0)
+                .p2(-120.0)
+                .q2(-60.0)
+                .build();
+
+        NetworkStoreRepository.updateBranchSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(120.0, existingAttributes.getP1(), 0.1);
+        assertEquals(60.0, existingAttributes.getQ1(), 0.1);
+        assertEquals(-120.0, existingAttributes.getP2(), 0.1);
+        assertEquals(-60.0, existingAttributes.getQ2(), 0.1);
+    }
+
+    @Test
+    void testBindAttributesForInjection() {
+        InjectionSvAttributes attributes = InjectionSvAttributes.builder()
+                .p(150.0)
+                .q(75.0)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindInjectionSvAttributes(attributes, values);
+
+        assertEquals(2, values.size());
+        assertEquals(150.0, values.get(0));
+        assertEquals(75.0, values.get(1));
+    }
+
+    @Test
+    void testUpdateAttributesForInjection() {
+        InjectionAttributes existingAttributes = LoadAttributes.builder()
+                .p(0.0)
+                .q(0.0)
+                .build();
+        InjectionSvAttributes newAttributes = InjectionSvAttributes.builder()
+                .p(180.0)
+                .q(90.0)
+                .build();
+
+        NetworkStoreRepository.updateInjectionSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(180.0, existingAttributes.getP(), 0.1);
+        assertEquals(90.0, existingAttributes.getQ(), 0.1);
+    }
+
+    @Test
+    void testBindAttributesForThreeWindingsTransformer() {
+        ThreeWindingsTransformerSvAttributes attributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(10.0)
+                .p2(20.0)
+                .p3(30.0)
+                .q1(5.0)
+                .q2(10.0)
+                .q3(15.0)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindThreeWindingsTransformerSvAttributes(attributes, values);
+
+        assertEquals(6, values.size());
+        assertEquals(10.0, values.get(0));
+        assertEquals(5.0, values.get(1));
+        assertEquals(20.0, values.get(2));
+        assertEquals(10.0, values.get(3));
+        assertEquals(30.0, values.get(4));
+        assertEquals(15.0, values.get(5));
+    }
+
+    @Test
+    void testUpdateAttributesForThreeWindingsTransformer() {
+        ThreeWindingsTransformerAttributes existingAttributes = ThreeWindingsTransformerAttributes.builder()
+                .p1(0.0)
+                .p2(0.0)
+                .p3(0.0)
+                .q1(0.0)
+                .q2(0.0)
+                .q3(0.0)
+                .build();
+        ThreeWindingsTransformerSvAttributes newAttributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(10.0)
+                .p2(20.0)
+                .p3(30.0)
+                .q1(5.0)
+                .q2(10.0)
+                .q3(15.0)
+                .build();
+
+        NetworkStoreRepository.updateThreeWindingsTransformerSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(10.0, existingAttributes.getP1(), 0.1);
+        assertEquals(5.0, existingAttributes.getQ1(), 0.1);
+        assertEquals(20.0, existingAttributes.getP2(), 0.1);
+        assertEquals(10.0, existingAttributes.getQ2(), 0.1);
+        assertEquals(30.0, existingAttributes.getP3(), 0.1);
+        assertEquals(15.0, existingAttributes.getQ3(), 0.1);
+    }
+
+    @Test
+    void testBindAttributesForVoltageLevel() {
+        List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesBbv = List.of(CalculatedBusAttributes.builder().v(10.0).angle(3.9).build(), CalculatedBusAttributes.builder().v(6.0).angle(1.9).build());
+        VoltageLevelSvAttributes attributes = VoltageLevelSvAttributes.builder()
+                .calculatedBusesForBusView(calculatedBusAttributesBv)
+                .calculatedBusesForBusBreakerView(calculatedBusAttributesBbv)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindVoltageLevelSvAttributes(attributes, values);
+
+        assertEquals(2, values.size());
+        assertEquals(calculatedBusAttributesBv, values.get(0));
+        assertEquals(calculatedBusAttributesBbv, values.get(1));
+    }
+
+    @Test
+    void testUpdateAttributesForVoltageLevel() {
+        List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesBbv = List.of(CalculatedBusAttributes.builder().v(10.0).angle(3.9).build(), CalculatedBusAttributes.builder().v(6.0).angle(1.9).build());
+        VoltageLevelAttributes existingAttributes = VoltageLevelAttributes.builder()
+                .calculatedBusesForBusView(new ArrayList<>())
+                .calculatedBusesForBusBreakerView(new ArrayList<>())
+                .build();
+        VoltageLevelSvAttributes newAttributes = VoltageLevelSvAttributes.builder()
+                .calculatedBusesForBusView(calculatedBusAttributesBv)
+                .calculatedBusesForBusBreakerView(calculatedBusAttributesBbv)
+                .build();
+
+        NetworkStoreRepository.updateVoltageLevelSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(calculatedBusAttributesBv, existingAttributes.getCalculatedBusesForBusView());
+        assertEquals(calculatedBusAttributesBbv, existingAttributes.getCalculatedBusesForBusBreakerView());
     }
 }
