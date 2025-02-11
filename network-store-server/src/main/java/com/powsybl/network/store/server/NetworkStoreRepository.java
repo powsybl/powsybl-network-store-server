@@ -838,7 +838,7 @@ public class NetworkStoreRepository {
                 ));
     }
 
-    public <T extends IdentifiableAttributes & Contained> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
+    private <T extends IdentifiableAttributes & Contained> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
                                                                                           TableMapping tableMapping, String columnToAddToWhereClause) throws SQLException {
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildUpdateIdentifiableQuery(tableMapping.getTable(), tableMapping.getColumnsMapping().keySet(), columnToAddToWhereClause))) {
             List<Object> values = new ArrayList<>(4 + tableMapping.getColumnsMapping().size());
@@ -866,7 +866,7 @@ public class NetworkStoreRepository {
         extensionHandler.updateExtensionsFromEquipments(connection, networkUuid, resources);
     }
 
-    public void updateInjectionsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources, String tableName, TableMapping tableMapping) {
+    private void updateInjectionsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources, String tableName, TableMapping tableMapping) {
         updateIdentifiablesSv(
                 networkUuid,
                 resources,
@@ -974,7 +974,7 @@ public class NetworkStoreRepository {
         return fullVariantResources;
     }
 
-    public void updateBranchesSv(UUID networkUuid, List<Resource<BranchSvAttributes>> resources, String tableName, TableMapping tableMapping) {
+    private void updateBranchesSv(UUID networkUuid, List<Resource<BranchSvAttributes>> resources, String tableName, TableMapping tableMapping) {
         updateIdentifiablesSv(
                 networkUuid,
                 resources,
@@ -999,7 +999,7 @@ public class NetworkStoreRepository {
         existingAttributes.setQ2(newAttributes.getQ2());
     }
 
-    public <T extends IdentifiableAttributes> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
+    private <T extends IdentifiableAttributes> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
                                                                        TableMapping tableMapping) throws SQLException {
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildUpdateIdentifiableQuery(tableMapping.getTable(), tableMapping.getColumnsMapping().keySet(), null))) {
             List<Object> values = new ArrayList<>(3 + tableMapping.getColumnsMapping().size());
@@ -1186,7 +1186,7 @@ public class NetworkStoreRepository {
         }
     }
 
-    public Set<String> getTombstonedTapChangerStepsIds(Connection connection, UUID networkUuid, int variantNum) {
+    private Set<String> getTombstonedTapChangerStepsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
         try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
@@ -1203,7 +1203,7 @@ public class NetworkStoreRepository {
         return identifiableIds;
     }
 
-    public Set<String> getTombstonedTemporaryLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
+    private Set<String> getTombstonedTemporaryLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
         try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
@@ -1220,7 +1220,7 @@ public class NetworkStoreRepository {
         return identifiableIds;
     }
 
-    public Set<String> getTombstonedPermanentLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
+    private Set<String> getTombstonedPermanentLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
         try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
             preparedStmt.setObject(1, networkUuid);
@@ -2221,7 +2221,7 @@ public class NetworkStoreRepository {
         }
     }
 
-    public Optional<Resource<IdentifiableAttributes>> getIdentifiableForVariant(Connection connection, UUID networkUuid, int variantNum, String id, int variantNumOverride) {
+    private Optional<Resource<IdentifiableAttributes>> getIdentifiableForVariant(Connection connection, UUID networkUuid, int variantNum, String id, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(buildGetIdentifiableForAllTablesQuery())) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -2686,7 +2686,7 @@ public class NetworkStoreRepository {
         }
     }
 
-    public <T extends IdentifiableAttributes> void updateRegulatingPoints(UUID networkUuid, List<Resource<T>> resources, ResourceType resourceType, Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointToInsert) {
+    private <T extends IdentifiableAttributes> void updateRegulatingPoints(UUID networkUuid, List<Resource<T>> resources, ResourceType resourceType, Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointToInsert) {
         deleteRegulatingPoints(networkUuid, resources, resourceType);
         insertRegulatingPoints(regulatingPointToInsert);
         insertTombstonedRegulatingPoints(networkUuid, regulatingPointToInsert, resources, resourceType);

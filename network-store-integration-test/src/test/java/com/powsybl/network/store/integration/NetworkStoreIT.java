@@ -4155,7 +4155,7 @@ class NetworkStoreIT {
             NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
             // Initial variant (full variant)
             NetworkAttributes networkAttributes = network.getResource().getAttributes();
-            assertEquals(-1, networkAttributes.getFullVariantNum());
+            assertTrue(networkAttributes.isFullVariant());
             // v1 variant (partial variant)
             network.getVariantManager().setWorkingVariant("v1");
             networkAttributes = network.getResource().getAttributes();
