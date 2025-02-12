@@ -109,7 +109,7 @@ public class ExtensionHandler {
             String identifiableId,
             String extensionName,
             int fullVariantNum,
-            BooleanSupplier isTombstonedIdentifiableSupplier) throws SQLException {
+            BooleanSupplier isTombstonedIdentifiableSupplier) {
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve extensions for the specified variant directly
             return getExtensionAttributesForVariant(connection, networkId, variantNum, identifiableId, extensionName);

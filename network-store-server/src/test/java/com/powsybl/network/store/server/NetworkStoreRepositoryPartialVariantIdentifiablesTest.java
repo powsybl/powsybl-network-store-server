@@ -419,7 +419,8 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String loadId1 = "load1";
         String lineId1 = "line1";
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(loadId1), LOAD_TABLE));
+        List<String> idsToDelete = Collections.singletonList(loadId1);
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, idsToDelete, LOAD_TABLE));
         assertTrue(exception.getMessage().contains("Cannot retrieve source network attributes"));
     }
 
@@ -443,13 +444,14 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         String lineId1 = "line1";
         createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId1, lineId1, "vl1", "vl2");
-        networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(loadId1), LOAD_TABLE);
+        List<String> idsToDelete = Collections.singletonList(loadId1);
+        networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, idsToDelete, LOAD_TABLE);
 
         assertEquals(List.of(lineId1), getIdentifiableIdsForVariant(NETWORK_UUID, 1));
         assertEquals(Set.of(loadId1), getTombstonedIdentifiableIds(NETWORK_UUID, 1));
 
         // Delete an identifiable already deleted should throw
-        assertThrows(UncheckedSqlException.class, () -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(loadId1), LOAD_TABLE));
+        assertThrows(UncheckedSqlException.class, () -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, idsToDelete, LOAD_TABLE));
     }
 
     @Test
