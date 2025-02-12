@@ -10,6 +10,7 @@ import com.powsybl.network.store.model.Resource;
 
 import java.util.Collection;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.Mappings.*;
@@ -25,6 +26,7 @@ public final class QueryCatalog {
     static final String UUID_COLUMN = "uuid";
     public static final String NETWORK_UUID_COLUMN = "networkUuid";
     public static final String VARIANT_NUM_COLUMN = "variantNum";
+    static final String FULL_VARIANT_NUM_COLUMN = "fullVariantNum";
     static final String ID_COLUMN = "id";
     static final String VOLTAGE_LEVEL_ID_COLUMN = "voltageLevelId";
     static final String VOLTAGE_LEVEL_ID_1_COLUMN = "voltageLevelId1";
@@ -49,7 +51,12 @@ public final class QueryCatalog {
     static final String REGULATING_POINT_TABLE = "regulatingPoint";
     static final String REGULATION_MODE = "regulationMode";
     public static final String SIDE_COLUMN = "side";
+    private static final String TYPE_COLUMN = "type";
     static final String REGULATING = "regulating";
+    private static final Predicate<String> CLONE_PREDICATE = column -> !column.equals(UUID_COLUMN) && !column.equals(VARIANT_ID_COLUMN)
+            && !column.equals(NAME_COLUMN) && !column.equals(FULL_VARIANT_NUM_COLUMN);
+    private static final String TOMBSTONED_IDENTIFIABLE_TABLE = "tombstonedidentifiable";
+    private static final String TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE = "tombstonedexternalattributes";
 
     private QueryCatalog() {
     }
@@ -77,6 +84,20 @@ public final class QueryCatalog {
                 " from " + tableName +
                 " where " + NETWORK_UUID_COLUMN + " = ?" +
                 " and " + VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildGetIdentifiablesWithInClauseQuery(String tableName, Collection<String> columns, int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+
+        return "select " + ID_COLUMN + ", " +
+                String.join(", ", columns) +
+                " from " + tableName +
+                " where " + NETWORK_UUID_COLUMN + " = ?" +
+                " and " + VARIANT_NUM_COLUMN + " = ?" +
+                " and " + ID_COLUMN + " in (" +
+                "?, ".repeat(numberOfValues - 1) + "?)";
     }
 
     public static String buildGetIdentifiablesInContainerQuery(String tableName, Collection<String> columns, Set<String> containerColumns) {
@@ -164,7 +185,7 @@ public final class QueryCatalog {
     }
 
     public static String buildGetVariantsInfos() {
-        return "select " + VARIANT_ID_COLUMN + ", " + VARIANT_NUM_COLUMN +
+        return "select " + VARIANT_ID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + FULL_VARIANT_NUM_COLUMN +
                 " from " + NETWORK_TABLE +
                 " where " + UUID_COLUMN + " = ?";
     }
@@ -274,16 +295,61 @@ public final class QueryCatalog {
                 VARIANT_ID_COLUMN + ", " +
                 UUID_COLUMN + ", " +
                 ID_COLUMN + ", " +
-                columns.stream().filter(column -> !column.equals(UUID_COLUMN) && !column.equals(VARIANT_ID_COLUMN) && !column.equals(NAME_COLUMN)).collect(Collectors.joining(",")) +
+                FULL_VARIANT_NUM_COLUMN + ", " +
+                columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
                 ") " +
                 "select" + " " +
                 "?" + ", " +
                 "?" + ", " +
                 UUID_COLUMN + ", " +
                 ID_COLUMN + ", " +
-                columns.stream().filter(column -> !column.equals(UUID_COLUMN) && !column.equals(VARIANT_ID_COLUMN) && !column.equals(NAME_COLUMN)).collect(Collectors.joining(",")) +
+                "?" + ", " +
+                columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
                 " from network" + " " +
                 "where uuid = ? and " + VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    // Tombstoned identifiables
+    public static String buildInsertTombstonedIdentifiablesQuery() {
+        return "insert into " + TOMBSTONED_IDENTIFIABLE_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ") " +
+                "values (?, ?, ?)";
+    }
+
+    public static String buildGetTombstonedIdentifiablesIdsQuery() {
+        return "select " + EQUIPMENT_ID_COLUMN + " FROM " + TOMBSTONED_IDENTIFIABLE_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildIsTombstonedIdentifiableQuery() {
+        return "select 1 from " + TOMBSTONED_IDENTIFIABLE_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? and " + EQUIPMENT_ID_COLUMN + " = ? limit 1";
+    }
+
+    public static String buildDeleteTombstonedIdentifiablesQuery() {
+        return "delete from " + TOMBSTONED_IDENTIFIABLE_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?";
+    }
+
+    public static String buildDeleteTombstonedIdentifiablesVariantQuery() {
+        return "delete from " + TOMBSTONED_IDENTIFIABLE_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildCloneTombstonedIdentifiablesQuery() {
+        return "insert into " + TOMBSTONED_IDENTIFIABLE_TABLE + " (" +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                EQUIPMENT_ID_COLUMN + ") " +
+                "select " +
+                "?" + "," +
+                "?" + "," +
+                EQUIPMENT_ID_COLUMN +
+                " from " + TOMBSTONED_IDENTIFIABLE_TABLE + " " +
+                "where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ? ";
     }
 
     // Temporary Limits
@@ -352,7 +418,47 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + " = ?";
     }
 
-    // Permanent Limits
+    // Tombstoned external attributes
+    public static String buildInsertTombstonedExternalAttributesQuery() {
+        return "insert into " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ", " + TYPE_COLUMN + ") " +
+                "values (?, ?, ?, ?)";
+    }
+
+    public static String buildGetTombstonedExternalAttributesIdsQuery() {
+        return "select " + EQUIPMENT_ID_COLUMN + " FROM " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ? AND " + TYPE_COLUMN + " = ?";
+    }
+
+    public static String buildDeleteTombstonedExternalAttributesQuery() {
+        return "delete from " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?";
+    }
+
+    public static String buildDeleteTombstonedExternalAttributesVariantQuery() {
+        return "delete from " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildCloneTombstonedExternalAttributesQuery() {
+        return "insert into " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE + " (" +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                EQUIPMENT_ID_COLUMN + ", " +
+                TYPE_COLUMN + ") " +
+                "select " +
+                "?" + "," +
+                "?" + "," +
+                EQUIPMENT_ID_COLUMN + "," +
+                TYPE_COLUMN +
+                " from " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE + " " +
+                "where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ? ";
+    }
+
+    // permanent Limits
     public static String buildClonePermanentLimitsQuery() {
         return "insert into " + PERMANENT_LIMITS_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + PERMANENT_LIMITS_COLUMN + ") " + "select " + EQUIPMENT_ID_COLUMN + ", " +
@@ -495,20 +601,6 @@ public final class QueryCatalog {
             " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
-    public static String buildUpdateRegulatingPointsQuery() {
-        return "Update " + REGULATING_POINT_TABLE +
-            " set " + REGULATION_MODE + " = ?, " +
-            "regulatingterminalconnectableid = ?, " +
-            "regulatingterminalside = ?, " +
-            REGULATED_EQUIPMENT_TYPE_COLUMN + " = ?, " +
-            REGULATING + " = ? " +
-            "where " +
-            NETWORK_UUID_COLUMN + " = ? AND " +
-            VARIANT_NUM_COLUMN + " = ? AND " +
-            REGULATING_EQUIPMENT_ID + " = ? AND " +
-            REGULATING_EQUIPMENT_TYPE_COLUMN + " = ?";
-    }
-
     public static String buildCloneRegulatingPointsQuery() {
         return "insert into " + REGULATING_POINT_TABLE + " (" + NETWORK_UUID_COLUMN + " ," + VARIANT_NUM_COLUMN + ", " +
              REGULATING_EQUIPMENT_ID + ", " + REGULATING_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING_TAP_CHANGER_TYPE + ", " + REGULATION_MODE +
@@ -530,6 +622,10 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATING_EQUIPMENT_TYPE_COLUMN + " = ?";
+    }
+
+    public static String buildRegulatingPointsIdsQuery() {
+        return "select " + REGULATING_EQUIPMENT_ID + " FROM " + REGULATING_POINT_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildRegulatingPointsWithInClauseQuery(String columnNameForInClause, int numberOfValues) {

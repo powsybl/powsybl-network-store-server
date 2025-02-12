@@ -26,6 +26,7 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.iidm.impl.ConfiguredBusImpl;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
 import com.powsybl.network.store.iidm.impl.NetworkImpl;
+import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
 import org.apache.commons.collections4.IterableUtils;
@@ -4129,6 +4130,40 @@ class NetworkStoreIT {
             // server
             assertEquals(18, metrics.oneGetterCallCount);
             assertEquals(0, metrics.allGetterCallCount);
+        }
+    }
+
+    @Test
+    void testPartialClone() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
+            // Initial variant -> v1 (partial clone)
+            service.cloneVariant(networkUuid, INITIAL_VARIANT_ID, "v1");
+            // v1 -> v2 (partial clone)
+            service.cloneVariant(networkUuid, "v1", "v2");
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
+            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
+            // Initial variant (full variant)
+            NetworkAttributes networkAttributes = network.getResource().getAttributes();
+            assertTrue(networkAttributes.isFullVariant());
+            // v1 variant (partial variant)
+            network.getVariantManager().setWorkingVariant("v1");
+            networkAttributes = network.getResource().getAttributes();
+            assertEquals(0, networkAttributes.getFullVariantNum());
+            // v2 variant (partial variant)
+            network.getVariantManager().setWorkingVariant("v2");
+            networkAttributes = network.getResource().getAttributes();
+            assertEquals(0, networkAttributes.getFullVariantNum());
         }
     }
 }
