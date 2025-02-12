@@ -11,9 +11,7 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.network.store.model.ResourceType;
 import com.powsybl.network.store.model.TapChangerStepAttributes;
 import com.powsybl.network.store.model.TapChangerType;
-import com.powsybl.network.store.server.ExtensionHandler;
-import com.powsybl.network.store.server.Mappings;
-import com.powsybl.network.store.server.NetworkStoreRepository;
+import com.powsybl.network.store.server.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import liquibase.change.custom.CustomTaskChange;
@@ -50,7 +48,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
     public void init(Database database) {
         DataSource dataSource = new SingleConnectionDataSource(((JdbcConnection) database.getConnection()).getUnderlyingConnection(), true);
         ObjectMapper mapper = new ObjectMapper();
-        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(), new ExtensionHandler(dataSource, mapper));
+        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(), new ExtensionHandler(mapper));
     }
 
     @Override
@@ -131,7 +129,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
         return new ValidationErrors();
     }
 
-    public static Map<OwnerInfo, List<TapChangerStepAttributes>> getV214TapChangerStepsWithInClause(NetworkStoreRepository repository, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+    public static Map<OwnerInfo, List<TapChangerStepAttributes>> getV214TapChangerStepsWithInClause(NetworkStoreRepository repository, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -142,7 +140,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
             for (int i = 0; i < valuesForInClause.size(); i++) {
                 preparedStmt.setString(3 + i, valuesForInClause.get(i));
             }
-            return innerGetV214TapChangerSteps(preparedStmt);
+            return innerGetV214TapChangerSteps(preparedStmt, variantNumOverride);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -154,14 +152,25 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
-
-            return innerGetV214TapChangerSteps(preparedStmt);
+            return innerGetV214TapChangerSteps(preparedStmt, variantNum);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    private static Map<OwnerInfo, List<TapChangerStepAttributes>> innerGetV214TapChangerSteps(PreparedStatement preparedStmt) throws SQLException {
+    public static Map<OwnerInfo, List<TapChangerStepAttributes>> getV214TapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(V214TapChangerStepsQueryCatalog.buildV214TapChangerStepQuery(columnNameForWhereClause))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetV214TapChangerSteps(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private static Map<OwnerInfo, List<TapChangerStepAttributes>> innerGetV214TapChangerSteps(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<TapChangerStepAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
@@ -172,7 +181,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(resultSet.getObject(3, UUID.class));
-                owner.setVariantNum(resultSet.getInt(4));
+                owner.setVariantNum(variantNumOverride);
                 TapChangerStepAttributes tapChangerStep = new TapChangerStepAttributes();
                 if (TapChangerType.valueOf(resultSet.getString(7)) == TapChangerType.RATIO) {
                     tapChangerStep.setType(TapChangerType.RATIO);

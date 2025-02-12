@@ -113,8 +113,8 @@ databaseChangeLog:
       relativeToChangelogFile: true
 
   - include:
-    file: changesets/changelog_20250130T140000Z.xml
-    relativeToChangelogFile: true
+      file: changesets/changelog_20250130T140000Z.xml
+      relativeToChangelogFile: true
 
 # Migration of V2.14 tap changer steps. To be added before tag v2.15.0 is deployed
 #  - include:

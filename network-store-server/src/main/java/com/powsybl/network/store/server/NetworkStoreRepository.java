@@ -27,7 +27,6 @@ import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.PermanentLimitSqlData;
 import com.powsybl.network.store.server.json.TapChangerStepSqlData;
 import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
-import com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration;
 import com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsQueryCatalog;
 import com.powsybl.ws.commons.LogUtils;
 import lombok.Getter;
@@ -53,8 +52,8 @@ import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.Utils.bindAttributes;
 import static com.powsybl.network.store.server.Utils.bindValues;
-import static com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration.getV214TapChangerSteps;
 import static com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration.getV214TapChangerStepsWithInClause;
+import static com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration.getV214TapChangerStepsForVariant;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -342,6 +341,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
                 QueryCatalog.buildDeleteTapChangerStepQuery(),
+                V214TapChangerStepsQueryCatalog.buildDeleteV214TapChangerStepQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesQuery(),
                 QueryExtensionCatalog.buildDeleteExtensionsQuery(),
                 QueryExtensionCatalog.buildDeleteTombstonedExtensionsQuery()
@@ -378,6 +378,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
                 QueryCatalog.buildDeleteTapChangerStepVariantQuery(),
+                V214TapChangerStepsQueryCatalog.buildDeleteV214TapChangerStepVariantQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesVariantQuery(),
                 QueryExtensionCatalog.buildDeleteExtensionsVariantQuery(),
                 QueryExtensionCatalog.buildDeleteTombstonedExtensionsVariantQuery()
@@ -495,6 +496,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
                 QueryCatalog.buildCloneTapChangerStepQuery(),
+                V214TapChangerStepsQueryCatalog.buildCloneV214TapChangerStepQuery(),
                 QueryExtensionCatalog.buildCloneExtensionsQuery()
         );
 
@@ -3516,6 +3518,12 @@ public class NetworkStoreRepository {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
+        Map<OwnerInfo, List<TapChangerStepAttributes>> v214tapChangerSteps = getV214TapChangerStepsWithInClause(this, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
+        Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getNewTapChangerStepsWithInClause(connection, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
+        return mergeTapChangerSteps(newTapChangerSteps, v214tapChangerSteps);
+    }
+
+    private Map<OwnerInfo, List<TapChangerStepAttributes>> getNewTapChangerStepsWithInClause(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(buildTapChangerStepWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -3529,9 +3537,7 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerSteps(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
-        Map<OwnerInfo, List<TapChangerStepAttributes>> newSteps = getNewTapChangerSteps(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        Map<OwnerInfo, List<TapChangerStepAttributes>> oldSteps = getV214TapChangerSteps(this, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        return mergeTapChangerSteps(newSteps, oldSteps);
+        return getNewTapChangerSteps(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
     }
 
     public Map<OwnerInfo, List<TapChangerStepAttributes>> mergeTapChangerSteps(Map<OwnerInfo, List<TapChangerStepAttributes>> newSteps,
@@ -3561,6 +3567,12 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getNewTapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
+        Map<OwnerInfo, List<TapChangerStepAttributes>> oldTapChangerSteps = getV214TapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
+        return mergeTapChangerSteps(newTapChangerSteps, oldTapChangerSteps);
+    }
+
+    public Map<OwnerInfo, List<TapChangerStepAttributes>> getNewTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildTapChangerStepQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -3585,15 +3597,21 @@ public class NetworkStoreRepository {
                 owner.setNetworkUuid(resultSet.getObject(3, UUID.class));
                 owner.setVariantNum(variantNumOverride);
 
-                TapChangerStepAttributes tapChangerStep = new TapChangerStepAttributes();
-                if (TapChangerType.valueOf(resultSet.getString(7)) == TapChangerType.RATIO) {
-                    tapChangerStep.setType(TapChangerType.RATIO);
-                } else {
-                    tapChangerStep.setType(TapChangerType.PHASE);
-                    tapChangerStep.setAlpha(resultSet.getDouble(13));
+                String tapChangerStepData = resultSet.getString(5);
+                List<TapChangerStepSqlData> parsedTapChangerStepSqlData = mapper.readValue(tapChangerStepData, new TypeReference<>() { });
+                List<TapChangerStepAttributes> tapChangerStepAttributesList = parsedTapChangerStepSqlData.stream()
+                    .map(TapChangerStepSqlData::toTapChangerStepAttributes).collect(Collectors.toList());
+                if (!tapChangerStepAttributesList.isEmpty()) {
+                    if (map.containsKey(owner)) {
+                        map.get(owner).addAll(tapChangerStepAttributesList);
+                    } else {
+                        map.put(owner, tapChangerStepAttributesList);
+                    }
                 }
             }
             return map;
+        } catch (JsonMappingException e) {
+            throw new RuntimeException(e);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
