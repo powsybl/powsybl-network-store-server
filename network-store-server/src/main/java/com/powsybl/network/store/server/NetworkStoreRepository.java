@@ -1052,14 +1052,15 @@ public class NetworkStoreRepository {
             NetworkAttributes network = getNetworkAttributes(connection, networkUuid, variantNum);
             if (!network.isFullVariant()) {
                 try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedIdentifiablesQuery())) {
-                    for (String id : ids) {
-                        preparedStmt.setObject(1, networkUuid);
-                        preparedStmt.setInt(2, variantNum);
-                        preparedStmt.setString(3, id);
-                        preparedStmt.executeUpdate();
-                        preparedStmt.addBatch();
+                    for (List<String> idsPartition : Lists.partition(ids, BATCH_SIZE)) {
+                        for (String id : idsPartition) {
+                            preparedStmt.setObject(1, networkUuid);
+                            preparedStmt.setInt(2, variantNum);
+                            preparedStmt.setString(3, id);
+                            preparedStmt.addBatch();
+                        }
+                        preparedStmt.executeBatch();
                     }
-
                 }
             }
             extensionHandler.deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, ids);
