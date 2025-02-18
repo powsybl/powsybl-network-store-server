@@ -30,7 +30,6 @@ public class TapChangerStepSqlData {
     private Double alpha;
     private Integer index;
     private Integer side;
-    private TapChangerType type;
 
     public TapChangerStepSqlData() {
         // empty constructor for Jackson
@@ -46,11 +45,10 @@ public class TapChangerStepSqlData {
             .alpha(tapChangerStepAttributes.getAlpha())
             .index(tapChangerStepAttributes.getIndex())
             .side(tapChangerStepAttributes.getSide())
-            .type(tapChangerStepAttributes.getType())
             .build();
     }
 
-    public TapChangerStepAttributes toTapChangerStepAttributes() {
+    public TapChangerStepAttributes toTapChangerStepAttributes(TapChangerType type) {
         return TapChangerStepAttributes.builder()
             .rho(rho)
             .r(r)

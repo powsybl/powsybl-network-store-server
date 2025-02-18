@@ -42,6 +42,7 @@ public final class QueryCatalog {
     public static final String INDEX_COLUMN = "index";
     public static final String TAPCHANGER_TYPE_COLUMN = "tapChangerType";
     public static final String TAPCHANGER_STEPS_COLUMN = "tapchangersteps";
+    public static final String TAP_CHANGER_TYPE = "tapchangertype";
     public static final String ALPHA_COLUMN = "alpha";
     static final String TEMPORARY_LIMITS_TABLE = "temporarylimits";
     static final String TEMPORARY_LIMITS_COLUMN = "temporarylimits";
@@ -723,6 +724,7 @@ public final class QueryCatalog {
             EQUIPMENT_TYPE_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
             VARIANT_NUM_COLUMN + ", " +
+            TAP_CHANGER_TYPE + ", " +
             TAPCHANGER_STEPS_COLUMN +
             " from " + TAP_CHANGER_STEP_TABLE + " " +
             "where " +
@@ -740,6 +742,7 @@ public final class QueryCatalog {
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
+                TAP_CHANGER_TYPE + ", " +
                 TAPCHANGER_STEPS_COLUMN +
                 " from " + TAP_CHANGER_STEP_TABLE + " " +
                 "where " +

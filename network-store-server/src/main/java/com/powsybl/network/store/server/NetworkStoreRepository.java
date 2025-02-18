@@ -3592,16 +3592,17 @@ public class NetworkStoreRepository {
 
                 OwnerInfo owner = new OwnerInfo();
                 // In order, from the QueryCatalog.buildTapChangerStepQuery SQL query :
-                // equipmentId, equipmentType, networkUuid, variantNum, "side", "tapChangerType", "rho", "r", "x", "g", "b", "alpha"
+                // equipmentId, equipmentType, networkUuid, variantNum, tapChangerType, tapchangers (info to be parsed)
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(resultSet.getObject(3, UUID.class));
                 owner.setVariantNum(variantNumOverride);
 
-                String tapChangerStepData = resultSet.getString(5);
+                TapChangerType tapChangerType = TapChangerType.valueOf(resultSet.getString(5));
+                String tapChangerStepData = resultSet.getString(6);
                 List<TapChangerStepSqlData> parsedTapChangerStepSqlData = mapper.readValue(tapChangerStepData, new TypeReference<>() { });
                 List<TapChangerStepAttributes> tapChangerStepAttributesList = parsedTapChangerStepSqlData.stream()
-                    .map(TapChangerStepSqlData::toTapChangerStepAttributes).collect(Collectors.toList());
+                    .map(data -> data.toTapChangerStepAttributes(tapChangerType)).collect(Collectors.toList());
                 if (!tapChangerStepAttributesList.isEmpty()) {
                     if (map.containsKey(owner)) {
                         map.get(owner).addAll(tapChangerStepAttributesList);
