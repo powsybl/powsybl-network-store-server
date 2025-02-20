@@ -48,7 +48,7 @@ public final class QueryCatalog {
     static final String TEMPORARY_LIMITS_COLUMN = "temporarylimits";
     static final String PERMANENT_LIMITS_TABLE = "permanentlimits";
     static final String PERMANENT_LIMITS_COLUMN = "permanentlimits";
-    public static final String TAP_CHANGER_STEP_TABLE = "tapChangerStep";
+    public static final String TAP_CHANGER_STEP_TABLE = "tapchangersteps";
     static final String REGULATING_POINT_TABLE = "regulatingPoint";
     static final String REGULATION_MODE = "regulationMode";
     public static final String SIDE_COLUMN = "side";

@@ -6,7 +6,7 @@
 
     <changeSet id="2986875648969-1" author="lesoteti">
         <renameTable newTableName="v214tapchangerstep" oldTableName="tapchangerstep"/>
-        <createTable tableName="tapchangerstep">
+        <createTable tableName="tapchangersteps">
             <column name="networkuuid" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="tapchangersteps_pkey"/>
             </column>
@@ -23,7 +23,7 @@
             </column>
             <column name="tapchangersteps" type="TEXT"/>
         </createTable>
-        <createIndex indexName="tapchangersteps_networkuuid_variantnum_equipmenttype_idx" tableName="tapchangerstep">
+        <createIndex indexName="tapchangersteps_networkuuid_variantnum_equipmenttype_idx" tableName="tapchangersteps">
             <column name="networkuuid"/>
             <column name="variantnum"/>
             <column name="equipmenttype"/>
