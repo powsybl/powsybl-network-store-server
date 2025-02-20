@@ -3612,10 +3612,8 @@ public class NetworkStoreRepository {
                 }
             }
             return map;
-        } catch (JsonMappingException e) {
-            throw new RuntimeException(e);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new UncheckedIOException(e);
         }
     }
 
