@@ -15,12 +15,12 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent-ws</artifactId>
-        <version>20</version>
+        <version>21</version>
         <relativePath/>
     </parent>
 
     <artifactId>powsybl-network-store-server-parent</artifactId>
-    <version>2.13.0-SNAPSHOT</version>
+    <version>2.14.0-SNAPSHOT</version>
 
     <packaging>pom</packaging>
     <name>Network store server parent</name>
@@ -49,7 +49,7 @@
 
     <properties>
         <sirocco.version>1.0</sirocco.version>
-        <powsybl-ws-dependencies.version>2.18.0</powsybl-ws-dependencies.version>
+        <powsybl-ws-dependencies.version>2.20.0</powsybl-ws-dependencies.version>
         <powsybl-network-store.version>1.23.0-SNAPSHOT</powsybl-network-store.version>
         <!-- FIXME : to remove when sonar version is updated on github actions -->
         <!-- https://community.sonarsource.com/t/stackoverflowerror-at-defaultinputcomponent-equals/20324 -->

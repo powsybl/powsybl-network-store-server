@@ -8,8 +8,8 @@ package com.powsybl.network.store.server.dto;
 
 import com.powsybl.network.store.model.RegulatingTapChangerType;
 import com.powsybl.network.store.model.ResourceType;
-import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.UUID;
@@ -19,20 +19,18 @@ import java.util.UUID;
  */
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public class RegulatingOwnerInfo {
-
-    public RegulatingOwnerInfo(String equipmentId, ResourceType equipmentType, UUID networkUuid, int variantNum) {
-        this(equipmentId, equipmentType, RegulatingTapChangerType.NONE, networkUuid, variantNum);
-    }
-
-    private String equipmentId;
-
-    private ResourceType equipmentType;
+@EqualsAndHashCode(callSuper = true)
+public class RegulatingOwnerInfo extends OwnerInfo {
 
     private RegulatingTapChangerType regulatingTapChangerType;
 
-    private UUID networkUuid;
+    public RegulatingOwnerInfo(String equipmentId, ResourceType equipmentType, UUID networkUuid, int variantNum) {
+        super(equipmentId, equipmentType, networkUuid, variantNum);
+        this.regulatingTapChangerType = RegulatingTapChangerType.NONE;
+    }
 
-    private int variantNum;
+    public RegulatingOwnerInfo(String equipmentId, ResourceType equipmentType, RegulatingTapChangerType regulatingTapChangerType, UUID networkUuid, int variantNum) {
+        super(equipmentId, equipmentType, networkUuid, variantNum);
+        this.regulatingTapChangerType = regulatingTapChangerType;
+    }
 }

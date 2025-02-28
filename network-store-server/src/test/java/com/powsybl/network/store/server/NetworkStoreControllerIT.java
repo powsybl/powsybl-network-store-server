@@ -84,6 +84,7 @@ class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                                              .uuid(NETWORK_UUID)
                                              .variantId("v")
+                                             .fullVariantNum(-1)
                                              .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                                              .build())
                 .build();
@@ -888,6 +889,7 @@ class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -928,6 +930,7 @@ class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -964,6 +967,7 @@ class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId("v2")
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -979,6 +983,7 @@ class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId("v3")
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();

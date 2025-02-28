@@ -51,7 +51,7 @@ public class V211LimitsMigration implements CustomTaskChange {
         DataSource dataSource = new SingleConnectionDataSource(((JdbcConnection) database.getConnection()).getUnderlyingConnection(), true);
         ObjectMapper mapper = new ObjectMapper();
         this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(),
-            new ExtensionHandler(dataSource, mapper), new LimitsHandler(dataSource, mapper));
+            new ExtensionHandler(mapper), new LimitsHandler(dataSource, mapper));
     }
 
     @Override
