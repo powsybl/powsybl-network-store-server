@@ -643,6 +643,7 @@ public class NetworkStoreRepository {
         return switch (resource.getType()) {
             case GENERATOR -> completeGeneratorInfos(resource, networkUuid, variantNum, equipmentId);
             case BATTERY -> completeBatteryInfos(resource, networkUuid, variantNum, equipmentId);
+            case LINE -> completeLineInfos(resource, networkUuid, variantNum, equipmentId);
             case TWO_WINDINGS_TRANSFORMER ->
                 completeTwoWindingsTransformerInfos(resource, networkUuid, variantNum, equipmentId);
             case THREE_WINDINGS_TRANSFORMER ->
@@ -654,6 +655,12 @@ public class NetworkStoreRepository {
             case SHUNT_COMPENSATOR -> completeShuntCompensatorInfos(resource, networkUuid, variantNum, equipmentId);
             default -> resource;
         };
+    }
+
+    private <T extends IdentifiableAttributes> Resource<T> completeLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
+        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        insertLimitsInEquipments(networkUuid, List.of((Resource<LineAttributes>) resource), limitsInfos);
+        return resource;
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeGeneratorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
@@ -673,6 +680,8 @@ public class NetworkStoreRepository {
     private <T extends IdentifiableAttributes> Resource<T> completeTwoWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<TwoWindingsTransformerAttributes> twoWindingsTransformerResource = (Resource<TwoWindingsTransformerAttributes>) resource;
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        insertLimitsInEquipments(networkUuid, List.of(twoWindingsTransformerResource), limitsInfos);
         insertTapChangerStepsInEquipments(networkUuid, List.of(twoWindingsTransformerResource), tapChangerSteps);
         insertRegulatingPointIntoTwoWindingsTransformer(networkUuid, variantNum, equipmentId, twoWindingsTransformerResource);
         return resource;

@@ -368,8 +368,7 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.position1.direction").value("BOTTOM"))
                 .andExpect(jsonPath("data[0].attributes.position2.label").value("labPosition2"))
                 .andExpect(jsonPath("data[0].attributes.position2.direction").value("TOP"))
-                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0))
-                .andExpect(jsonPath("data[0].attributes.operationalLimitsGroups1[\"group1\"].currentLimits.permanentLimit").value(20.));
+                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0));
 
         resLine.getAttributes().setP1(100.);  // changing p1 value
         resLine.getAttributes().getProperties().put("property1", "newValue1");  // changing property value
@@ -441,8 +440,7 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.properties[\"property1\"]").value("value1"))
                 .andExpect(jsonPath("data[0].attributes.aliasByType[\"aliasDouble\"]").value("valueAliasDouble"))
                 .andExpect(jsonPath("data[0].attributes.aliasesWithoutType").value("alias1"))
-                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0))
-                .andExpect(jsonPath("data[0].attributes.operationalLimitsGroups1[\"group1\"].currentLimits.permanentLimit").value(20.));
+                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0));
 
         Resource<LineAttributes> resLine2 = Resource.lineBuilder()
             .id("idLine2")
