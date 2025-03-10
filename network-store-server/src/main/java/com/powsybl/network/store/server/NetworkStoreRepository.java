@@ -2378,7 +2378,7 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimitsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
-        try (var preparedStmt = connection.prepareStatement(buildPermanentLimitQuery(columnNameForWhereClause))) {
+        try (var preparedStmt = connection.prepareStatement(buildGetPermanentLimitQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);

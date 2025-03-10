@@ -484,7 +484,7 @@ public final class QueryCatalog {
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
-    public static String buildPermanentLimitQuery(String columnNameForWhereClause) {
+    public static String buildGetPermanentLimitQuery(String columnNameForWhereClause) {
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
@@ -496,7 +496,7 @@ public final class QueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildPermanentLimitQuery() {
+    public static String buildGetPermanentLimitQuery() {
         return "select " + PERMANENT_LIMITS_COLUMN +
             " from " + PERMANENT_LIMITS_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +

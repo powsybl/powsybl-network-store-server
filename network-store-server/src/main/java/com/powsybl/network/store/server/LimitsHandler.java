@@ -50,7 +50,7 @@ public class LimitsHandler {
     public Optional<LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String type, String equipmentId) {
         List<TemporaryLimitAttributes> temporaryLimitAttributes = getTemporaryLimits(networkUuid, variantNum, type, equipmentId);
         List<PermanentLimitAttributes> permanentLimitAttributes = getPermanentLimits(networkUuid, variantNum, type, equipmentId);
-        if (permanentLimitAttributes.isEmpty() && temporaryLimitAttributes.isEmpty()) {
+        if (permanentLimitAttributes == null || permanentLimitAttributes.isEmpty() && temporaryLimitAttributes.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(new LimitsInfos(permanentLimitAttributes, temporaryLimitAttributes));
@@ -60,7 +60,7 @@ public class LimitsHandler {
     public List<TemporaryLimitAttributes> getTemporaryLimits(UUID networkUuid, int variantNum, String type, String equipmentId) {
         try (Connection connection = dataSource.getConnection()) {
             var preparedStmt = connection.prepareStatement(QueryCatalog.buildTemporaryLimitQuery());
-            preparedStmt.setString(1, networkUuid.toString());
+            preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, type);
             preparedStmt.setString(4, equipmentId);
@@ -87,8 +87,8 @@ public class LimitsHandler {
     // permanent limits
     public List<PermanentLimitAttributes> getPermanentLimits(UUID networkUuid, int variantNum, String type, String equipmentId) {
         try (Connection connection = dataSource.getConnection()) {
-            var preparedStmt = connection.prepareStatement(QueryCatalog.buildPermanentLimitQuery());
-            preparedStmt.setString(1, networkUuid.toString());
+            var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetPermanentLimitQuery());
+            preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, type);
             preparedStmt.setString(4, equipmentId);
@@ -204,31 +204,31 @@ public class LimitsHandler {
     }
 
     public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> convertLimitInfosToOperationalLimitsGroup(OwnerInfo owner, LimitsInfos limitsInfos) {
-        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> map = new HashMap<>();
+        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitGroups = new HashMap<>();
         // permanent limits
         limitsInfos.getPermanentLimits().forEach(permanentLimit -> {
             OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(owner.getEquipmentId(),
                 permanentLimit.getOperationalLimitsGroupId(), permanentLimit.getSide());
-            if (map.containsKey(identifier)) {
-                setPermanentLimit(map.get(identifier), permanentLimit);
+            if (operationalLimitGroups.containsKey(identifier)) {
+                setPermanentLimit(operationalLimitGroups.get(identifier), permanentLimit);
             } else {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
                 operationalLimitsGroupAttributes.setId(owner.getEquipmentId());
                 setPermanentLimit(operationalLimitsGroupAttributes, permanentLimit);
-                map.put(identifier, operationalLimitsGroupAttributes);
+                operationalLimitGroups.put(identifier, operationalLimitsGroupAttributes);
             }
         });
         // temporary limits
         limitsInfos.getTemporaryLimits().forEach(temporaryLimit -> {
             OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(owner.getEquipmentId(),
                 temporaryLimit.getOperationalLimitsGroupId(), temporaryLimit.getSide());
-            if (map.containsKey(identifier)) {
-                setTemporaryLimit(map.get(identifier), temporaryLimit);
+            if (operationalLimitGroups.containsKey(identifier)) {
+                setTemporaryLimit(operationalLimitGroups.get(identifier), temporaryLimit);
             } else {
                 throw new PowsyblException("a limit groups can not have temporary limits without a permanent limit");
             }
         });
-        return map;
+        return operationalLimitGroups;
     }
 
     private void setPermanentLimit(OperationalLimitsGroupAttributes operationalLimitsGroupAttributes, PermanentLimitAttributes permanentLimitAttributes) {
@@ -244,9 +244,9 @@ public class LimitsHandler {
 
     private void setTemporaryLimit(OperationalLimitsGroupAttributes operationalLimitsGroupAttributes, TemporaryLimitAttributes temporaryLimitAttributes) {
         switch (temporaryLimitAttributes.getLimitType()) {
-            case CURRENT -> operationalLimitsGroupAttributes.getCurrentLimits().addOneTemporaryLimit(temporaryLimitAttributes);
-            case ACTIVE_POWER -> operationalLimitsGroupAttributes.getActivePowerLimits().addOneTemporaryLimit(temporaryLimitAttributes);
-            case APPARENT_POWER -> operationalLimitsGroupAttributes.getApparentPowerLimits().addOneTemporaryLimit(temporaryLimitAttributes);
+            case CURRENT -> operationalLimitsGroupAttributes.getCurrentLimits().addTemporaryLimit(temporaryLimitAttributes);
+            case ACTIVE_POWER -> operationalLimitsGroupAttributes.getActivePowerLimits().addTemporaryLimit(temporaryLimitAttributes);
+            case APPARENT_POWER -> operationalLimitsGroupAttributes.getApparentPowerLimits().addTemporaryLimit(temporaryLimitAttributes);
         }
     }
 
