@@ -18,7 +18,6 @@ import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.PermanentLimitSqlData;
 import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
-import lombok.Getter;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -32,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
-import static com.powsybl.network.store.server.QueryCatalog.SELECTED_OPERATIONAL_LIMITS_GROUP_ID2;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -256,30 +254,30 @@ public class LimitsHandler {
         Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> map = new HashMap<>();
         selectedOperationalLimitsGroups.forEach((owner, selectedOperationalLimitsGroup) -> {
             LimitsInfos selectedLimitsInfos = limitsInfos.get(owner);
-            if (selectedOperationalLimitsGroup.getOperationalLimitsGroupId1() != null) {
+            if (selectedOperationalLimitsGroup.operationalLimitsGroupId1() != null) {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                    selectedOperationalLimitsGroup.getOperationalLimitsGroupId1(), 1, selectedLimitsInfos);
+                    selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 1, selectedLimitsInfos);
                 if (operationalLimitsGroupAttributes != null) {
                     Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap();
-                    elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroup.getOperationalLimitsGroupId1(), 1),
+                    elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 1),
                         operationalLimitsGroupAttributes);
                     map.put(owner.getEquipmentId(), elementMap);
                 }
             }
-            if (selectedOperationalLimitsGroup.getOperationalLimitsGroupId2() != null) {
+            if (selectedOperationalLimitsGroup.operationalLimitsGroupId2() != null) {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                    selectedOperationalLimitsGroup.getOperationalLimitsGroupId2(), 2, selectedLimitsInfos);
+                    selectedOperationalLimitsGroup.operationalLimitsGroupId2(), 2, selectedLimitsInfos);
                 if (operationalLimitsGroupAttributes != null) {
                     if (map.containsKey(owner.getEquipmentId())) {
                         map.get(owner.getEquipmentId()).put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(),
-                                selectedOperationalLimitsGroup.getOperationalLimitsGroupId2(), 2),
+                                selectedOperationalLimitsGroup.operationalLimitsGroupId2(), 2),
                             getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                                selectedOperationalLimitsGroup.getOperationalLimitsGroupId1(), 2, selectedLimitsInfos));
+                                selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 2, selectedLimitsInfos));
                     } else {
                         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap();
-                        elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroup.getOperationalLimitsGroupId2(), 2),
+                        elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroup.operationalLimitsGroupId2(), 2),
                             getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                                selectedOperationalLimitsGroup.getOperationalLimitsGroupId1(), 2, selectedLimitsInfos));
+                                selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 2, selectedLimitsInfos));
                         map.put(owner.getEquipmentId(), elementMap);
                     }
                 }
@@ -309,7 +307,7 @@ public class LimitsHandler {
             .id(selectedGroupId)
             .currentLimits(LimitsAttributes.builder()
                 .operationalLimitsGroupId(selectedGroupId)
-                .permanentLimit(permanentLimits.get(0).getValue())
+                .permanentLimit(permanentLimits.getFirst().getValue())
                 .temporaryLimits(temporaryLimitsTreeMap)
                 .build())
             .build();
@@ -317,8 +315,8 @@ public class LimitsHandler {
 
     private Map<OwnerInfo, SelectedOperationalLimitsGroup> getSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
-            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(type.toString(), List.of(ID_COLUMN,
-                SELECTED_OPERATIONAL_LIMITS_GROUP_ID1, SELECTED_OPERATIONAL_LIMITS_GROUP_ID2)))) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(convertResourceTypeToTableName(type),
+                List.of(ID_COLUMN, SELECTED_OPERATIONAL_LIMITS_GROUP_ID1, SELECTED_OPERATIONAL_LIMITS_GROUP_ID2)))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
                 return getInnerSelectedOperationalLimitsGroupIds(networkId, variantNum, type, preparedStmt);
@@ -343,16 +341,16 @@ public class LimitsHandler {
         }
     }
 
-    @Getter
-    class SelectedOperationalLimitsGroup {
-        private final String branchId;
-        private final String operationalLimitsGroupId1;
-        private final String operationalLimitsGroupId2;
+    private String convertResourceTypeToTableName(ResourceType resourceType) {
+        return switch (resourceType) {
+            case LINE -> "line";
+            case TWO_WINDINGS_TRANSFORMER -> "twowindingstranformer";
+            case THREE_WINDINGS_TRANSFORMER -> "threewindingstranformer";
+            default -> throw new PowsyblException("no table name for resource type " + resourceType);
+        };
+    }
 
-        public SelectedOperationalLimitsGroup(String branchId, String operationalLimitsGroupId1, String operationalLimitsGroupId2) {
-            this.branchId = branchId;
-            this.operationalLimitsGroupId1 = operationalLimitsGroupId1;
-            this.operationalLimitsGroupId2 = operationalLimitsGroupId2;
-        }
+    record SelectedOperationalLimitsGroup(String branchId, String operationalLimitsGroupId1,
+                                          String operationalLimitsGroupId2) {
     }
 }
