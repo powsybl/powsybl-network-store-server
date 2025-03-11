@@ -46,8 +46,7 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
-import static com.powsybl.network.store.server.Utils.bindAttributes;
-import static com.powsybl.network.store.server.Utils.bindValues;
+import static com.powsybl.network.store.server.Utils.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -3910,7 +3909,17 @@ public class NetworkStoreRepository {
 
     public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
-        return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type,
-            getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString()));
+        try (var connection = dataSource.getConnection()) {
+            int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum).getFullVariantNum();
+            Map<OwnerInfo, LimitsInfos> limitsInfos;
+            if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+                limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+            } else {
+                limitsInfos = getLimitsInfos(networkId, fullVariantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+            }
+            return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
     }
 }

@@ -31,6 +31,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Utils.convertResourceTypeToTableName;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -45,6 +46,7 @@ public class LimitsHandler {
         this.mapper = mapper;
     }
 
+    // for one equipment
     public Optional<LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String type, String equipmentId) {
         List<TemporaryLimitAttributes> temporaryLimitAttributes = getTemporaryLimits(networkUuid, variantNum, type, equipmentId);
         List<PermanentLimitAttributes> permanentLimitAttributes = getPermanentLimits(networkUuid, variantNum, type, equipmentId);
@@ -248,42 +250,52 @@ public class LimitsHandler {
         }
     }
 
+    // for one equipment type
     public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceType(
+        UUID networkId, int variantNum, ResourceType type, Map<OwnerInfo, LimitsInfos> limitsInfos, int fullVariantNum) {
+        if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+            return getAllCurrentLimitsGroupAttributesByResourceTypeForVariant(networkId, variantNum, type, limitsInfos);
+        } else {
+            return getAllCurrentLimitsGroupAttributesByResourceTypeForVariant(networkId, fullVariantNum, type, limitsInfos);
+        }
+    }
+
+    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceTypeForVariant(
         UUID networkId, int variantNum, ResourceType type, Map<OwnerInfo, LimitsInfos> limitsInfos) {
         Map<OwnerInfo, SelectedOperationalLimitsGroup> selectedOperationalLimitsGroups = getSelectedOperationalLimitsGroupIds(networkId, variantNum, type);
-        Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> map = new HashMap<>();
+        Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> currentLimitsGroupAttributes = new HashMap<>();
         selectedOperationalLimitsGroups.forEach((owner, selectedOperationalLimitsGroup) -> {
             LimitsInfos selectedLimitsInfos = limitsInfos.get(owner);
             if (selectedOperationalLimitsGroup.operationalLimitsGroupId1() != null) {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getSelectedCurrentLimitOperationalLimitsGroupAttributes(
                     selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 1, selectedLimitsInfos);
                 if (operationalLimitsGroupAttributes != null) {
-                    Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap();
+                    Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap<>();
                     elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 1),
                         operationalLimitsGroupAttributes);
-                    map.put(owner.getEquipmentId(), elementMap);
+                    currentLimitsGroupAttributes.put(owner.getEquipmentId(), elementMap);
                 }
             }
             if (selectedOperationalLimitsGroup.operationalLimitsGroupId2() != null) {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getSelectedCurrentLimitOperationalLimitsGroupAttributes(
                     selectedOperationalLimitsGroup.operationalLimitsGroupId2(), 2, selectedLimitsInfos);
                 if (operationalLimitsGroupAttributes != null) {
-                    if (map.containsKey(owner.getEquipmentId())) {
-                        map.get(owner.getEquipmentId()).put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(),
+                    if (currentLimitsGroupAttributes.containsKey(owner.getEquipmentId())) {
+                        currentLimitsGroupAttributes.get(owner.getEquipmentId()).put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(),
                                 selectedOperationalLimitsGroup.operationalLimitsGroupId2(), 2),
                             getSelectedCurrentLimitOperationalLimitsGroupAttributes(
                                 selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 2, selectedLimitsInfos));
                     } else {
-                        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap();
+                        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap<>();
                         elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroup.operationalLimitsGroupId2(), 2),
                             getSelectedCurrentLimitOperationalLimitsGroupAttributes(
                                 selectedOperationalLimitsGroup.operationalLimitsGroupId1(), 2, selectedLimitsInfos));
-                        map.put(owner.getEquipmentId(), elementMap);
+                        currentLimitsGroupAttributes.put(owner.getEquipmentId(), elementMap);
                     }
                 }
             }
         });
-        return map;
+        return currentLimitsGroupAttributes;
     }
 
     private OperationalLimitsGroupAttributes getSelectedCurrentLimitOperationalLimitsGroupAttributes(String selectedGroupId, Integer side, LimitsInfos limitsInfos) {
@@ -339,15 +351,6 @@ public class LimitsHandler {
             }
             return resources;
         }
-    }
-
-    private String convertResourceTypeToTableName(ResourceType resourceType) {
-        return switch (resourceType) {
-            case LINE -> "line";
-            case TWO_WINDINGS_TRANSFORMER -> "twowindingstranformer";
-            case THREE_WINDINGS_TRANSFORMER -> "threewindingstranformer";
-            default -> throw new PowsyblException("no table name for resource type " + resourceType);
-        };
     }
 
     record SelectedOperationalLimitsGroup(String branchId, String operationalLimitsGroupId1,
