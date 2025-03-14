@@ -46,8 +46,7 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
-import static com.powsybl.network.store.server.Utils.bindAttributes;
-import static com.powsybl.network.store.server.Utils.bindValues;
+import static com.powsybl.network.store.server.Utils.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -58,13 +57,14 @@ public class NetworkStoreRepository {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NetworkStoreRepository.class);
 
-    public NetworkStoreRepository(DataSource dataSource, ObjectMapper mapper, Mappings mappings, ExtensionHandler extensionHandler) {
+    public NetworkStoreRepository(DataSource dataSource, ObjectMapper mapper, Mappings mappings, ExtensionHandler extensionHandler, LimitsHandler limitsHandler) {
         this.dataSource = dataSource;
         this.mappings = mappings;
         this.mapper = mapper.registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
                 .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false);
         this.extensionHandler = extensionHandler;
+        this.limitsHandler = limitsHandler;
     }
 
     @Getter
@@ -75,6 +75,8 @@ public class NetworkStoreRepository {
     private final Mappings mappings;
 
     private final ExtensionHandler extensionHandler;
+
+    private final LimitsHandler limitsHandler;
 
     static final int BATCH_SIZE = 1000;
 
@@ -654,6 +656,12 @@ public class NetworkStoreRepository {
         };
     }
 
+    private <T extends IdentifiableAttributes> Resource<T> completeLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
+        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        insertLimitsInEquipments(networkUuid, List.of((Resource<LineAttributes>) resource), limitsInfos);
+        return resource;
+    }
+
     private <T extends IdentifiableAttributes> Resource<T> completeGeneratorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<GeneratorAttributes> generatorAttributesResource = (Resource<GeneratorAttributes>) resource;
         Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
@@ -668,18 +676,11 @@ public class NetworkStoreRepository {
         return resource;
     }
 
-    private <T extends IdentifiableAttributes> Resource<T> completeLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
-        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        insertLimitsInEquipments(networkUuid, List.of((Resource<LineAttributes>) resource), limitsInfos);
-        return resource;
-    }
-
     private <T extends IdentifiableAttributes> Resource<T> completeTwoWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<TwoWindingsTransformerAttributes> twoWindingsTransformerResource = (Resource<TwoWindingsTransformerAttributes>) resource;
+        Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertLimitsInEquipments(networkUuid, List.of(twoWindingsTransformerResource), limitsInfos);
-
-        Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertTapChangerStepsInEquipments(networkUuid, List.of(twoWindingsTransformerResource), tapChangerSteps);
         insertRegulatingPointIntoTwoWindingsTransformer(networkUuid, variantNum, equipmentId, twoWindingsTransformerResource);
         return resource;
@@ -1687,9 +1688,6 @@ public class NetworkStoreRepository {
     public List<Resource<TwoWindingsTransformerAttributes>> getTwoWindingsTransformers(UUID networkUuid, int variantNum) {
         List<Resource<TwoWindingsTransformerAttributes>> twoWindingsTransformers = getIdentifiables(networkUuid, variantNum, mappings.getTwoWindingsTransformerMappings());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.TWO_WINDINGS_TRANSFORMER.toString());
-        insertLimitsInEquipments(networkUuid, twoWindingsTransformers, limitsInfos);
-
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.TWO_WINDINGS_TRANSFORMER.toString());
         insertTapChangerStepsInEquipments(networkUuid, twoWindingsTransformers, tapChangerSteps);
         // regulating points
@@ -1702,9 +1700,6 @@ public class NetworkStoreRepository {
         List<Resource<TwoWindingsTransformerAttributes>> twoWindingsTransformers = getIdentifiablesInVoltageLevel(networkUuid, variantNum, voltageLevelId, mappings.getTwoWindingsTransformerMappings());
 
         List<String> equipmentsIds = twoWindingsTransformers.stream().map(Resource::getId).collect(Collectors.toList());
-
-        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfosWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
-        insertLimitsInEquipments(networkUuid, twoWindingsTransformers, limitsInfos);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerStepsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
         insertTapChangerStepsInEquipments(networkUuid, twoWindingsTransformers, tapChangerSteps);
@@ -1895,9 +1890,6 @@ public class NetworkStoreRepository {
     public List<Resource<LineAttributes>> getLines(UUID networkUuid, int variantNum) {
         List<Resource<LineAttributes>> lines = getIdentifiables(networkUuid, variantNum, mappings.getLineMappings());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.LINE.toString());
-        insertLimitsInEquipments(networkUuid, lines, limitsInfos);
-
         setRegulatingEquipments(lines, networkUuid, variantNum, ResourceType.LINE);
 
         return lines;
@@ -1907,9 +1899,6 @@ public class NetworkStoreRepository {
         List<Resource<LineAttributes>> lines = getIdentifiablesInVoltageLevel(networkUuid, variantNum, voltageLevelId, mappings.getLineMappings());
 
         List<String> equipmentsIds = lines.stream().map(Resource::getId).collect(Collectors.toList());
-
-        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfosWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
-        insertLimitsInEquipments(networkUuid, lines, limitsInfos);
 
         setRegulatingEquipmentsWithIds(lines, networkUuid, variantNum, ResourceType.LINE, equipmentsIds);
 
@@ -2388,7 +2377,7 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimitsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
-        try (var preparedStmt = connection.prepareStatement(buildPermanentLimitQuery(columnNameForWhereClause))) {
+        try (var preparedStmt = connection.prepareStatement(buildGetPermanentLimitQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
@@ -3893,6 +3882,42 @@ public class NetworkStoreRepository {
         try (var connection = dataSource.getConnection()) {
             boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum).isFullVariant();
             extensionHandler.deleteAndTombstoneExtensions(connection, networkId, variantNum, Map.of(identifiableId, Set.of(extensionName)), isPartialVariant);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    // operational limits groups
+    public Optional<OperationalLimitsGroupAttributes> getOperationalLimitsGroup(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
+        return limitsHandler.getOperationalLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
+    }
+
+    public Optional<OperationalLimitsGroupAttributes> getSelectedCurrentLimitsGroup(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
+        return limitsHandler.getSelectedCurrentLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
+    }
+
+    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllOperationalLimitsGroupAttributesByResourceType(
+        UUID networkId, int variantNum, ResourceType type) {
+        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> map = new HashMap<>();
+        limitsInfos.forEach((owner, limitsInfo) -> {
+            Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesMap = limitsHandler.convertLimitInfosToOperationalLimitsGroup(owner, limitsInfo);
+            map.put(owner.getEquipmentId(), operationalLimitsGroupAttributesMap);
+        });
+        return map;
+    }
+
+    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceType(
+        UUID networkId, int variantNum, ResourceType type) {
+        try (var connection = dataSource.getConnection()) {
+            int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum).getFullVariantNum();
+            Map<OwnerInfo, LimitsInfos> limitsInfos;
+            if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+                limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+            } else {
+                limitsInfos = getLimitsInfos(networkId, fullVariantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+            }
+            return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum, getTombstonedIdentifiableIds(connection, networkId, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
