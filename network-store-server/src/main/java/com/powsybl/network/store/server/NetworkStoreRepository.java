@@ -3917,7 +3917,7 @@ public class NetworkStoreRepository {
             } else {
                 limitsInfos = getLimitsInfos(networkId, fullVariantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
             }
-            return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum);
+            return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum, getTombstonedIdentifiableIds(connection, networkId, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
