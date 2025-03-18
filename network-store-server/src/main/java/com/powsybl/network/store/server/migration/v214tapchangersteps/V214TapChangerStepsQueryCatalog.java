@@ -54,7 +54,7 @@ public final class V214TapChangerStepsQueryCatalog {
             VARIANT_NUM_COLUMN + " = ? ";
     }
 
-    public static String buildV214TapChangerStepQuery(String columnNameForWhereClause) {
+    public static String buildGetV214TapChangerStepQuery(String columnNameForWhereClause) {
         return "select " +
             EQUIPMENT_ID_COLUMN + ", " +
             EQUIPMENT_TYPE_COLUMN + ", " +

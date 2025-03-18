@@ -68,8 +68,6 @@ class V214TapChangerStepMigrationTest {
     @Test
     void migrateV214StepChangerStepsTest() throws Exception {
         createNetwork();
-        createLine();
-        createDanglineLine();
         create2WTLine();
         create3WTLine();
         // To simulate the state of a non migrated network, we first clean the limits created with the new code.

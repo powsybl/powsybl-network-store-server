@@ -11,7 +11,9 @@ import com.google.common.base.Stopwatch;
 import com.powsybl.network.store.model.ResourceType;
 import com.powsybl.network.store.model.TapChangerStepAttributes;
 import com.powsybl.network.store.model.TapChangerType;
-import com.powsybl.network.store.server.*;
+import com.powsybl.network.store.server.ExtensionHandler;
+import com.powsybl.network.store.server.Mappings;
+import com.powsybl.network.store.server.NetworkStoreRepository;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import liquibase.change.custom.CustomTaskChange;
@@ -148,7 +150,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
 
     public static Map<OwnerInfo, List<TapChangerStepAttributes>> getV214TapChangerSteps(NetworkStoreRepository repository, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = repository.getDataSource().getConnection()) {
-            var preparedStmt = connection.prepareStatement(V214TapChangerStepsQueryCatalog.buildV214TapChangerStepQuery(columnNameForWhereClause));
+            var preparedStmt = connection.prepareStatement(V214TapChangerStepsQueryCatalog.buildGetV214TapChangerStepQuery(columnNameForWhereClause));
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
@@ -159,7 +161,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
     }
 
     public static Map<OwnerInfo, List<TapChangerStepAttributes>> getV214TapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
-        try (var preparedStmt = connection.prepareStatement(V214TapChangerStepsQueryCatalog.buildV214TapChangerStepQuery(columnNameForWhereClause))) {
+        try (var preparedStmt = connection.prepareStatement(V214TapChangerStepsQueryCatalog.buildGetV214TapChangerStepQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
