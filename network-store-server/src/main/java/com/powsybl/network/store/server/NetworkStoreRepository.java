@@ -341,6 +341,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
                 QueryCatalog.buildDeleteTapChangerStepQuery(),
+                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 V214TapChangerStepsQueryCatalog.buildDeleteV214TapChangerStepQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesQuery(),
                 QueryExtensionCatalog.buildDeleteExtensionsQuery(),
@@ -377,6 +378,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeletePermanentLimitsVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
+                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 QueryCatalog.buildDeleteTapChangerStepVariantQuery(),
                 V214TapChangerStepsQueryCatalog.buildDeleteV214TapChangerStepVariantQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesVariantQuery(),
@@ -495,6 +497,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildClonePermanentLimitsQuery(),
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
+                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 QueryCatalog.buildCloneTapChangerStepQuery(),
                 V214TapChangerStepsQueryCatalog.buildCloneV214TapChangerStepQuery(),
                 QueryExtensionCatalog.buildCloneExtensionsQuery()
@@ -3519,12 +3522,13 @@ public class NetworkStoreRepository {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
+        //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
         Map<OwnerInfo, List<TapChangerStepAttributes>> v214tapChangerSteps = getV214TapChangerStepsWithInClause(this, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
-        Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getNewTapChangerStepsWithInClause(connection, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
+        Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getTapChangerStepsWithInClause(connection, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
         return mergeTapChangerSteps(newTapChangerSteps, v214tapChangerSteps);
     }
 
-    private Map<OwnerInfo, List<TapChangerStepAttributes>> getNewTapChangerStepsWithInClause(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+    private Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerStepsWithInClause(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(buildTapChangerStepWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -3535,10 +3539,6 @@ public class NetworkStoreRepository {
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
-    }
-
-    public Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerSteps(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
-        return getNewTapChangerSteps(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
     }
 
     public Map<OwnerInfo, List<TapChangerStepAttributes>> mergeTapChangerSteps(Map<OwnerInfo, List<TapChangerStepAttributes>> newSteps,
@@ -3553,27 +3553,28 @@ public class NetworkStoreRepository {
         return newSteps;
     }
 
-    public Map<OwnerInfo, List<TapChangerStepAttributes>> getNewTapChangerSteps(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+    public Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerSteps(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getExternalAttributes(
                     variantNum,
                     getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
                     () -> getTombstonedTapChangerStepsIds(connection, networkUuid, variantNum),
                     () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
-                    variant -> getTapChangerStepsForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
+                    variant -> getMergedTapChangerStepsForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
                     OwnerInfo::getEquipmentId);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    public Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
-        Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getNewTapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
+    //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
+    public Map<OwnerInfo, List<TapChangerStepAttributes>> getMergedTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getTapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
         Map<OwnerInfo, List<TapChangerStepAttributes>> oldTapChangerSteps = getV214TapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
         return mergeTapChangerSteps(newTapChangerSteps, oldTapChangerSteps);
     }
 
-    public Map<OwnerInfo, List<TapChangerStepAttributes>> getNewTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+    public Map<OwnerInfo, List<TapChangerStepAttributes>> getTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildTapChangerStepQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -3773,6 +3774,7 @@ public class NetworkStoreRepository {
 
     private void deleteTapChangerSteps(UUID networkUuid, int variantNum, List<String> equipmentIds) {
         try (var connection = dataSource.getConnection()) {
+            //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
             try (var preparedStmt = connection.prepareStatement(V214TapChangerStepsQueryCatalog.buildDeleteV214TapChangerStepVariantEquipmentINQuery(equipmentIds.size()))) {
                 preparedStmt.setObject(1, networkUuid);
                 preparedStmt.setInt(2, variantNum);
