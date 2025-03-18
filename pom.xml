@@ -62,6 +62,8 @@
             ../../../network-store-integration-test/target/site/jacoco-aggregate/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
         <sonar.coverage.exclusions>**/migration/**/*</sonar.coverage.exclusions>
+        <sonar.organization>powsybl-ci-github</sonar.organization>
+        <sonar.projectKey>com.powsybl:powsybl-network-store-server</sonar.projectKey>
     </properties>
 
     <modules>
