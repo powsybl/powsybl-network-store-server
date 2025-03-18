@@ -378,8 +378,8 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeletePermanentLimitsVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
-                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 QueryCatalog.buildDeleteTapChangerStepVariantQuery(),
+                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 V214TapChangerStepsQueryCatalog.buildDeleteV214TapChangerStepVariantQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesVariantQuery(),
                 QueryExtensionCatalog.buildDeleteExtensionsVariantQuery(),
@@ -497,8 +497,8 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildClonePermanentLimitsQuery(),
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
-                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 QueryCatalog.buildCloneTapChangerStepQuery(),
+                //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
                 V214TapChangerStepsQueryCatalog.buildCloneV214TapChangerStepQuery(),
                 QueryExtensionCatalog.buildCloneExtensionsQuery()
         );
@@ -3522,7 +3522,7 @@ public class NetworkStoreRepository {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
-        //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
+        //TODO: to be removed and adapted when tap changer steps are fully migrated — should be after v2.15 deployment
         Map<OwnerInfo, List<TapChangerStepAttributes>> v214tapChangerSteps = getV214TapChangerStepsWithInClause(this, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
         Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getTapChangerStepsWithInClause(connection, networkUuid, variantNum, columnNameForWhereClause, valuesForInClause, variantNumOverride);
         return mergeTapChangerSteps(newTapChangerSteps, v214tapChangerSteps);
@@ -3567,7 +3567,7 @@ public class NetworkStoreRepository {
         }
     }
 
-    //TODO: to be removed when tap changer steps are fully migrated — should be after v2.15 deployment
+    //TODO: to be removed and adapted when tap changer steps are fully migrated — should be after v2.15 deployment
     public Map<OwnerInfo, List<TapChangerStepAttributes>> getMergedTapChangerStepsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
         Map<OwnerInfo, List<TapChangerStepAttributes>> newTapChangerSteps = getTapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
         Map<OwnerInfo, List<TapChangerStepAttributes>> oldTapChangerSteps = getV214TapChangerStepsForVariant(connection, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause, variantNumOverride);
