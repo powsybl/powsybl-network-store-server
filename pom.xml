@@ -15,7 +15,7 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent-ws</artifactId>
-        <version>21</version>
+        <version>22</version>
         <relativePath/>
     </parent>
 
@@ -62,6 +62,7 @@
             ../../../network-store-integration-test/target/site/jacoco-aggregate/jacoco.xml
         </sonar.coverage.jacoco.xmlReportPaths>
         <sonar.coverage.exclusions>**/migration/**/*</sonar.coverage.exclusions>
+        <sonar.cpd.exclusions>**/migration/**/*</sonar.cpd.exclusions>
     </properties>
 
     <modules>
