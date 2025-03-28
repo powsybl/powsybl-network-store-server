@@ -9,6 +9,7 @@ package com.powsybl.network.store.server.migration;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.NetworkStoreRepository;
 import com.powsybl.network.store.server.migration.v211limits.V211LimitsMigration;
+import com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -37,6 +38,15 @@ public class MigrationController {
     public ResponseEntity<Void> migrateV211Limits(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                   @Parameter(description = "Variant num", required = true) @PathVariable("variantNum") int variantNum) {
         V211LimitsMigration.migrateV211Limits(repository, networkId, variantNum);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping(value = "/v214tapChangeSteps/{networkId}/{variantNum}")
+    @Operation(summary = "Migrate tap changer steps of a network")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully migrated tap changer steps from V2.14.0 to new model"))
+    public ResponseEntity<Void> migrateV214TapChangerSteps(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                  @Parameter(description = "Variant num", required = true) @PathVariable("variantNum") int variantNum) {
+        V214TapChangerStepsMigration.migrateV214TapChangerSteps(repository, networkId, variantNum);
         return ResponseEntity.ok().build();
     }
 }
