@@ -3901,7 +3901,7 @@ public class NetworkStoreRepository {
     public void removeExtensionAttributes(UUID networkId, int variantNum, String identifiableId, String extensionName) {
         try (var connection = dataSource.getConnection()) {
             boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum).isFullVariant();
-            extensionHandler.deleteAndTombstoneExtensions(connection, networkId, variantNum, Map.of(identifiableId, Set.of(extensionName)), isPartialVariant);
+            extensionHandler.deleteAndTombstoneExtensions(connection, networkId, variantNum, Map.of(extensionName, Set.of(identifiableId)), isPartialVariant);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
