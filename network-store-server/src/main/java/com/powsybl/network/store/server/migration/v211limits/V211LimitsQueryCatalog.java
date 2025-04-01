@@ -7,6 +7,7 @@
 package com.powsybl.network.store.server.migration.v211limits;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
 /**
  * @author Etienne Homer <etienne.homer at rte-france.com>
@@ -34,8 +35,7 @@ public final class V211LimitsQueryCatalog {
                 " from " + V211_TEMPORARY_LIMIT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteV211TemporaryLimitsVariantEquipmentINQuery(int numberOfValues) {
@@ -45,8 +45,7 @@ public final class V211LimitsQueryCatalog {
         return "delete from " + V211_TEMPORARY_LIMIT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetV211TemporaryLimitQuery(String columnNameForWhereClause) {
@@ -88,8 +87,7 @@ public final class V211LimitsQueryCatalog {
         return "delete from " + V211_PERMANENT_LIMIT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetV211PermanentLimitWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
@@ -103,8 +101,7 @@ public final class V211LimitsQueryCatalog {
                 " from " + V211_PERMANENT_LIMIT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetV211PermanentLimitQuery(String columnNameForWhereClause) {

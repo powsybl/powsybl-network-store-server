@@ -7,6 +7,7 @@
 package com.powsybl.network.store.server.migration.v214tapchangersteps;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -98,8 +99,7 @@ public final class V214TapChangerStepsQueryCatalog {
             "where " +
             NETWORK_UUID_COLUMN + " = ?" + " and " +
             VARIANT_NUM_COLUMN + " = ? and " +
-            columnNameForInClause + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteV214TapChangerStepQuery() {
@@ -123,7 +123,6 @@ public final class V214TapChangerStepsQueryCatalog {
             " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
-            EQUIPMENT_ID_COLUMN + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 }
