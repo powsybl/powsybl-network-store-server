@@ -99,26 +99,17 @@ public final class QueryExtensionCatalog {
                 NETWORK_UUID_COLUMN + " = ?";
     }
 
-    public static String buildDeleteExtensionsVariantByIdentifiableIdAndExtensionsNameINQuery(int numberOfValues) {
-        if (numberOfValues < 1) {
+    public static String buildDeleteExtensionsVariantByExtensionsNameAndIdentifiableIdsINQuery(int numberOfIds) {
+        if (numberOfIds < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
 
-        StringBuilder sql = new StringBuilder()
-                .append("delete from ").append(EXTENSION_TABLE)
-                .append(" where ")
-                .append(NETWORK_UUID_COLUMN).append(" = ? and ")
-                .append(VARIANT_NUM_COLUMN).append(" = ? and (");
-
-        for (int i = 0; i < numberOfValues; i++) {
-            if (i > 0) {
-                sql.append(" or ");
-            }
-            sql.append("(").append(EQUIPMENT_ID_COLUMN).append(" = ? and ").append("name").append(" = ?)");
-        }
-        sql.append(")");
-
-        return sql.toString();
+        return "delete from " + EXTENSION_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? " +
+                "and " + VARIANT_NUM_COLUMN + " = ? " +
+                "and name = ? " +
+                "and " + EQUIPMENT_ID_COLUMN + " in (" +
+                "?, ".repeat(numberOfIds - 1) + "?)";
     }
 
     // Tombstoned extensions

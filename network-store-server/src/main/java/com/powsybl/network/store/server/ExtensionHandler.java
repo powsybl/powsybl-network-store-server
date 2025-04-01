@@ -347,41 +347,42 @@ public class ExtensionHandler {
         }
     }
 
-    public void deleteExtensionsFromIdentifiables(Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> extensionNamesByIdentifiableId) {
-        int totalParameters = extensionNamesByIdentifiableId.values().stream().mapToInt(Set::size).sum();
-        if (totalParameters > 0) {
-            try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantByIdentifiableIdAndExtensionsNameINQuery(totalParameters))) {
-                preparedStmt.setObject(1, networkUuid);
-                preparedStmt.setInt(2, variantNum);
+    public void deleteExtensionsFromIdentifiables(Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName) {
+        for (Map.Entry<String, Set<String>> entry : identifiableIdsByExtensionName.entrySet()) {
+            String extensionName = entry.getKey();
+            Set<String> equipmentIds = entry.getValue();
 
-                int paramIndex = 3;
-                for (Map.Entry<String, Set<String>> entry : extensionNamesByIdentifiableId.entrySet()) {
-                    String equipmentId = entry.getKey();
-                    for (String extensionName : entry.getValue()) {
+            if (!equipmentIds.isEmpty()) {
+                try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantByExtensionsNameAndIdentifiableIdsINQuery(equipmentIds.size()))) {
+                    preparedStmt.setObject(1, networkUuid);
+                    preparedStmt.setInt(2, variantNum);
+                    preparedStmt.setString(3, extensionName);
+
+                    int paramIndex = 4;
+                    for (String equipmentId : equipmentIds) {
                         preparedStmt.setString(paramIndex++, equipmentId);
-                        preparedStmt.setString(paramIndex++, extensionName);
                     }
-                }
 
-                preparedStmt.executeUpdate();
-            } catch (SQLException e) {
-                throw new UncheckedSqlException(e);
+                    preparedStmt.executeUpdate();
+                } catch (SQLException e) {
+                    throw new UncheckedSqlException(e);
+                }
             }
         }
     }
 
-    public void deleteAndTombstoneExtensions(Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> extensionNamesByIdentifiableId, boolean isPartialVariant) throws SQLException {
-        deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, extensionNamesByIdentifiableId);
+    public void deleteAndTombstoneExtensions(Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName, boolean isPartialVariant) throws SQLException {
+        deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, identifiableIdsByExtensionName);
         if (isPartialVariant) {
-            insertTombstonedExtensions(networkUuid, variantNum, extensionNamesByIdentifiableId, connection);
+            insertTombstonedExtensions(networkUuid, variantNum, identifiableIdsByExtensionName, connection);
         }
     }
 
-    public void insertTombstonedExtensions(UUID networkId, int variantNum, Map<String, Set<String>> extensionNamesByIdentifiableId, Connection connection) throws SQLException {
+    public void insertTombstonedExtensions(UUID networkId, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName, Connection connection) throws SQLException {
         try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildInsertTombstonedExtensionsQuery())) {
-            for (Map.Entry<String, Set<String>> entry : extensionNamesByIdentifiableId.entrySet()) {
-                String identifiableId = entry.getKey();
-                for (String extensionName : entry.getValue()) {
+            for (Map.Entry<String, Set<String>> entry : identifiableIdsByExtensionName.entrySet()) {
+                String extensionName = entry.getKey();
+                for (String identifiableId : entry.getValue()) {
                     preparedStmt.setObject(1, networkId);
                     preparedStmt.setInt(2, variantNum);
                     preparedStmt.setString(3, identifiableId);
@@ -424,13 +425,16 @@ public class ExtensionHandler {
     }
 
     public <T extends IdentifiableAttributes> void deleteExtensionsFromEquipments(Connection connection, UUID networkUuid, List<Resource<T>> resources) {
-        Map<Integer, Map<String, Set<String>>> extensionsAttributesByVariant = new HashMap<>();
+        Map<Integer, Map<String, Set<String>>> identifiableIdsByExtensionNameByVariant = new HashMap<>();
         for (Resource<T> resource : resources) {
-            extensionsAttributesByVariant
-                    .computeIfAbsent(resource.getVariantNum(), k -> new HashMap<>())
-                    .put(resource.getId(), resource.getAttributes().getExtensionAttributes().keySet());
+            for (String extensionName : resource.getAttributes().getExtensionAttributes().keySet()) {
+                identifiableIdsByExtensionNameByVariant
+                        .computeIfAbsent(resource.getVariantNum(), k -> new HashMap<>())
+                        .computeIfAbsent(extensionName, k -> new HashSet<>())
+                        .add(resource.getId());
+            }
         }
-        extensionsAttributesByVariant.forEach((k, v) -> deleteExtensionsFromIdentifiables(connection, networkUuid, k, v));
+        identifiableIdsByExtensionNameByVariant.forEach((variantNum, identifiableIdsByExtensionName) -> deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, identifiableIdsByExtensionName));
     }
 
     /**
@@ -465,7 +469,14 @@ public class ExtensionHandler {
 
     private void deleteExtensionsFromNetworks(Connection connection, List<Resource<NetworkAttributes>> resources) {
         for (Resource<NetworkAttributes> resource : resources) {
-            deleteExtensionsFromIdentifiables(connection, resource.getAttributes().getUuid(), resource.getVariantNum(), Map.of(resource.getId(), resource.getAttributes().getExtensionAttributes().keySet()));
+            Map<String, Set<String>> identifiableIdsByExtensionName = new HashMap<>();
+            for (String extensionName : resource.getAttributes().getExtensionAttributes().keySet()) {
+                identifiableIdsByExtensionName
+                        .computeIfAbsent(extensionName, k -> new HashSet<>())
+                        .add(resource.getId());
+            }
+
+            deleteExtensionsFromIdentifiables(connection, resource.getAttributes().getUuid(), resource.getVariantNum(), identifiableIdsByExtensionName);
         }
     }
 }
