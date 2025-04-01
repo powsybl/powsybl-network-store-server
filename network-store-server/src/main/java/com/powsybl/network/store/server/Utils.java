@@ -18,10 +18,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -88,5 +85,13 @@ public final class Utils {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    public static String generateInPlaceholders(int numberOfValues) {
+        StringJoiner placeholders = new StringJoiner(", ");
+        for (int i = 0; i < numberOfValues; i++) {
+            placeholders.add("?");
+        }
+        return placeholders.toString();
     }
 }

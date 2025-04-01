@@ -7,6 +7,7 @@
 package com.powsybl.network.store.server;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
 /**
  * @author Antoine Bouhours <antoine.bouhours at rte-france.com>
@@ -84,8 +85,7 @@ public final class QueryExtensionCatalog {
         return "delete from " + EXTENSION_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteExtensionsVariantQuery() {
@@ -99,8 +99,8 @@ public final class QueryExtensionCatalog {
                 NETWORK_UUID_COLUMN + " = ?";
     }
 
-    public static String buildDeleteExtensionsVariantByExtensionsNameAndIdentifiableIdsINQuery(int numberOfIds) {
-        if (numberOfIds < 1) {
+    public static String buildDeleteExtensionsVariantByExtensionsNameAndIdentifiableIdsINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
 
@@ -108,8 +108,7 @@ public final class QueryExtensionCatalog {
                 " where " + NETWORK_UUID_COLUMN + " = ? " +
                 "and " + VARIANT_NUM_COLUMN + " = ? " +
                 "and name = ? " +
-                "and " + EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfIds - 1) + "?)";
+                "and " + EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     // Tombstoned extensions
