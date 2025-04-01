@@ -59,26 +59,6 @@ public final class V211LimitsQueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildCloneV211TemporaryLimitsQuery() {
-        return "insert into " + V211_TEMPORARY_LIMIT_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", operationalLimitsGroupId, " + SIDE_COLUMN + ", " + LIMIT_TYPE_COLUMN + ", " + NAME_COLUMN +
-                ", value_, acceptableDuration, fictitious) " + "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", ?, ?, operationalLimitsGroupId, " + SIDE_COLUMN + ", " + LIMIT_TYPE_COLUMN + ", " + NAME_COLUMN +
-                ", value_, acceptableDuration, fictitious from " + V211_TEMPORARY_LIMIT_TABLE + " where " + NETWORK_UUID_COLUMN +
-                " = ? and " + VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    public static String buildDeleteV211TemporaryLimitsQuery() {
-        return "delete from " + V211_TEMPORARY_LIMIT_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ?";
-    }
-
-    public static String buildDeleteV211TemporaryLimitsVariantQuery() {
-        return "delete from " + V211_TEMPORARY_LIMIT_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ?";
-    }
-
     // Permanent Limits
     public static String buildDeleteV211PermanentLimitsVariantEquipmentINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
@@ -113,24 +93,6 @@ public final class V211LimitsQueryCatalog {
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 columnNameForWhereClause + " = ?";
-    }
-
-    public static String buildCloneV211PermanentLimitsQuery() {
-        return "insert into " + V211_PERMANENT_LIMIT_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", operationalLimitsGroupId, " + SIDE_COLUMN + ", " + LIMIT_TYPE_COLUMN + ", value_) " + "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", ?, ?, operationalLimitsGroupId, " + SIDE_COLUMN + ", " + LIMIT_TYPE_COLUMN + ", value_ from " + V211_PERMANENT_LIMIT_TABLE + " where " + NETWORK_UUID_COLUMN +
-                " = ? and " + VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    public static String buildDeleteV211PermanentLimitsQuery() {
-        return "delete from " + V211_PERMANENT_LIMIT_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ?";
-    }
-
-    public static String buildDeleteV211PermanentLimitsVariantQuery() {
-        return "delete from " + V211_PERMANENT_LIMIT_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ?";
     }
 
 }

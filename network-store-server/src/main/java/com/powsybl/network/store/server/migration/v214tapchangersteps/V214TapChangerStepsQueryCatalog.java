@@ -20,41 +20,6 @@ public final class V214TapChangerStepsQueryCatalog {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-    public static String buildCloneV214TapChangerStepQuery() {
-        return "insert into " + V214_TAP_CHANGER_STEP_TABLE + "(" +
-            EQUIPMENT_ID_COLUMN + ", " +
-            EQUIPMENT_TYPE_COLUMN + ", " +
-            NETWORK_UUID_COLUMN + "," +
-            VARIANT_NUM_COLUMN + "," +
-            INDEX_COLUMN + ", " +
-            SIDE_COLUMN + ", " +
-            TAPCHANGER_TYPE_COLUMN + ", " +
-            "rho" + ", " +
-            "r" + ", " +
-            "x" + ", " +
-            "g" + ", " +
-            "b" + ", " +
-            ALPHA_COLUMN + ") " +
-            "select " +
-            EQUIPMENT_ID_COLUMN + ", " +
-            EQUIPMENT_TYPE_COLUMN + ", " +
-            "?" + "," +
-            "?" + "," +
-            INDEX_COLUMN + ", " +
-            SIDE_COLUMN + ", " +
-            TAPCHANGER_TYPE_COLUMN + ", " +
-            "rho" + ", " +
-            "r" + ", " +
-            "x" + ", " +
-            "g" + ", " +
-            "b" + ", " +
-            ALPHA_COLUMN +
-            " from " + V214_TAP_CHANGER_STEP_TABLE + " " +
-            "where " +
-            NETWORK_UUID_COLUMN + " = ?" + " and " +
-            VARIANT_NUM_COLUMN + " = ? ";
-    }
-
     public static String buildGetV214TapChangerStepQuery(String columnNameForWhereClause) {
         return "select " +
             EQUIPMENT_ID_COLUMN + ", " +
@@ -100,19 +65,6 @@ public final class V214TapChangerStepsQueryCatalog {
             NETWORK_UUID_COLUMN + " = ?" + " and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
-    }
-
-    public static String buildDeleteV214TapChangerStepQuery() {
-        return "delete from " + V214_TAP_CHANGER_STEP_TABLE +
-            " where " +
-            NETWORK_UUID_COLUMN + " = ?";
-    }
-
-    public static String buildDeleteV214TapChangerStepVariantQuery() {
-        return "delete from " + V214_TAP_CHANGER_STEP_TABLE +
-            " where " +
-            NETWORK_UUID_COLUMN + " = ?" + " and " +
-            VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildDeleteV214TapChangerStepVariantEquipmentINQuery(int numberOfValues) {
