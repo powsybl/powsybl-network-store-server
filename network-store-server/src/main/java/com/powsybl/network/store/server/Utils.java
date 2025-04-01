@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.network.store.model.IdentifiableAttributes;
+import com.powsybl.network.store.model.ResourceType;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 
 import java.io.IOException;
@@ -88,5 +89,14 @@ public final class Utils {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    static String convertResourceTypeToTableName(ResourceType resourceType) {
+        return switch (resourceType) {
+            case LINE -> "line";
+            case TWO_WINDINGS_TRANSFORMER -> "twowindingstransformer";
+            case THREE_WINDINGS_TRANSFORMER -> "threewindingstransformer";
+            default -> throw new PowsyblException("no table name for resource type " + resourceType);
+        };
     }
 }
