@@ -73,7 +73,7 @@ public final class V214TapChangerStepsQueryCatalog {
             "where " +
             NETWORK_UUID_COLUMN + " = ?" + " and " +
             VARIANT_NUM_COLUMN + " = ? and " +
-            columnNameForWhereClause + " = ?" + "order by " + INDEX_COLUMN;
+            columnNameForWhereClause + " = ?" + " order by " + INDEX_COLUMN;
     }
 
     public static String buildV214TapChangerStepWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
