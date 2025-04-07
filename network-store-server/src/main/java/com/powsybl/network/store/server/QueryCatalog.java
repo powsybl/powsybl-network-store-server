@@ -14,6 +14,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.Mappings.*;
+import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -107,8 +108,7 @@ public final class QueryCatalog {
                 " from " + tableName +
                 " where " + NETWORK_UUID_COLUMN + " = ?" +
                 " and " + VARIANT_NUM_COLUMN + " = ?" +
-                " and " + ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                " and " + ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetIdentifiablesInContainerQuery(String tableName, Collection<String> columns, Set<String> containerColumns) {
@@ -139,8 +139,7 @@ public final class QueryCatalog {
         return "delete from " + tableName + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteNetworkQuery() {
@@ -404,8 +403,7 @@ public final class QueryCatalog {
                 " from " + TEMPORARY_LIMITS_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertTemporaryLimitsQuery() {
@@ -423,8 +421,7 @@ public final class QueryCatalog {
         return "delete from " + TEMPORARY_LIMITS_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteTemporaryLimitsVariantQuery() {
@@ -519,8 +516,7 @@ public final class QueryCatalog {
                 " from " + PERMANENT_LIMITS_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertPermanentLimitsQuery() {
@@ -538,8 +534,7 @@ public final class QueryCatalog {
         return "delete from " + PERMANENT_LIMITS_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeletePermanentLimitsVariantQuery() {
@@ -586,8 +581,7 @@ public final class QueryCatalog {
                 "from ReactiveCapabilityCurvePoint where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertReactiveCapabilityCurvePointsQuery() {
@@ -605,8 +599,7 @@ public final class QueryCatalog {
         return "delete from ReactiveCapabilityCurvePoint where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteReactiveCapabilityCurvePointsVariantQuery() {
@@ -669,8 +662,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATING_EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            columnNameForInClause + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteRegulatingPointsVariantQuery() {
@@ -692,8 +684,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATING_EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            REGULATING_EQUIPMENT_ID + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            REGULATING_EQUIPMENT_ID + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     // regulating equipments
@@ -721,8 +712,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATED_EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            columnNameForInClause + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     // Tap Changer Steps
@@ -776,8 +766,7 @@ public final class QueryCatalog {
                 "where " +
                 NETWORK_UUID_COLUMN + " = ?" + " and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertTapChangerStepQuery() {
@@ -813,8 +802,7 @@ public final class QueryCatalog {
                 " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetIdsQuery(String table) {
