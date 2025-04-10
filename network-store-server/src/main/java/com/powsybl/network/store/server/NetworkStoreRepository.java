@@ -3921,12 +3921,7 @@ public class NetworkStoreRepository {
         UUID networkId, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
             int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum).getFullVariantNum();
-            Map<OwnerInfo, LimitsInfos> limitsInfos;
-            if (NetworkAttributes.isFullVariant(fullVariantNum)) {
-                limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-            } else {
-                limitsInfos = getLimitsInfos(networkId, fullVariantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-            }
+            Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
             return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum, getTombstonedIdentifiableIds(connection, networkId, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);

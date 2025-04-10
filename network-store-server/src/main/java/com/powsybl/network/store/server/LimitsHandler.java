@@ -247,22 +247,15 @@ public class LimitsHandler {
             case CURRENT -> operationalLimitsGroupAttributes.getCurrentLimits().addTemporaryLimit(temporaryLimitAttributes);
             case ACTIVE_POWER -> operationalLimitsGroupAttributes.getActivePowerLimits().addTemporaryLimit(temporaryLimitAttributes);
             case APPARENT_POWER -> operationalLimitsGroupAttributes.getApparentPowerLimits().addTemporaryLimit(temporaryLimitAttributes);
+            case VOLTAGE, VOLTAGE_ANGLE -> throw new IllegalArgumentException("VOLTAGE and VOLTAGE_ANGLE does not support temporary limits");
         }
     }
 
-    // for one equipment type
     public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type, Map<OwnerInfo, LimitsInfos> limitsInfos, int fullVariantNum, Set<String> tombstonedElements) {
-        if (NetworkAttributes.isFullVariant(fullVariantNum)) {
-            return getAllCurrentLimitsGroupAttributesByResourceTypeForVariant(networkId, variantNum, type, limitsInfos, Collections.emptySet());
-        }
-        return getAllCurrentLimitsGroupAttributesByResourceTypeForVariant(networkId, fullVariantNum, type, limitsInfos, tombstonedElements);
-    }
-
-    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceTypeForVariant(
-        UUID networkId, int variantNum, ResourceType type, Map<OwnerInfo, LimitsInfos> limitsInfos, Set<String> tombstonedElements) {
         // get selected operational limits ids for each element of type
-        Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups = getSelectedOperationalLimitsGroupIds(networkId, variantNum, type, tombstonedElements);
+        Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups =
+            getPartialVariantSelectedOperationalLimitsGroupIds(networkId, variantNum, fullVariantNum, type, tombstonedElements);
         Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> currentLimitsGroupAttributes = new HashMap<>();
         // get current limits associated
         selectedOperationalLimitsGroups.forEach((owner, selectedOperationalLimitsGroupIdentifiers) -> {
@@ -321,13 +314,24 @@ public class LimitsHandler {
             .build();
     }
 
-    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, ResourceType type, Set<String> tombstonedElements) {
+    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getPartialVariantSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, int fullVariantNum, ResourceType type, Set<String> tombstonedElements) {
+        Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedGroupIds = getSelectedOperationalLimitsGroupIds(networkId, variantNum, type, tombstonedElements, variantNum);
+        if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+            return selectedGroupIds;
+        }
+        Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> fullVariantSelectedGroupIds = getSelectedOperationalLimitsGroupIds(networkId, fullVariantNum, type, tombstonedElements, variantNum);
+        fullVariantSelectedGroupIds.putAll(selectedGroupIds);
+        return fullVariantSelectedGroupIds;
+    }
+
+    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, ResourceType type, Set<String> tombstonedElements, int refVariantNum) {
+
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(convertResourceTypeToTableName(type),
                 List.of(ID_COLUMN, SELECTED_OPERATIONAL_LIMITS_GROUP_ID1, SELECTED_OPERATIONAL_LIMITS_GROUP_ID2)))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
-                return getInnerSelectedOperationalLimitsGroupIds(networkId, variantNum, type, preparedStmt, tombstonedElements);
+                return getInnerSelectedOperationalLimitsGroupIds(networkId, type, preparedStmt, tombstonedElements, refVariantNum);
             }
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
@@ -335,7 +339,7 @@ public class LimitsHandler {
         // get selected operational Limits group
     }
 
-    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getInnerSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, ResourceType type, PreparedStatement preparedStmt, Set<String> tombstonedElements) throws SQLException {
+    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getInnerSelectedOperationalLimitsGroupIds(UUID networkId, ResourceType type, PreparedStatement preparedStmt, Set<String> tombstonedElements, int refVariantNum) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> resources = new HashMap<>();
             while (resultSet.next()) {
@@ -344,7 +348,7 @@ public class LimitsHandler {
                 String operationalLimitsGroupId1 = resultSet.getString(2);
                 String operationalLimitsGroupId2 = resultSet.getString(3);
                 if (!tombstonedElements.contains(branchId)) {
-                    resources.put(new OwnerInfo(branchId, type, networkId, variantNum), new SelectedOperationalLimitsGroupIdentifiers(branchId, operationalLimitsGroupId1, operationalLimitsGroupId2));
+                    resources.put(new OwnerInfo(branchId, type, networkId, refVariantNum), new SelectedOperationalLimitsGroupIdentifiers(branchId, operationalLimitsGroupId1, operationalLimitsGroupId2));
                 }
             }
             return resources;
