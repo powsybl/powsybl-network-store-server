@@ -53,10 +53,11 @@ public class Mappings {
     static final String LINE_TABLE = "line";
     static final String TIE_LINE_TABLE = "tieLine";
     static final String GROUND_TABLE = "ground";
+    static final String AREA_TABLE = "area";
 
     static final List<String> ELEMENT_TABLES = List.of(SUBSTATION_TABLE, VOLTAGE_LEVEL_TABLE, BUSBAR_SECTION_TABLE, CONFIGURED_BUS_TABLE, SWITCH_TABLE, GENERATOR_TABLE, BATTERY_TABLE, LOAD_TABLE, SHUNT_COMPENSATOR_TABLE,
             STATIC_VAR_COMPENSATOR_TABLE, VSC_CONVERTER_STATION_TABLE, LCC_CONVERTER_STATION_TABLE, TWO_WINDINGS_TRANSFORMER_TABLE,
-            THREE_WINDINGS_TRANSFORMER_TABLE, LINE_TABLE, HVDC_LINE_TABLE, DANGLING_LINE_TABLE, TIE_LINE_TABLE, GROUND_TABLE);
+            THREE_WINDINGS_TRANSFORMER_TABLE, LINE_TABLE, HVDC_LINE_TABLE, DANGLING_LINE_TABLE, TIE_LINE_TABLE, GROUND_TABLE, AREA_TABLE);
 
     private final TableMapping lineMappings = new TableMapping(LINE_TABLE, ResourceType.LINE, Resource::lineBuilder, LineAttributes::new, Set.of(VOLTAGE_LEVEL_ID_1_COLUMN, VOLTAGE_LEVEL_ID_2_COLUMN));
     private final TableMapping loadMappings = new TableMapping(LOAD_TABLE, ResourceType.LOAD, Resource::loadBuilder, LoadAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
@@ -78,6 +79,7 @@ public class Mappings {
     private final TableMapping threeWindingsTransformerMappings = new TableMapping(THREE_WINDINGS_TRANSFORMER_TABLE, ResourceType.THREE_WINDINGS_TRANSFORMER, Resource::threeWindingsTransformerBuilder, THREE_WINDINGS_TRANSFORMER_ATTRIBUTES_SUPPLIER, Set.of(VOLTAGE_LEVEL_ID_1_COLUMN, VOLTAGE_LEVEL_ID_2_COLUMN, VOLTAGE_LEVEL_ID_3_COLUMN));
     private final TableMapping tieLineMappings = new TableMapping(TIE_LINE_TABLE, ResourceType.TIE_LINE, Resource::tieLineBuilder, TieLineAttributes::new, Collections.emptySet());
     private final TableMapping groundMappings = new TableMapping(GROUND_TABLE, ResourceType.GROUND, Resource::groundBuilder, GroundAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
+    private final TableMapping areaMappings = new TableMapping(AREA_TABLE, ResourceType.AREA, Resource::areaBuilder, AreaAttributes::new, Collections.emptySet());
 
     private final List<TableMapping> all = List.of(lineMappings,
                                                    loadMappings,
@@ -99,7 +101,8 @@ public class Mappings {
                                                    twoWindingsTransformerMappings,
                                                    threeWindingsTransformerMappings,
                                                    tieLineMappings,
-                                                   groundMappings);
+                                                   groundMappings,
+                                                   areaMappings);
 
     private final Map<String, TableMapping> mappingByTable = new LinkedHashMap<>();
 
@@ -243,7 +246,7 @@ public class Mappings {
         generatorMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, GeneratorAttributes::getAliasByType, GeneratorAttributes::setAliasByType));
         generatorMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, GeneratorAttributes::getAliasesWithoutType, GeneratorAttributes::setAliasesWithoutType));
         generatorMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, GeneratorAttributes::getPosition, GeneratorAttributes::setPosition));
-        generatorMappings.addColumnMapping("generatorShortCircuit", new ColumnMapping<>(GeneratorShortCircuitAttributes.class, GeneratorAttributes::getGeneratorShortCircuitAttributes, GeneratorAttributes::setGeneratorShortCircuitAttributes));
+        generatorMappings.addColumnMapping("generatorShortCircuit", new ColumnMapping<>(ShortCircuitAttributes.class, GeneratorAttributes::getGeneratorShortCircuitAttributes, GeneratorAttributes::setGeneratorShortCircuitAttributes));
         generatorMappings.addColumnMapping("condenser", new ColumnMapping<>(Boolean.class, GeneratorAttributes::isCondenser, GeneratorAttributes::setCondenser));
     }
 
@@ -304,7 +307,6 @@ public class Mappings {
         networkMappings.addColumnMapping("connectedComponentsValid", new ColumnMapping<>(Boolean.class, NetworkAttributes::isConnectedComponentsValid, NetworkAttributes::setConnectedComponentsValid));
         networkMappings.addColumnMapping("synchronousComponentsValid", new ColumnMapping<>(Boolean.class, NetworkAttributes::isSynchronousComponentsValid, NetworkAttributes::setSynchronousComponentsValid));
         networkMappings.addColumnMapping("cimCharacteristics", new ColumnMapping<>(CimCharacteristicsAttributes.class, NetworkAttributes::getCimCharacteristics, NetworkAttributes::setCimCharacteristics));
-        networkMappings.addColumnMapping("cgmesControlAreas", new ColumnMapping<>(CgmesControlAreasAttributes.class, NetworkAttributes::getCgmesControlAreas, NetworkAttributes::setCgmesControlAreas));
         networkMappings.addColumnMapping("baseVoltageMapping", new ColumnMapping<>(BaseVoltageMappingAttributes.class, NetworkAttributes::getBaseVoltageMapping, NetworkAttributes::setBaseVoltageMapping));
     }
 
@@ -374,6 +376,7 @@ public class Mappings {
         batteryMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, BatteryAttributes::getAliasByType, BatteryAttributes::setAliasByType));
         batteryMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, BatteryAttributes::getAliasesWithoutType, BatteryAttributes::setAliasesWithoutType));
         batteryMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, BatteryAttributes::getPosition, BatteryAttributes::setPosition));
+        batteryMappings.addColumnMapping("batteryShortCircuit", new ColumnMapping<>(ShortCircuitAttributes.class, BatteryAttributes::getBatteryShortCircuitAttributes, BatteryAttributes::setBatteryShortCircuitAttributes));
     }
 
     public TableMapping getBusbarSectionMappings() {
@@ -437,6 +440,10 @@ public class Mappings {
         danglingLineMappings.addColumnMapping(TIE_LINE_ID, new ColumnMapping<>(String.class, DanglingLineAttributes::getTieLineId, DanglingLineAttributes::setTieLineId));
     }
 
+    public TableMapping getTieLineMappings() {
+        return tieLineMappings;
+    }
+
     private void createTieLineMappings() {
         tieLineMappings.addColumnMapping("name", new ColumnMapping<>(String.class, TieLineAttributes::getName, TieLineAttributes::setName));
         tieLineMappings.addColumnMapping("danglingLine1Id", new ColumnMapping<>(String.class, TieLineAttributes::getDanglingLine1Id, TieLineAttributes::setDanglingLine1Id));
@@ -445,6 +452,21 @@ public class Mappings {
         tieLineMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, TieLineAttributes::getProperties, TieLineAttributes::setProperties));
         tieLineMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, TieLineAttributes::getAliasByType, TieLineAttributes::setAliasByType));
         tieLineMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, TieLineAttributes::getAliasesWithoutType, TieLineAttributes::setAliasesWithoutType));
+    }
+
+    public TableMapping getAreaMappings() {
+        return areaMappings;
+    }
+
+    private void createAreaMappings() {
+        areaMappings.addColumnMapping("name", new ColumnMapping<>(String.class, AreaAttributes::getName, AreaAttributes::setName));
+        areaMappings.addColumnMapping("areaType", new ColumnMapping<>(String.class, AreaAttributes::getAreaType, AreaAttributes::setAreaType));
+        areaMappings.addColumnMapping("voltageLevelIds", new ColumnMapping<>(Set.class, AreaAttributes::getVoltageLevelIds, AreaAttributes::setVoltageLevelIds));
+        areaMappings.addColumnMapping("interchangeTarget", new ColumnMapping<>(Double.class, AreaAttributes::getInterchangeTarget, AreaAttributes::setInterchangeTarget));
+        areaMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, AreaAttributes::isFictitious, AreaAttributes::setFictitious));
+        areaMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, AreaAttributes::getProperties, AreaAttributes::setProperties));
+        areaMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, AreaAttributes::getAliasByType, AreaAttributes::setAliasByType));
+        areaMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, AreaAttributes::getAliasesWithoutType, AreaAttributes::setAliasesWithoutType));
     }
 
     public TableMapping getGroundMappings() {
@@ -464,10 +486,6 @@ public class Mappings {
         groundMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, GroundAttributes::getAliasByType, GroundAttributes::setAliasByType));
         groundMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, GroundAttributes::getAliasesWithoutType, GroundAttributes::setAliasesWithoutType));
         groundMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, GroundAttributes::getPosition, GroundAttributes::setPosition));
-    }
-
-    public TableMapping getTieLineMappings() {
-        return tieLineMappings;
     }
 
     public TableMapping getShuntCompensatorMappings() {
@@ -878,6 +896,7 @@ public class Mappings {
         createThreeWindingsTransformerMappings();
         createTieLineMappings();
         createGroundMappings();
+        createAreaMappings();
         for (TableMapping tableMapping : all) {
             mappingByTable.put(tableMapping.getTable().toLowerCase(), tableMapping);
         }
