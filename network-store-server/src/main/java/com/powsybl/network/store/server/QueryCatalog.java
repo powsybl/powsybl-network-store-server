@@ -39,6 +39,7 @@ public final class QueryCatalog {
     static final String REGULATED_EQUIPMENT_TYPE_COLUMN = "regulatedEquipmentType";
     static final String REGULATING_TAP_CHANGER_TYPE = "regulatingTapChangerType";
     public static final String EQUIPMENT_ID_COLUMN = "equipmentId";
+    public static final String AREA_ID_COLUMN = "areaId";
     static final String REGULATING_EQUIPMENT_ID = "regulatingEquipmentId";
     public static final String INDEX_COLUMN = "index";
     public static final String TAPCHANGER_TYPE_COLUMN = "tapChangerType";
@@ -583,6 +584,70 @@ public final class QueryCatalog {
     public static String buildDeleteReactiveCapabilityCurvePointsQuery() {
         return "delete from ReactiveCapabilityCurvePoint where " +
                 NETWORK_UUID_COLUMN + " = ?";
+    }
+
+    // Area Boundaries
+    public static String buildCloneAreaBoundariesQuery() {
+        return "insert into AreaBoundary(" + AREA_ID_COLUMN + ", " + NETWORK_UUID_COLUMN + ", "
+            + VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac) select " +
+            AREA_ID_COLUMN +
+            ", ?, ?, boundarydanglinglineid, terminalconnectableid, terminalside, ac from AreaBoundary where " + NETWORK_UUID_COLUMN +
+            " = ? and " + VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildAreaBoundaryQuery(String columnNameForWhereClause) {
+        String baseQuiery = "select " + AREA_ID_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + ", " +
+            "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
+            "from AreaBoundary where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? ";
+        if (columnNameForWhereClause != null) {
+            baseQuiery += " and " + columnNameForWhereClause + " = ?";
+        }
+        return baseQuiery;
+    }
+
+    public static String buildAreaBoundaryWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+        return "select " + AREA_ID_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + ", " +
+            "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
+            "from AreaBoundary where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? and " +
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildInsertAreaBoundariesQuery() {
+        return "insert into AreaBoundary(" +
+            AREA_ID_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + " ," +
+            VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac)" +
+            " values (?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    public static String buildDeleteAreaBoundariesVariantEquipmentINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+        return "delete from AreaBoundary where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? and " +
+            AREA_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildDeleteAreaBoundariesVariantQuery() {
+        return "delete from AreaBoundary where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildDeleteAreaBoundariesQuery() {
+        return "delete from AreaBoundary where " +
+            NETWORK_UUID_COLUMN + " = ?";
     }
 
     // Regulating point
