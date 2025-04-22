@@ -50,4 +50,13 @@
             <column name="batteryshortcircuit" type="TEXT"/>
         </addColumn>
     </changeSet>
+    <changeSet id="lesoteti" author="1664174319767-5">
+        <sqlFile
+                dbms="postgresql"
+                path="migrationCgmesControlArea_20250415T120000Z.sql"
+                relativeToChangelogFile="true"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
+
 </databaseChangeLog>
