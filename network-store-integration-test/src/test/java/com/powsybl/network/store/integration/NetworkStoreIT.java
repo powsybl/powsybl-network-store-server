@@ -684,7 +684,7 @@ class NetworkStoreIT {
 
             verify(mockedListener, times(1)).onUpdate(s, "country", INITIAL_VARIANT_ID, Country.FR, Country.BB);
             verify(mockedListener, times(1)).onUpdate(s, "tso", INITIAL_VARIANT_ID, null, "New TSO");
-//            verify(mockedListener, times(1)).onPropertyAdded(s, "geographicalTags", "paris");
+            verify(mockedListener, times(1)).onUpdate(s, "geographicalTags", null, Set.of(), Set.of("paris"));
 
             service.flush(readNetwork);
         }
@@ -736,7 +736,7 @@ class NetworkStoreIT {
 
             verify(mockedListener, times(1)).onUpdate(s1, "country", INITIAL_VARIANT_ID, Country.FR, Country.BE);
             verify(mockedListener, times(1)).onUpdate(s1, "tso", INITIAL_VARIANT_ID, "TSO_FR", "TSO_BE");
-//            verify(mockedListener, times(1)).onPropertyAdded(s1, "geographicalTags", "BELGIUM");
+            verify(mockedListener, times(1)).onUpdate(s1, "geographicalTags", null, Set.of(), Set.of("BELGIUM"));
 
             s1.setProperty("testProperty", "original");
             verify(mockedListener, times(1)).onPropertyAdded(s1, "properties[testProperty]", "original");
