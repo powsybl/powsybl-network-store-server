@@ -546,24 +546,24 @@ public class NetworkStoreController {
     @Operation(summary = "Create areas")
     @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully create areas"))
     public ResponseEntity<Void> createAreas(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                               @Parameter(description = "Tie line resources", required = true) @RequestBody List<Resource<AreaAttributes>> areaResources) {
+                                               @Parameter(description = "Area resources", required = true) @RequestBody List<Resource<AreaAttributes>> areaResources) {
         return createAll(resource -> repository.createAreas(networkId, resource), areaResources);
     }
 
     @GetMapping(value = "/{networkId}/{variantNum}/areas", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get areas")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get tie line list"))
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get area list"))
     public ResponseEntity<TopLevelDocument<AreaAttributes>> getAreas(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                            @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                                                           @Parameter(description = "Max number of tie lines to get") @RequestParam(required = false) Integer limit) {
+                                                                           @Parameter(description = "Max number of areas to get") @RequestParam(required = false) Integer limit) {
         return getAll(() -> repository.getAreas(networkId, variantNum), limit);
     }
 
     @GetMapping(value = "/{networkId}/{variantNum}/areas/{areaId}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a area by id")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully get tie line"),
-        @ApiResponse(responseCode = "404", description = "Tie line has not been found")
+        @ApiResponse(responseCode = "200", description = "Successfully get area"),
+        @ApiResponse(responseCode = "404", description = "Area has not been found")
     })
     public ResponseEntity<TopLevelDocument<AreaAttributes>> getArea(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
@@ -573,7 +573,7 @@ public class NetworkStoreController {
 
     @PutMapping(value = "/{networkId}/areas")
     @Operation(summary = "Update areas")
-    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update tie lines"))
+    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update areas"))
     public ResponseEntity<Void> updateAreas(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                @Parameter(description = "areas resources", required = true) @RequestBody List<Resource<AreaAttributes>> areasResources) {
 
@@ -583,12 +583,12 @@ public class NetworkStoreController {
     @DeleteMapping(value = "/{networkId}/{variantNum}/areas", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Delete multiple areas by IDs")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully delete areas"),
+        @ApiResponse(responseCode = "200", description = "Successfully deleted areas"),
         @ApiResponse(responseCode = "400", description = "Invalid request payload")
     })
     public ResponseEntity<Void> deleteAreas(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                               @Parameter(description = "List of tie line IDs to delete", required = true) @RequestBody List<String> areaIds) {
+                                               @Parameter(description = "List of area IDs to delete", required = true) @RequestBody List<String> areaIds) {
         repository.deleteAreas(networkId, variantNum, areaIds);
         return ResponseEntity.ok().build();
     }

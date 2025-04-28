@@ -2261,15 +2261,7 @@ public class NetworkStoreRepository {
         updateAreaBoundaries(networkUuid, resources);
     }
 
-    public void updateAreaBoundaries(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
-        deleteAreaBoundaries(networkUuid, resources);
-        Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundariesToInsert = getAreaBoundariesFromEquipments(networkUuid, resources);
-        insertAreaBoundaries(areaBoundariesToInsert);
-        insertTombstonedAreaBoundaries(networkUuid, areaBoundariesToInsert, resources);
-    }
-
     // configured buses
-
     public void createBuses(UUID networkUuid, List<Resource<ConfiguredBusAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getConfiguredBusMappings());
     }
@@ -3063,6 +3055,13 @@ public class NetworkStoreRepository {
     }
 
     // Area Boundaries
+    public void updateAreaBoundaries(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
+        deleteAreaBoundaries(networkUuid, resources);
+        Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundariesToInsert = getAreaBoundariesFromEquipments(networkUuid, resources);
+        insertAreaBoundaries(areaBoundariesToInsert);
+        insertTombstonedAreaBoundaries(networkUuid, areaBoundariesToInsert, resources);
+    }
+
     public void insertAreaBoundaries(Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertAreaBoundariesQuery())) {
@@ -3732,9 +3731,9 @@ public class NetworkStoreRepository {
     }
 
     // area boundaries
-    protected void insertAreaBoundariesInAreas(UUID networkUuid, List<Resource<AreaAttributes>> areas, Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundries) {
+    protected void insertAreaBoundariesInAreas(UUID networkUuid, List<Resource<AreaAttributes>> areas, Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries) {
 
-        if (!areaBoundries.isEmpty() && !areas.isEmpty()) {
+        if (!areaBoundaries.isEmpty() && !areas.isEmpty()) {
             for (Resource<AreaAttributes> areaResource : areas) {
                 OwnerInfo owner = new OwnerInfo(
                     areaResource.getId(),
@@ -3742,9 +3741,9 @@ public class NetworkStoreRepository {
                     networkUuid,
                     areaResource.getVariantNum()
                 );
-                if (areaBoundries.containsKey(owner)) {
+                if (areaBoundaries.containsKey(owner)) {
                     AreaAttributes area = areaResource.getAttributes();
-                    area.setAreaBoundaries(areaBoundries.get(owner));
+                    area.setAreaBoundaries(areaBoundaries.get(owner));
                 }
             }
         }

@@ -25,27 +25,7 @@ public class AreaIt extends AbstractAreaTest {
 
     @Override
     public void throwAddVoltageLevelOtherNetwork() {
-        // problem
-    }
-
-    @Override
-    public void removeArea() {
-        // removed equipments is managed differently in powsybl core implementation
-    }
-
-    @Override
-    public void throwRemovedVoltageLevel() {
-        // removed equipments is managed differently in powsybl core implementation
-    }
-
-    @Override
-    public void testGetAreaBoundary() {
-        // problem with removal
-    }
-
-    @Override
-    public void testSetterGetterInMultiVariants() {
-        // problem with removal
+        // creation of subnetwork needed
     }
 
     @Override

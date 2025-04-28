@@ -38,25 +38,28 @@
             <column name="ac" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="lesoteti" id="1664174319767-3">
+    <changeSet id="1664174319767-3" author="lesoteti">
         <createIndex indexName="areaboundary_networkuuid_variantnum_substationid_idx" tableName="areaboundary">
             <column name="networkuuid"/>
             <column name="variantnum"/>
             <column name="areaid"/>
         </createIndex>
     </changeSet>
-    <changeSet id="lesoteti" author="1664174319767-4">
+    <changeSet id="1664174319767-4" author="lesoteti">
         <addColumn tableName="battery">
             <column name="batteryshortcircuit" type="TEXT"/>
         </addColumn>
     </changeSet>
-    <changeSet id="lesoteti" author="1664174319767-5">
+    <changeSet id="1664174319767-5" author="lesoteti">
         <sqlFile
                 dbms="postgresql"
                 path="migrationCgmesControlArea_20250415T120000Z.sql"
                 relativeToChangelogFile="true"
                 splitStatements="true"
                 stripComments="true"/>
+    </changeSet>
+    <changeSet id="1664174319767-6" author="lesoteti">
+        <dropColumn tableName="network" columnName="cgmescontrolareas"/>
     </changeSet>
 
 </databaseChangeLog>

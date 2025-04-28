@@ -596,16 +596,16 @@ public final class QueryCatalog {
     }
 
     public static String buildAreaBoundaryQuery(String columnNameForWhereClause) {
-        String baseQuiery = "select " + AREA_ID_COLUMN + ", " +
+        String baseQuery = "select " + AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
             "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
             "from AreaBoundary where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? ";
         if (columnNameForWhereClause != null) {
-            baseQuiery += " and " + columnNameForWhereClause + " = ?";
+            baseQuery += " and " + columnNameForWhereClause + " = ?";
         }
-        return baseQuiery;
+        return baseQuery;
     }
 
     public static String buildAreaBoundaryWithInClauseQuery(String columnNameForInClause, int numberOfValues) {

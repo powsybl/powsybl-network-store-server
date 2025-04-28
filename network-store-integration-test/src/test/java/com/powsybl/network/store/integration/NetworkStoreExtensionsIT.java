@@ -1063,8 +1063,8 @@ class NetworkStoreExtensionsIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1Catalog.microGridBaseCaseBE().dataSource());
-            Area cgmesControlAreas = network.getArea("ca1");
-            assertNull(cgmesControlAreas);
+            Area cgmesControlArea = network.getArea("ca1");
+            assertNull(cgmesControlArea);
             List<Area> areas = network.getAreaStream().toList();
             assertEquals(0, areas.size());
         }
