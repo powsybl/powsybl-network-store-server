@@ -12,7 +12,7 @@ SELECT uuid,
        CONCAT('{"pTolerance":"', valuesTest.el ->> 'ptolerance', '"}'),
        CONCAT('{"energyIdentCodeEic":"', valuesTest.el ->> 'energyIdentificationCodeEic', '"}')
 FROM (SELECT uuid, variantnum, jsonb_array_elements(cgmescontrolareas::jsonb -> 'controlAreas') as el
-      FROM network) AS valuesTest;
+      FROM network WHERE variantnum = 0) AS valuesTest;
 
 -- set area boundaries with terminals
 INSERT INTO areaboundary (areaid, networkuuid, variantnum, terminalconnectableid, terminalside)
@@ -22,7 +22,7 @@ FROM (SELECT el ->> 'id'                             as areaid,
              variantnum,
              jsonb_array_elements(el -> 'terminals') as term
       FROM (SELECT uuid, variantnum, jsonb_array_elements(cgmescontrolareas::jsonb -> 'controlAreas') as el
-            FROM network) as valueTest) as valueTest2;
+            FROM network WHERE variantnum = 0) as valueTest) as valueTest2;
 -- set area boundaries with dangling lines
 INSERT INTO areaboundary (areaid, networkuuid, variantnum, boundarydanglinglineid, ac)
 SELECT valuesTest.el ->> 'id',
@@ -31,7 +31,7 @@ SELECT valuesTest.el ->> 'id',
        jsonb_array_elements(valuesTest.el -> 'boundaries') ->> 'connectableId',
        true
 FROM (SELECT uuid, variantnum, jsonb_array_elements(cgmescontrolareas::jsonb -> 'controlAreas') as el
-      FROM network) as valuesTest;
+      FROM network WHERE variantnum = 0) as valuesTest;
 -- set ac boolean for terminal check if it is a hvdc terminal
 Update areaboundary
 set ac = terminalconnectableid in (SELECT id FROM hvdcline) OR
