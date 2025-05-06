@@ -50,6 +50,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import static com.powsybl.network.store.model.ReactiveCapabilityCurveAttributes.COMPARATOR;
 import static com.powsybl.network.store.model.TapChangerType.PHASE;
 import static com.powsybl.network.store.model.TapChangerType.RATIO;
 import static com.powsybl.network.store.server.Mappings.*;
@@ -3694,7 +3695,7 @@ public class NetworkStoreRepository {
         ReactiveLimitsAttributes reactiveLimitsAttributes = equipment.getReactiveLimits();
         if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes reactiveCapabilityCurveAttributes) {
             if (reactiveCapabilityCurveAttributes.getPoints() == null) {
-                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>());
+                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>(COMPARATOR));
             }
             reactiveCapabilityCurveAttributes.getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
         }
