@@ -3692,11 +3692,11 @@ public class NetworkStoreRepository {
             equipment.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
         }
         ReactiveLimitsAttributes reactiveLimitsAttributes = equipment.getReactiveLimits();
-        if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes) {
-            if (((ReactiveCapabilityCurveAttributes) reactiveLimitsAttributes).getPoints() == null) {
-                ((ReactiveCapabilityCurveAttributes) reactiveLimitsAttributes).setPoints(new TreeMap<>());
+        if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes reactiveCapabilityCurveAttributes) {
+            if (reactiveCapabilityCurveAttributes.getPoints() == null) {
+                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>());
             }
-            ((ReactiveCapabilityCurveAttributes) reactiveLimitsAttributes).getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
+            reactiveCapabilityCurveAttributes.getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
         }
     }
 
