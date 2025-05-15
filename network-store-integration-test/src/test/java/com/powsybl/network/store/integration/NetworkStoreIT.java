@@ -3496,7 +3496,8 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
 
             ReportNode report = ReportNode.newRootReportNode()
-                    .withMessageTemplate("test", "test")
+                    .withResourceBundles("i18n.reports")
+                    .withMessageTemplate("test")
                     .build();
 
             Network network = service.importNetwork(getResource("test.xiidm", "/"), report, false);
@@ -3515,7 +3516,8 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
 
             ReportNode report = ReportNode.newRootReportNode()
-                    .withMessageTemplate("test", "test")
+                    .withResourceBundles("i18n.reports")
+                    .withMessageTemplate("test")
                     .build();
             Properties importParameters = new Properties();
             importParameters.put("randomImportParameters", "randomImportValue");
@@ -3536,7 +3538,8 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
 
             ReportNode report = ReportNode.newRootReportNode()
-                    .withMessageTemplate("test", "test")
+                    .withResourceBundles("i18n.reports")
+                    .withMessageTemplate("test")
                     .build();
 
             service.importNetwork(getResource("test.xiidm", "/"), report);

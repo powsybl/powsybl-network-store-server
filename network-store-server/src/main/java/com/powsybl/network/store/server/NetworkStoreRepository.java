@@ -3145,7 +3145,6 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundariesForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
-        System.out.println(buildAreaBoundaryQuery(columnNameForWhereClause));
         try (var preparedStmt = connection.prepareStatement(buildAreaBoundaryQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
