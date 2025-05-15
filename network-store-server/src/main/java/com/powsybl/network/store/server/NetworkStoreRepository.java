@@ -3695,7 +3695,7 @@ public class NetworkStoreRepository {
         ReactiveLimitsAttributes reactiveLimitsAttributes = equipment.getReactiveLimits();
         if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes reactiveCapabilityCurveAttributes) {
             if (reactiveCapabilityCurveAttributes.getPoints() == null) {
-                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>(COMPARATOR));
+                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>());
             }
             reactiveCapabilityCurveAttributes.getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
         }
