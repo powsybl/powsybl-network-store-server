@@ -52,6 +52,7 @@ public final class QueryCatalog {
     static final String PERMANENT_LIMITS_COLUMN = "permanentlimits";
     public static final String TAP_CHANGER_STEP_TABLE = "tapchangersteps";
     public static final String AREA_BOUNDARY_TABLE = "areaboundary";
+    public static final String REACTIVE_CAPABILITY_CURVE_POINT_TABLE = "reactiveCapabilityCurvePoint";
     static final String REGULATING_POINT_TABLE = "regulatingPoint";
     static final String REGULATION_MODE = "regulationMode";
     public static final String SIDE_COLUMN = "side";
@@ -292,7 +293,7 @@ public final class QueryCatalog {
     }
 
     public static String buildCloneNetworksQuery(Collection<String> columns) {
-        return "insert into network(" +
+        return "insert into " + NETWORK_TABLE + "(" +
                 VARIANT_NUM_COLUMN + ", " +
                 VARIANT_ID_COLUMN + ", " +
                 UUID_COLUMN + ", " +
@@ -524,10 +525,10 @@ public final class QueryCatalog {
 
     // Reactive Capability Curve Point
     public static String buildCloneReactiveCapabilityCurvePointsQuery() {
-        return "insert into ReactiveCapabilityCurvePoint(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
+        return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
                 ", " + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", minQ, maxQ, p) select " +
                 EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
-                ", ?, ?, minQ, maxQ, p from ReactiveCapabilityCurvePoint where " + NETWORK_UUID_COLUMN +
+                ", ?, ?, minQ, maxQ, p from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " + NETWORK_UUID_COLUMN +
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
@@ -537,7 +538,7 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
                 "minQ, maxQ, p " +
-                "from ReactiveCapabilityCurvePoint where " +
+                "from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 columnNameForWhereClause + " = ?";
@@ -552,14 +553,14 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
                 "minQ, maxQ, p " +
-                "from ReactiveCapabilityCurvePoint where " +
+                "from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertReactiveCapabilityCurvePointsQuery() {
-        return "insert into ReactiveCapabilityCurvePoint(" +
+        return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" +
                 EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + " ," +
                 VARIANT_NUM_COLUMN + ", minQ, maxQ, p)" +
@@ -570,20 +571,20 @@ public final class QueryCatalog {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
-        return "delete from ReactiveCapabilityCurvePoint where " +
+        return "delete from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteReactiveCapabilityCurvePointsVariantQuery() {
-        return "delete from ReactiveCapabilityCurvePoint where " +
+        return "delete from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildDeleteReactiveCapabilityCurvePointsQuery() {
-        return "delete from ReactiveCapabilityCurvePoint where " +
+        return "delete from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ?";
     }
 
