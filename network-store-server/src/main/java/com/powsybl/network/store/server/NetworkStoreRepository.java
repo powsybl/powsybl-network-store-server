@@ -2245,7 +2245,10 @@ public class NetworkStoreRepository {
     public void createAreas(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getAreaMappings());
         Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries = new HashMap<>();
-        resources.forEach(area ->
+        resources.stream()
+            .filter(area -> area.getAttributes().getAreaBoundaries() != null
+                && !area.getAttributes().getAreaBoundaries().isEmpty())
+            .forEach(area ->
             areaBoundaries.put(new OwnerInfo(area.getId(), null, networkUuid, area.getVariantNum()),
                 area.getAttributes().getAreaBoundaries()));
         insertAreaBoundaries(areaBoundaries);
@@ -3142,6 +3145,7 @@ public class NetworkStoreRepository {
     }
 
     public Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundariesForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        System.out.println(buildAreaBoundaryQuery(columnNameForWhereClause));
         try (var preparedStmt = connection.prepareStatement(buildAreaBoundaryQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -3612,13 +3616,15 @@ public class NetworkStoreRepository {
 
         if (!resources.isEmpty()) {
             for (Resource<AreaAttributes> resource : resources) {
-                OwnerInfo info = new OwnerInfo(
-                    resource.getId(),
-                    null,
-                    networkUuid,
-                    resource.getVariantNum()
-                );
-                map.put(info, resource.getAttributes().getAreaBoundaries());
+                if (resource.getAttributes().getAreaBoundaries() != null && !resource.getAttributes().getAreaBoundaries().isEmpty()) {
+                    OwnerInfo info = new OwnerInfo(
+                        resource.getId(),
+                        null,
+                        networkUuid,
+                        resource.getVariantNum()
+                    );
+                    map.put(info, resource.getAttributes().getAreaBoundaries());
+                }
             }
         }
         return map;
