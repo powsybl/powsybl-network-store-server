@@ -51,6 +51,7 @@ public final class QueryCatalog {
     static final String PERMANENT_LIMITS_TABLE = "permanentlimits";
     static final String PERMANENT_LIMITS_COLUMN = "permanentlimits";
     public static final String TAP_CHANGER_STEP_TABLE = "tapchangersteps";
+    public static final String AREA_BOUNDARY_TABLE = "areaboundary";
     static final String REGULATING_POINT_TABLE = "regulatingPoint";
     static final String REGULATION_MODE = "regulationMode";
     public static final String SIDE_COLUMN = "side";
@@ -588,10 +589,10 @@ public final class QueryCatalog {
 
     // Area Boundaries
     public static String buildCloneAreaBoundariesQuery() {
-        return "insert into AreaBoundary(" + AREA_ID_COLUMN + ", " + NETWORK_UUID_COLUMN + ", "
+        return "insert into " + AREA_BOUNDARY_TABLE + " (" + AREA_ID_COLUMN + ", " + NETWORK_UUID_COLUMN + ", "
             + VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac) select " +
             AREA_ID_COLUMN +
-            ", ?, ?, boundarydanglinglineid, terminalconnectableid, terminalside, ac from AreaBoundary where " + NETWORK_UUID_COLUMN +
+            ", ?, ?, boundarydanglinglineid, terminalconnectableid, terminalside, ac from " + AREA_BOUNDARY_TABLE + " where " + NETWORK_UUID_COLUMN +
             " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
@@ -599,7 +600,7 @@ public final class QueryCatalog {
         String baseQuery = "select " + AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
             "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
-            "from AreaBoundary where " +
+            "from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? ";
         if (columnNameForWhereClause != null) {
@@ -615,14 +616,14 @@ public final class QueryCatalog {
         return "select " + AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
             "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
-            "from AreaBoundary where " +
+            "from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertAreaBoundariesQuery() {
-        return "insert into AreaBoundary(" +
+        return "insert into " + AREA_BOUNDARY_TABLE + " (" +
             AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + " ," +
             VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac)" +
@@ -633,20 +634,20 @@ public final class QueryCatalog {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
-        return "delete from AreaBoundary where " +
+        return "delete from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             AREA_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteAreaBoundariesVariantQuery() {
-        return "delete from AreaBoundary where " +
+        return "delete from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildDeleteAreaBoundariesQuery() {
-        return "delete from AreaBoundary where " +
+        return "delete from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ?";
     }
 
