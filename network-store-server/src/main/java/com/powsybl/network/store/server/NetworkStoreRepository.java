@@ -341,6 +341,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeleteTemporaryLimitsQuery(),
                 QueryCatalog.buildDeletePermanentLimitsQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
+                QueryCatalog.buildDeleteAreaBoundariesQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
                 QueryCatalog.buildDeleteTapChangerStepQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesQuery(),
@@ -377,6 +378,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildDeleteTemporaryLimitsVariantQuery(),
                 QueryCatalog.buildDeletePermanentLimitsVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
+                QueryCatalog.buildDeleteAreaBoundariesVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
                 QueryCatalog.buildDeleteTapChangerStepVariantQuery(),
                 QueryCatalog.buildDeleteTombstonedExternalAttributesVariantQuery(),
@@ -494,6 +496,7 @@ public class NetworkStoreRepository {
                 QueryCatalog.buildCloneTemporaryLimitsQuery(),
                 QueryCatalog.buildClonePermanentLimitsQuery(),
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
+                QueryCatalog.buildCloneAreaBoundariesQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
                 QueryCatalog.buildCloneTapChangerStepQuery(),
                 QueryExtensionCatalog.buildCloneExtensionsQuery()
@@ -658,8 +661,16 @@ public class NetworkStoreRepository {
             case DANGLING_LINE -> completeDanglingLineInfos(resource, networkUuid, variantNum, equipmentId);
             case STATIC_VAR_COMPENSATOR -> completeStaticVarCompensatorInfos(resource, networkUuid, variantNum, equipmentId);
             case SHUNT_COMPENSATOR -> completeShuntCompensatorInfos(resource, networkUuid, variantNum, equipmentId);
+            case AREA -> completeAreaInfos(resource, networkUuid, variantNum, equipmentId);
             default -> resource;
         };
+    }
+
+    private <T extends IdentifiableAttributes> Resource<T> completeAreaInfos(Resource<T> resource, UUID networkUuid, int variantNum, String areaId) {
+        Resource<AreaAttributes> areaAttributesResource = (Resource<AreaAttributes>) resource;
+        Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries = getAreaBoundaries(networkUuid, variantNum, AREA_ID_COLUMN, areaId);
+        insertAreaBoundariesInAreas(networkUuid, List.of(areaAttributesResource), areaBoundaries);
+        return resource;
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeGeneratorInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
@@ -1181,6 +1192,45 @@ public class NetworkStoreRepository {
         return generators;
     }
 
+    public List<Resource<GeneratorAttributes>> getVoltageLevelGenerators(UUID networkUuid, int variantNum, String voltageLevelId) {
+        List<Resource<GeneratorAttributes>> generators = getIdentifiablesInVoltageLevel(networkUuid, variantNum, voltageLevelId, mappings.getGeneratorMappings());
+
+        List<String> equipmentsIds = generators.stream().map(Resource::getId).collect(Collectors.toList());
+
+        // regulating points
+        setRegulatingPointAndRegulatingEquipmentsWithIds(generators, networkUuid, variantNum, ResourceType.GENERATOR);
+
+        //  reactive capability curves
+        Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePointsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
+        insertReactiveCapabilityCurvePointsInEquipments(networkUuid, generators, reactiveCapabilityCurvePoints);
+
+        return generators;
+    }
+
+    public void updateGenerators(UUID networkUuid, List<Resource<GeneratorAttributes>> resources) {
+        updateIdentifiables(networkUuid, resources, mappings.getGeneratorMappings(), VOLTAGE_LEVEL_ID_COLUMN);
+
+        updateReactiveCapabilityCurvePoints(networkUuid, resources);
+        updateRegulatingPoints(networkUuid, resources, ResourceType.GENERATOR, getRegulatingPointFromEquipments(networkUuid, resources));
+    }
+
+    public <T extends IdentifiableAttributes & ReactiveLimitHolder> void updateReactiveCapabilityCurvePoints(UUID networkUuid, List<Resource<T>> resources) {
+        deleteReactiveCapabilityCurvePoints(networkUuid, resources);
+        Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePointsToInsert = getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources);
+        insertReactiveCapabilityCurvePoints(reactiveCapabilityCurvePointsToInsert);
+        insertTombstonedReactiveCapabilityCurvePoints(networkUuid, reactiveCapabilityCurvePointsToInsert, resources);
+    }
+
+    public void updateGeneratorsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
+        updateInjectionsSv(networkUuid, resources, GENERATOR_TABLE, mappings.getGeneratorMappings());
+    }
+
+    public void deleteGenerators(UUID networkUuid, int variantNum, List<String> generatorId) {
+        deleteIdentifiables(networkUuid, variantNum, generatorId, GENERATOR_TABLE);
+        deleteReactiveCapabilityCurvePoints(networkUuid, variantNum, generatorId);
+        deleteRegulatingPoints(networkUuid, variantNum, generatorId, ResourceType.GENERATOR);
+    }
+
     private <T extends IdentifiableAttributes> List<Resource<T>> getIdentifiables(UUID networkUuid, int variantNum, TableMapping tableMapping) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getIdentifiables(
@@ -1275,35 +1325,6 @@ public class NetworkStoreRepository {
         }
     }
 
-    public List<Resource<GeneratorAttributes>> getVoltageLevelGenerators(UUID networkUuid, int variantNum, String voltageLevelId) {
-        List<Resource<GeneratorAttributes>> generators = getIdentifiablesInVoltageLevel(networkUuid, variantNum, voltageLevelId, mappings.getGeneratorMappings());
-
-        List<String> equipmentsIds = generators.stream().map(Resource::getId).collect(Collectors.toList());
-
-        // regulating points
-        setRegulatingPointAndRegulatingEquipmentsWithIds(generators, networkUuid, variantNum, ResourceType.GENERATOR);
-
-        //  reactive capability curves
-        Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePointsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
-        insertReactiveCapabilityCurvePointsInEquipments(networkUuid, generators, reactiveCapabilityCurvePoints);
-
-        return generators;
-    }
-
-    public void updateGenerators(UUID networkUuid, List<Resource<GeneratorAttributes>> resources) {
-        updateIdentifiables(networkUuid, resources, mappings.getGeneratorMappings(), VOLTAGE_LEVEL_ID_COLUMN);
-
-        updateReactiveCapabilityCurvePoints(networkUuid, resources);
-        updateRegulatingPoints(networkUuid, resources, ResourceType.GENERATOR, getRegulatingPointFromEquipments(networkUuid, resources));
-    }
-
-    public <T extends IdentifiableAttributes & ReactiveLimitHolder> void updateReactiveCapabilityCurvePoints(UUID networkUuid, List<Resource<T>> resources) {
-        deleteReactiveCapabilityCurvePoints(networkUuid, resources);
-        Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePointsToInsert = getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources);
-        insertReactiveCapabilityCurvePoints(reactiveCapabilityCurvePointsToInsert);
-        insertTombstonedReactiveCapabilityCurvePoints(networkUuid, reactiveCapabilityCurvePointsToInsert, resources);
-    }
-
     private <T extends IdentifiableAttributes & ReactiveLimitHolder> void insertTombstonedReactiveCapabilityCurvePoints(UUID networkUuid, Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePointsToInsert, List<Resource<T>> resources) {
         try (var connection = dataSource.getConnection()) {
             Map<Integer, List<String>> resourcesByVariant = resources.stream()
@@ -1351,15 +1372,53 @@ public class NetworkStoreRepository {
         return identifiableIds;
     }
 
-    public void updateGeneratorsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
-        updateInjectionsSv(networkUuid, resources, GENERATOR_TABLE, mappings.getGeneratorMappings());
+    private void insertTombstonedAreaBoundaries(UUID networkUuid, Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundariesToInsert, List<Resource<AreaAttributes>> resources) {
+        try (var connection = dataSource.getConnection()) {
+            Map<Integer, List<String>> resourcesByVariant = resources.stream()
+                .collect(Collectors.groupingBy(
+                    Resource::getVariantNum,
+                    Collectors.mapping(Resource::getId, Collectors.toList())
+                ));
+            Set<OwnerInfo> tombstonedAreaBoundaries = PartialVariantUtils.getExternalAttributesToTombstone(
+                resourcesByVariant,
+                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum),
+                (fullVariantNum, variantNum, ids) -> getAreaBoundariesWithInClauseForVariant(connection, networkUuid, fullVariantNum, AREA_ID_COLUMN, ids, variantNum).keySet(),
+                variantNum -> getTombstonedAreaBoundariesIds(connection, networkUuid, variantNum),
+                getExternalAttributesListToTombstoneFromEquipment(networkUuid, areaBoundariesToInsert, resources)
+            );
+
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
+                for (OwnerInfo areaBoundary : tombstonedAreaBoundaries) {
+                    preparedStmt.setObject(1, areaBoundary.getNetworkUuid());
+                    preparedStmt.setInt(2, areaBoundary.getVariantNum());
+                    preparedStmt.setString(3, areaBoundary.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.AREA_BOUNDARIES.toString());
+                    preparedStmt.addBatch();
+                }
+                preparedStmt.executeBatch();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
     }
 
-    public void deleteGenerators(UUID networkUuid, int variantNum, List<String> generatorId) {
-        deleteIdentifiables(networkUuid, variantNum, generatorId, GENERATOR_TABLE);
-        deleteReactiveCapabilityCurvePoints(networkUuid, variantNum, generatorId);
-        deleteRegulatingPoints(networkUuid, variantNum, generatorId, ResourceType.GENERATOR);
+    private Set<String> getTombstonedAreaBoundariesIds(Connection connection, UUID networkUuid, int variantNum) {
+        Set<String> identifiableIds = new HashSet<>();
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.AREA_BOUNDARIES.toString());
+            try (var resultSet = preparedStmt.executeQuery()) {
+                while (resultSet.next()) {
+                    identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
+                }
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+        return identifiableIds;
     }
+
     // battery
 
     public void createBatteries(UUID networkUuid, List<Resource<BatteryAttributes>> resources) {
@@ -2171,8 +2230,41 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getTieLineMappings());
     }
 
-    // configured buses
+    // Areas
+    public List<Resource<AreaAttributes>> getAreas(UUID networkUuid, int variantNum) {
+        List<Resource<AreaAttributes>> areas = getIdentifiables(networkUuid, variantNum, mappings.getAreaMappings());
+        Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries = getAreaBoundaries(networkUuid, variantNum, null, null);
+        insertAreaBoundariesInAreas(networkUuid, areas, areaBoundaries);
+        return areas;
+    }
 
+    public Optional<Resource<AreaAttributes>> getArea(UUID networkUuid, int variantNum, String areaId) {
+        return getIdentifiable(networkUuid, variantNum, areaId, mappings.getAreaMappings());
+    }
+
+    public void createAreas(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
+        createIdentifiables(networkUuid, resources, mappings.getAreaMappings());
+        Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries = new HashMap<>();
+        resources.stream()
+            .filter(area -> area.getAttributes().getAreaBoundaries() != null
+                && !area.getAttributes().getAreaBoundaries().isEmpty())
+            .forEach(area ->
+            areaBoundaries.put(new OwnerInfo(area.getId(), null, networkUuid, area.getVariantNum()),
+                area.getAttributes().getAreaBoundaries()));
+        insertAreaBoundaries(areaBoundaries);
+    }
+
+    public void deleteAreas(UUID networkUuid, int variantNum, List<String> areaIds) {
+        deleteIdentifiables(networkUuid, variantNum, areaIds, AREA_TABLE);
+        deleteAreaBoundaries(networkUuid, variantNum, areaIds);
+    }
+
+    public void updateAreas(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
+        updateIdentifiables(networkUuid, resources, mappings.getAreaMappings());
+        updateAreaBoundaries(networkUuid, resources);
+    }
+
+    // configured buses
     public void createBuses(UUID networkUuid, List<Resource<ConfiguredBusAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getConfiguredBusMappings());
     }
@@ -2965,6 +3057,131 @@ public class NetworkStoreRepository {
         }
     }
 
+    // Area Boundaries
+    public void updateAreaBoundaries(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
+        deleteAreaBoundaries(networkUuid, resources);
+        Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundariesToInsert = getAreaBoundariesFromEquipments(networkUuid, resources);
+        insertAreaBoundaries(areaBoundariesToInsert);
+        insertTombstonedAreaBoundaries(networkUuid, areaBoundariesToInsert, resources);
+    }
+
+    public void insertAreaBoundaries(Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertAreaBoundariesQuery())) {
+                List<Object> values = new ArrayList<>(7);
+                List<Map.Entry<OwnerInfo, List<AreaBoundaryAttributes>>> list = new ArrayList<>(areaBoundaries.entrySet());
+                for (List<Map.Entry<OwnerInfo, List<AreaBoundaryAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OwnerInfo, List<AreaBoundaryAttributes>> myPair : subUnit) {
+                        for (AreaBoundaryAttributes areaBoundary : myPair.getValue()) {
+                            values.clear();
+                            // In order, from the QueryCatalog.buildInsertAreaBoundariesQuery SQL query :
+                            // equipmentId (areaId), networkUuid, variantNum, boundarydanglinglineid, terminal connectable id, terminal side, ac
+                            values.add(myPair.getKey().getEquipmentId());
+                            values.add(myPair.getKey().getNetworkUuid());
+                            values.add(myPair.getKey().getVariantNum());
+                            values.add(areaBoundary.getBoundaryDanglingLineId());
+                            if (areaBoundary.getTerminal() != null) {
+                                values.add(areaBoundary.getTerminal().getConnectableId());
+                                values.add(areaBoundary.getTerminal().getSide());
+                            } else {
+                                values.add(null);
+                                values.add(null);
+                            }
+                            values.add(areaBoundary.getAc());
+                            bindValues(preparedStmt, values, mapper);
+                            preparedStmt.addBatch();
+                        }
+                    }
+                    preparedStmt.executeBatch();
+                }
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundariesWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getExternalAttributes(
+                variantNum,
+                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                () -> getTombstonedAreaBoundariesIds(connection, networkUuid, variantNum),
+                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                variant -> getAreaBoundariesWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
+                OwnerInfo::getEquipmentId);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundariesWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+        if (valuesForInClause.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try (var preparedStmt = connection.prepareStatement(buildAreaBoundaryWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            for (int i = 0; i < valuesForInClause.size(); i++) {
+                preparedStmt.setString(3 + i, valuesForInClause.get(i));
+            }
+            return innerGetAreaBoundaries(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundaries(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getExternalAttributes(
+                variantNum,
+                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                () -> getTombstonedAreaBoundariesIds(connection, networkUuid, variantNum),
+                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                variant -> getAreaBoundariesForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
+                OwnerInfo::getEquipmentId);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundariesForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(buildAreaBoundaryQuery(columnNameForWhereClause))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            if (valueForWhereClause != null) {
+                preparedStmt.setString(3, valueForWhereClause);
+            }
+            return innerGetAreaBoundaries(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private Map<OwnerInfo, List<AreaBoundaryAttributes>> innerGetAreaBoundaries(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
+        try (ResultSet resultSet = preparedStmt.executeQuery()) {
+            Map<OwnerInfo, List<AreaBoundaryAttributes>> map = new HashMap<>();
+            while (resultSet.next()) {
+                OwnerInfo owner = new OwnerInfo();
+                AreaBoundaryAttributes areaBoundary = new AreaBoundaryAttributes();
+                // In order, from the QueryCatalog.buildAreaBoundariesQuery SQL query :
+                // areaId, networkUuid, boundarydanglinglineid, terminalconnectableid, terminalside, ac
+                owner.setEquipmentId(resultSet.getString(1));
+                areaBoundary.setAreaId(resultSet.getString(1));
+                owner.setNetworkUuid(UUID.fromString(resultSet.getString(2)));
+                owner.setVariantNum(variantNumOverride);
+                areaBoundary.setBoundaryDanglingLineId(resultSet.getString(3));
+                Optional<String> connectableId = Optional.ofNullable(resultSet.getString(4));
+                if (connectableId.isPresent()) {
+                    areaBoundary.setTerminal(new TerminalRefAttributes(connectableId.get(), resultSet.getString(5)));
+                }
+                areaBoundary.setAc(resultSet.getBoolean(6));
+                map.computeIfAbsent(owner, k -> new ArrayList<>());
+                map.get(owner).add(areaBoundary);
+            }
+            return map;
+        }
+    }
+
     // using the request on a small number of ids and not on all elements
     private <T extends AbstractRegulatingEquipmentAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipmentsWithIds(List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
         // regulating points
@@ -3393,6 +3610,25 @@ public class NetworkStoreRepository {
         return map;
     }
 
+    protected Map<OwnerInfo, List<AreaBoundaryAttributes>> getAreaBoundariesFromEquipments(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
+        Map<OwnerInfo, List<AreaBoundaryAttributes>> map = new HashMap<>();
+
+        if (!resources.isEmpty()) {
+            for (Resource<AreaAttributes> resource : resources) {
+                if (resource.getAttributes().getAreaBoundaries() != null && !resource.getAttributes().getAreaBoundaries().isEmpty()) {
+                    OwnerInfo info = new OwnerInfo(
+                        resource.getId(),
+                        null,
+                        networkUuid,
+                        resource.getVariantNum()
+                    );
+                    map.put(info, resource.getAttributes().getAreaBoundaries());
+                }
+            }
+        }
+        return map;
+    }
+
     private <T extends AbstractRegulatingEquipmentAttributes> void insertRegulatingPointIntoInjection(UUID networkUuid, int variantNum, String equipmentId, Resource<T> resource, ResourceType resourceType) {
         Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
             REGULATING_EQUIPMENT_ID, Collections.singletonList(equipmentId), resourceType);
@@ -3461,11 +3697,11 @@ public class NetworkStoreRepository {
             equipment.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
         }
         ReactiveLimitsAttributes reactiveLimitsAttributes = equipment.getReactiveLimits();
-        if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes) {
-            if (((ReactiveCapabilityCurveAttributes) reactiveLimitsAttributes).getPoints() == null) {
-                ((ReactiveCapabilityCurveAttributes) reactiveLimitsAttributes).setPoints(new TreeMap<>());
+        if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes reactiveCapabilityCurveAttributes) {
+            if (reactiveCapabilityCurveAttributes.getPoints() == null) {
+                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>());
             }
-            ((ReactiveCapabilityCurveAttributes) reactiveLimitsAttributes).getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
+            reactiveCapabilityCurveAttributes.getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
         }
     }
 
@@ -3497,6 +3733,55 @@ public class NetworkStoreRepository {
             resourceIdsByVariant.put(resource.getVariantNum(), resourceIds);
         }
         resourceIdsByVariant.forEach((k, v) -> deleteReactiveCapabilityCurvePoints(networkUuid, k, v));
+    }
+
+    // area boundaries
+    protected void insertAreaBoundariesInAreas(UUID networkUuid, List<Resource<AreaAttributes>> areas, Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries) {
+
+        if (!areaBoundaries.isEmpty() && !areas.isEmpty()) {
+            for (Resource<AreaAttributes> areaResource : areas) {
+                OwnerInfo owner = new OwnerInfo(
+                    areaResource.getId(),
+                    null,
+                    networkUuid,
+                    areaResource.getVariantNum()
+                );
+                if (areaBoundaries.containsKey(owner)) {
+                    AreaAttributes area = areaResource.getAttributes();
+                    area.setAreaBoundaries(areaBoundaries.get(owner));
+                }
+            }
+        }
+    }
+
+    private void deleteAreaBoundaries(UUID networkUuid, int variantNum, List<String> areaIds) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildDeleteAreaBoundariesVariantEquipmentINQuery(areaIds.size()))) {
+                preparedStmt.setObject(1, networkUuid);
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < areaIds.size(); i++) {
+                    preparedStmt.setString(3 + i, areaIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private void deleteAreaBoundaries(UUID networkUuid, List<Resource<AreaAttributes>> resources) {
+        Map<Integer, List<String>> resourceIdsByVariant = new HashMap<>();
+        for (Resource<AreaAttributes> resource : resources) {
+            List<String> resourceIds = resourceIdsByVariant.get(resource.getVariantNum());
+            if (resourceIds != null) {
+                resourceIds.add(resource.getId());
+            } else {
+                resourceIds = new ArrayList<>();
+                resourceIds.add(resource.getId());
+            }
+            resourceIdsByVariant.put(resource.getVariantNum(), resourceIds);
+        }
+        resourceIdsByVariant.forEach((k, v) -> deleteAreaBoundaries(networkUuid, k, v));
     }
 
     // TapChanger Steps
