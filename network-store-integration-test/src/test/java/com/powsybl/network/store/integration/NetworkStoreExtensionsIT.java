@@ -11,6 +11,7 @@ import com.powsybl.cgmes.conformity.CgmesConformity1ModifiedCatalog;
 import com.powsybl.cgmes.conversion.CgmesImport;
 import com.powsybl.cgmes.extensions.*;
 import com.powsybl.cgmes.model.CgmesMetadataModel;
+import com.powsybl.cgmes.model.CgmesNames;
 import com.powsybl.cgmes.model.CgmesSubset;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.datasource.ReadOnlyDataSource;
@@ -121,7 +122,7 @@ class NetworkStoreExtensionsIT {
             assertNull(gen.getExtensionByName(GeneratorShortCircuit.NAME));
             assertTrue(gen.getExtensions().isEmpty());
             GeneratorShortCircuitAdder circuitAdder = gen.newExtension(GeneratorShortCircuitAdder.class).withDirectTransX(Double.NaN);
-            assertThrows(PowsyblException.class, () -> circuitAdder.add());
+            assertThrows(PowsyblException.class, circuitAdder::add);
             circuitAdder.withDirectSubtransX(20.)
                     .withDirectTransX(30.)
                     .withStepUpTransformerX(50.)
@@ -147,6 +148,44 @@ class NetworkStoreExtensionsIT {
             assertEquals(23., generatorShortCircuit.getDirectSubtransX(), 0);
             assertEquals(32., generatorShortCircuit.getDirectTransX(), 0);
             assertEquals(44., generatorShortCircuit.getStepUpTransformerX(), 0);
+        }
+    }
+
+    @Test
+    void testBatteryShortCircuit() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = BatteryNetworkFactory.create(service.getNetworkFactory());
+            Battery bat = network.getBattery("BAT");
+            assertNull(bat.getExtension(BatteryShortCircuit.class));
+            assertNull(bat.getExtensionByName(BatteryShortCircuit.NAME));
+            assertTrue(bat.getExtensions().isEmpty());
+            BatteryShortCircuitAdder circuitAdder = bat.newExtension(BatteryShortCircuitAdder.class).withDirectTransX(Double.NaN);
+            assertThrows(PowsyblException.class, circuitAdder::add);
+            circuitAdder.withDirectSubtransX(20.)
+                .withDirectTransX(30.)
+                .withStepUpTransformerX(50.)
+                .add();
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
+            Battery bat = network.getBattery("BAT");
+            BatteryShortCircuit batteryShortCircuit = bat.getExtension(BatteryShortCircuit.class);
+            assertNotNull(batteryShortCircuit);
+            assertEquals(20., batteryShortCircuit.getDirectSubtransX(), 0);
+            assertEquals(30., batteryShortCircuit.getDirectTransX(), 0);
+            assertEquals(50., batteryShortCircuit.getStepUpTransformerX(), 0);
+            assertNotNull(bat.getExtensionByName(BatteryShortCircuit.NAME));
+            assertEquals(BatteryShortCircuit.NAME, batteryShortCircuit.getName());
+
+            assertThrows(PowsyblException.class, () -> batteryShortCircuit.setDirectTransX(Double.NaN));
+            batteryShortCircuit.setDirectSubtransX(23.);
+            batteryShortCircuit.setDirectTransX(32.);
+            batteryShortCircuit.setStepUpTransformerX(44.);
+            assertEquals(23., batteryShortCircuit.getDirectSubtransX(), 0);
+            assertEquals(32., batteryShortCircuit.getDirectTransX(), 0);
+            assertEquals(44., batteryShortCircuit.getStepUpTransformerX(), 0);
         }
     }
 
@@ -289,7 +328,8 @@ class NetworkStoreExtensionsIT {
                     .cgmesTopologyKind(CgmesTopologyKind.BUS_BRANCH)
                     .build();
 
-            ((NetworkImpl) readNetwork).updateResource(res -> res.getAttributes().setCimCharacteristics(cimCharacteristicsAttributes));
+            ((NetworkImpl) readNetwork).updateResourceWithoutNotification(res ->
+                res.getAttributes().setCimCharacteristics(cimCharacteristicsAttributes));
 
             service.flush(readNetwork);
         }
@@ -1023,9 +1063,10 @@ class NetworkStoreExtensionsIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1Catalog.microGridBaseCaseBE().dataSource());
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-            assertEquals(0, cgmesControlAreas.getCgmesControlAreas().size());
+            Area cgmesControlArea = network.getArea("ca1");
+            assertNull(cgmesControlArea);
+            List<Area> areas = network.getAreaStream().toList();
+            assertEquals(0, areas.size());
         }
 
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -1034,20 +1075,29 @@ class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-            assertEquals(0, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.newCgmesControlArea()
+            assertEquals(0, network.getAreaStream().toList().size());
+            Area cgmesControlArea = network.newArea()
                     .setId("ca1")
-                    .setEnergyIdentificationCodeEic("code")
-                    .setNetInterchange(1000)
+                    .setInterchangeTarget(1000)
                     .add();
-            cgmesControlArea.add(network.getGenerator("550ebe0d-f2b2-48c1-991f-cebea43a21aa").getTerminal());
-            cgmesControlArea.add(network.getDanglingLine("a16b4a6c-70b1-4abf-9a9d-bd0fa47f9fe4").getBoundary());
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea ca1 = cgmesControlAreas.getCgmesControlArea("ca1");
+            cgmesControlArea.addAlias("code", CgmesNames.ENERGY_IDENT_CODE_EIC);
+            cgmesControlArea.newAreaBoundary()
+                .setTerminal(network.getGenerator("550ebe0d-f2b2-48c1-991f-cebea43a21aa").getTerminal())
+                .setAc(true)
+                .add();
+            cgmesControlArea.newAreaBoundary()
+                .setBoundary(network.getDanglingLine("a16b4a6c-70b1-4abf-9a9d-bd0fa47f9fe4").getBoundary())
+                .setAc(true)
+                .add();
+            assertEquals(2, cgmesControlArea.getAreaBoundaryStream().toList().size());
+            assertEquals(1, network.getAreaStream().toList().size());
+            Area ca1 = network.getArea("ca1");
             assertNotNull(ca1);
-
+            assertEquals(2, ca1.getAreaBoundaryStream().toList().size());
+            assertEquals(-91.19499400000001, ca1.getAcInterchange());
+            assertEquals(0, ca1.getDcInterchange());
+            assertEquals("code", ca1.getAliasFromType(CgmesNames.ENERGY_IDENT_CODE_EIC)
+                .orElse(null));
             service.flush(network);
         }
 
@@ -1057,17 +1107,13 @@ class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-            assertTrue(cgmesControlAreas.containsCgmesControlAreaId("ca1"));
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.getCgmesControlArea("ca1");
+            Area cgmesControlArea = network.getArea("ca1");
+            assertNotNull(cgmesControlArea);
+            assertEquals(1, network.getAreaStream().toList().size());
             assertEquals("ca1", cgmesControlArea.getId());
-            assertNull(cgmesControlArea.getName());
-            assertEquals("code", cgmesControlArea.getEnergyIdentificationCodeEIC());
-            assertEquals(1000, cgmesControlArea.getNetInterchange(), 0);
-            assertEquals(1, cgmesControlArea.getTerminals().size());
-            assertEquals(1, cgmesControlArea.getBoundaries().size());
+            assertTrue(cgmesControlArea.getOptionalName().isEmpty());
+            assertTrue(cgmesControlArea.getInterchangeTarget().isPresent());
+            assertEquals(1000, cgmesControlArea.getInterchangeTarget().getAsDouble());
         }
     }
 
@@ -1142,19 +1188,23 @@ class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-
-            assertNotNull(cgmesControlAreas);
-            assertEquals(0, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.newCgmesControlArea()
+            assertEquals(0, network.getAreaStream().toList().size());
+            Area cgmesControlArea = network.newArea()
                     .setId("ca2")
-                    .setEnergyIdentificationCodeEic("code2")
-                    .setNetInterchange(800)
+                    .setInterchangeTarget(800)
+                    .addAreaBoundary(network.getTieLine("b18cd1aa-7808-49b9-a7cf-605eaf07b006 + e8acf6b6-99cb-45ad-b8dc-16c7866a4ddc").getDanglingLine1().getBoundary(),
+                        true)
                     .add();
-            cgmesControlArea.add(((TieLine) network.getTieLine("b18cd1aa-7808-49b9-a7cf-605eaf07b006 + e8acf6b6-99cb-45ad-b8dc-16c7866a4ddc")).getDanglingLine1().getBoundary());
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-
+            cgmesControlArea.addAlias("code2", CgmesNames.ENERGY_IDENT_CODE_EIC);
+            assertEquals(1, cgmesControlArea.getAreaBoundaryStream().toList().size());
+            Area ca2 = network.getArea("ca2");
+            assertNotNull(ca2);
+            assertEquals(1, ca2.getAreaBoundaryStream().toList().size());
+            assertTrue(ca2.getInterchangeTarget().isPresent());
+            assertEquals(800, ca2.getInterchangeTarget().getAsDouble());
+            assertEquals(90.07909111485668, ca2.getAcInterchange());
+            assertEquals("code2", ca2.getAliasFromType(CgmesNames.ENERGY_IDENT_CODE_EIC)
+                .orElse(null));
             service.flush(network);
         }
 
@@ -1164,13 +1214,15 @@ class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.getCgmesControlArea("ca2");
+            Area cgmesControlArea = network.getAreaStream().findFirst().orElse(null);
             assertNotNull(cgmesControlArea);
-            assertEquals(1, cgmesControlArea.getBoundaries().size());
+            assertEquals("ca2", cgmesControlArea.getId());
+            assertTrue(cgmesControlArea.getInterchangeTarget().isPresent());
+            assertEquals(800, cgmesControlArea.getInterchangeTarget().getAsDouble());
+            assertEquals(90.07909111485668, cgmesControlArea.getAcInterchange());
+            assertEquals("code2", cgmesControlArea.getAliasFromType(CgmesNames.ENERGY_IDENT_CODE_EIC)
+                .orElse(null));
+            assertEquals(1, cgmesControlArea.getAreaBoundaryStream().toList().size());
         }
     }
 
