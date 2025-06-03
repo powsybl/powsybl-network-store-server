@@ -3902,27 +3902,21 @@ public class NetworkStoreRepository {
         return limitsHandler.getOperationalLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
     }
 
-    public Optional<OperationalLimitsGroupAttributes> getSelectedCurrentLimitsGroup(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
-        return limitsHandler.getSelectedCurrentLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
-    }
-
-    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllOperationalLimitsGroupAttributesByResourceType(
+    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-        Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> map = new HashMap<>();
-        limitsInfos.forEach((owner, limitsInfo) -> {
-            Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesMap = limitsHandler.convertLimitInfosToOperationalLimitsGroup(owner, limitsInfo);
-            map.put(owner.getEquipmentId(), operationalLimitsGroupAttributesMap);
-        });
+        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> map = new HashMap<>();
+        limitsInfos.forEach((owner, limitsInfo) ->
+            map.putAll(limitsHandler.convertLimitInfosToOperationalLimitsGroup(owner, limitsInfo)));
         return map;
     }
 
-    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceType(
+    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllCurrentLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
             int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum).getFullVariantNum();
             Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-            return limitsHandler.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum, getTombstonedIdentifiableIds(connection, networkId, variantNum));
+            return limitsHandler.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type, limitsInfos, fullVariantNum, getTombstonedIdentifiableIds(connection, networkId, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }

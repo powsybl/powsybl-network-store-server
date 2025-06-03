@@ -112,44 +112,6 @@ public class LimitsHandler {
         }
     }
 
-    private Optional<OperationalLimitsGroupAttributes> convertCurrentLimitInfosToOperationalLimitsGroup(Optional<LimitsInfos> limitsInfos,
-                                                                                                        String operationalLimitsGroupName, int side) {
-
-        if (limitsInfos.isPresent()) {
-            LimitsAttributes.LimitsAttributesBuilder currentLimitsBuilder = LimitsAttributes.builder();
-            List<TemporaryLimitAttributes> temporaryLimitAttributes = limitsInfos.get().getTemporaryLimits();
-            TreeMap<Integer, TemporaryLimitAttributes> currentTemporaryLimitAttributes = new TreeMap<>(temporaryLimitAttributes.stream()
-                .filter(tl -> tl.getLimitType().equals(LimitType.CURRENT)
-                    && tl.getSide() == side
-                    && tl.getOperationalLimitsGroupId().equals(operationalLimitsGroupName))
-                .collect(Collectors.toMap(TemporaryLimitAttributes::getAcceptableDuration, Function.identity())));
-            for (PermanentLimitAttributes permanentLimit : limitsInfos.get().getPermanentLimits()) {
-                if (permanentLimit.getSide().equals(side)
-                    && Objects.requireNonNull(permanentLimit.getLimitType()) == LimitType.CURRENT
-                    && permanentLimit.getOperationalLimitsGroupId().equals(operationalLimitsGroupName)) {
-                    currentLimitsBuilder
-                        .operationalLimitsGroupId(operationalLimitsGroupName)
-                        .permanentLimit(permanentLimit.getValue())
-                        .temporaryLimits(currentTemporaryLimitAttributes);
-                    break;
-                }
-
-            }
-            return Optional.of(OperationalLimitsGroupAttributes.builder()
-                .id(operationalLimitsGroupName)
-                .currentLimits(currentLimitsBuilder.build())
-                .build());
-        } else {
-            return Optional.empty();
-        }
-
-    }
-
-    public Optional<OperationalLimitsGroupAttributes> getSelectedCurrentLimitsGroup(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
-        Optional<LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, type.toString(), branchId);
-        return convertCurrentLimitInfosToOperationalLimitsGroup(limitsInfos, operationalLimitsGroupName, side);
-    }
-
     private Optional<OperationalLimitsGroupAttributes> convertLimitInfosToOperationalLimitsGroup(Optional<LimitsInfos> limitsInfos,
                                                                                                  String operationalLimitsGroupName, int side) {
         if (limitsInfos.isPresent()) {
@@ -183,6 +145,8 @@ public class LimitsHandler {
                             .operationalLimitsGroupId(operationalLimitsGroupName)
                             .permanentLimit(permanentLimit.getValue())
                             .temporaryLimits(activePowerTemporaryLimitAttributes);
+                        case VOLTAGE, VOLTAGE_ANGLE ->
+                            throw new PowsyblException("Voltage and Voltage angle not supported for operational limits");
                     }
                 }
             }
@@ -251,67 +215,37 @@ public class LimitsHandler {
         }
     }
 
-    public Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllCurrentLimitsGroupAttributesByResourceType(
+    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type, Map<OwnerInfo, LimitsInfos> limitsInfos, int fullVariantNum, Set<String> tombstonedElements) {
-        // get selected operational limits ids for each element of type
+        // get selected operational limits ids for each element of type indicated
         Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups =
             getPartialVariantSelectedOperationalLimitsGroupIds(networkId, variantNum, fullVariantNum, type, tombstonedElements);
-        Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> currentLimitsGroupAttributes = new HashMap<>();
-        // get current limits associated
+
+        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> selectedOperationalLimitsGroupAttributes = new HashMap<>();
+        // get operational limits group associated
         selectedOperationalLimitsGroups.forEach((owner, selectedOperationalLimitsGroupIdentifiers) -> {
-            LimitsInfos selectedLimitsInfos = limitsInfos.get(owner);
+            Optional<LimitsInfos> selectedLimitsInfos = Optional.ofNullable(limitsInfos.get(owner));
+
             // side 1
             if (selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1() != null) {
-                OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                    selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 1, selectedLimitsInfos);
-                if (operationalLimitsGroupAttributes != null) {
-                    Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> elementMap = new HashMap<>();
-                    elementMap.put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 1),
-                        operationalLimitsGroupAttributes);
-                    currentLimitsGroupAttributes.put(owner.getEquipmentId(), elementMap);
-                }
+                Optional<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroup(
+                    selectedLimitsInfos, selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 1);
+                operationalLimitsGroupAttributes.ifPresent(limitsGroupAttributes ->
+                    selectedOperationalLimitsGroupAttributes.put(
+                        OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 1),
+                        limitsGroupAttributes));
             }
             // side 2
             if (selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2() != null) {
-                OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                    selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2(), 2, selectedLimitsInfos);
-                if (operationalLimitsGroupAttributes != null) {
-                    currentLimitsGroupAttributes.computeIfAbsent(owner.getEquipmentId(), k -> new HashMap<>());
-                    currentLimitsGroupAttributes.get(owner.getEquipmentId()).put(OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(),
-                            selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2(), 2),
-                        getSelectedCurrentLimitOperationalLimitsGroupAttributes(
-                            selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 2, selectedLimitsInfos));
-                }
+                Optional<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroup(
+                    selectedLimitsInfos, selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2(), 2);
+                operationalLimitsGroupAttributes.ifPresent(limitsGroupAttributes ->
+                    selectedOperationalLimitsGroupAttributes.put(
+                        OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2(), 2),
+                        limitsGroupAttributes));
             }
         });
-        return currentLimitsGroupAttributes;
-    }
-
-    private OperationalLimitsGroupAttributes getSelectedCurrentLimitOperationalLimitsGroupAttributes(String selectedGroupId, Integer side, LimitsInfos limitsInfos) {
-        List<PermanentLimitAttributes> permanentLimits = limitsInfos.getPermanentLimits().stream().filter(permanentLimitAttributes ->
-                permanentLimitAttributes.getLimitType().equals(LimitType.CURRENT) &&
-                    permanentLimitAttributes.getOperationalLimitsGroupId().equals(selectedGroupId) &&
-                    permanentLimitAttributes.getSide().equals(side))
-            .toList();
-        if (permanentLimits.size() > 1) {
-            throw new PowsyblException("found more than one permanent current limit for group : " + selectedGroupId + " and side : " + side);
-        } else if (permanentLimits.isEmpty()) {
-            return null;
-        }
-        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsTreeMap = new TreeMap<>();
-        limitsInfos.getTemporaryLimits().stream().filter(temporaryLimitAttributes ->
-                temporaryLimitAttributes.getLimitType().equals(LimitType.CURRENT) &&
-                    temporaryLimitAttributes.getOperationalLimitsGroupId().equals(selectedGroupId) &&
-                    temporaryLimitAttributes.getSide().equals(side))
-            .forEach(temporaryLimitAttributes -> temporaryLimitsTreeMap.put(temporaryLimitAttributes.getAcceptableDuration(), temporaryLimitAttributes));
-        return OperationalLimitsGroupAttributes.builder()
-            .id(selectedGroupId)
-            .currentLimits(LimitsAttributes.builder()
-                .operationalLimitsGroupId(selectedGroupId)
-                .permanentLimit(permanentLimits.getFirst().getValue())
-                .temporaryLimits(temporaryLimitsTreeMap)
-                .build())
-            .build();
+        return selectedOperationalLimitsGroupAttributes;
     }
 
     private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getPartialVariantSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, int fullVariantNum, ResourceType type, Set<String> tombstonedElements) {

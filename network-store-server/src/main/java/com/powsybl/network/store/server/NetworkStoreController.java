@@ -1544,29 +1544,17 @@ public class NetworkStoreController {
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/")
     @Operation(summary = "Get all operational limits group attributes for a specific type of equipment")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get extension attributes"))
-    public ResponseEntity<Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>>> getAllOperationalLimitsGroupsAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+    public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllOperationalLimitsGroupsAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                                      @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                      @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
             repository.getAllOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type));
     }
 
-    @GetMapping(value = "{networkId}/{variantNum}/branch/{branchId}/types/{resourceType}/operationalLimitsGroup/currentLimits/{operationalLimitsGroupId}/side/{side}")
-    @Operation(summary = "Get an operational limit group on attributes by its identifiable id and extension name")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits group attributes"))
-    public ResponseEntity<OperationalLimitsGroupAttributesTopLevelDocument> getSelectedCurrentLimitsGroupAttributes(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                                                                                @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                                                                                                @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type,
-                                                                                                                @Parameter(description = "Branch id", required = true) @PathVariable("branchId") String branchId,
-                                                                                                                @Parameter(description = "Operational Limits Group id", required = true) @PathVariable("operationalLimitsGroupId") String operationalLimitsGroupId,
-                                                                                                                @Parameter(description = "Branch side", required = true) @PathVariable("side") int side) {
-        return getOperationalLimitsGroupAttributes(() -> repository.getSelectedCurrentLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupId, side));
-    }
-
-    @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/currentLimits/")
+    @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/selected/")
     @Operation(summary = "Get all current limits for selected operational groups for a specific type of equipment")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get extension attributes"))
-    public ResponseEntity<Map<String, Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>>> getAllCurrentLimitsAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+    public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                                                                                       @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                                                                       @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
