@@ -498,7 +498,7 @@ public final class QueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildGetPermanentLimitQuery() {
+    public static String buildGetPermanentLimitDataQuery() {
         return "select " + PERMANENT_LIMITS_COLUMN +
             " from " + PERMANENT_LIMITS_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +

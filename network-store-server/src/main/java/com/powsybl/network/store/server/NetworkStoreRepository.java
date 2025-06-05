@@ -4196,7 +4196,7 @@ public class NetworkStoreRepository {
         return map;
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllCurrentLimitsGroupAttributesByResourceType(
+    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
             int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum).getFullVariantNum();

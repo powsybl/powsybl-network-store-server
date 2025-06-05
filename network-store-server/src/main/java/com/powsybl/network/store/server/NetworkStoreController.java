@@ -1604,12 +1604,12 @@ public class NetworkStoreController {
     }
 
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/selected/")
-    @Operation(summary = "Get all current limits for selected operational groups for a specific type of equipment")
+    @Operation(summary = "Get all selected operational limits groups for a specific type of equipment")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get extension attributes"))
     public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                                                                                       @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                                                                       @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
-            repository.getAllCurrentLimitsGroupAttributesByResourceType(networkId, variantNum, type));
+            repository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type));
     }
 }

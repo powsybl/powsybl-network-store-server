@@ -31,7 +31,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
-import static com.powsybl.network.store.server.Utils.convertResourceTypeToTableName;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -40,10 +39,12 @@ import static com.powsybl.network.store.server.Utils.convertResourceTypeToTableN
 public class LimitsHandler {
     private final DataSource dataSource;
     private final ObjectMapper mapper;
+    private final Mappings mappings;
 
-    public LimitsHandler(DataSource dataSource, ObjectMapper mapper) {
+    public LimitsHandler(DataSource dataSource, ObjectMapper mapper, Mappings mappings) {
         this.dataSource = dataSource;
         this.mapper = mapper;
+        this.mappings = mappings;
     }
 
     // for one equipment
@@ -87,7 +88,7 @@ public class LimitsHandler {
     // permanent limits
     public List<PermanentLimitAttributes> getPermanentLimits(UUID networkUuid, int variantNum, String type, String equipmentId) {
         try (Connection connection = dataSource.getConnection()) {
-            var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetPermanentLimitQuery());
+            var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetPermanentLimitDataQuery());
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, type);
@@ -261,8 +262,9 @@ public class LimitsHandler {
     private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, ResourceType type, Set<String> tombstonedElements, int refVariantNum) {
 
         try (var connection = dataSource.getConnection()) {
-            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(convertResourceTypeToTableName(type),
-                List.of(ID_COLUMN, SELECTED_OPERATIONAL_LIMITS_GROUP_ID1, SELECTED_OPERATIONAL_LIMITS_GROUP_ID2)))) {
+            try (var preparedStmt = connection.prepareStatement(
+                    QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(mappings.getTableMapping(type).getTable(),
+                        List.of(ID_COLUMN, SELECTED_OPERATIONAL_LIMITS_GROUP_ID1, SELECTED_OPERATIONAL_LIMITS_GROUP_ID2)))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
                 return getInnerSelectedOperationalLimitsGroupIds(networkId, type, preparedStmt, tombstonedElements, refVariantNum);

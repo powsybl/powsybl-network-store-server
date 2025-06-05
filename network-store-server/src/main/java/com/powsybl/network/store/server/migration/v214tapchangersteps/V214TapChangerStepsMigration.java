@@ -51,7 +51,10 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
     public void init(Database database) {
         DataSource dataSource = new SingleConnectionDataSource(((JdbcConnection) database.getConnection()).getUnderlyingConnection(), true);
         ObjectMapper mapper = new ObjectMapper();
-        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(), new ExtensionHandler(mapper), new LimitsHandler(dataSource, mapper));
+        Mappings mappings = new Mappings();
+        this.repository = new NetworkStoreRepository(dataSource, mapper, mappings,
+            new ExtensionHandler(mapper),
+            new LimitsHandler(dataSource, mapper, mappings));
     }
 
     @Override
