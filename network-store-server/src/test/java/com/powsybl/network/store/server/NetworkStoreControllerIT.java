@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
@@ -62,9 +63,12 @@ class NetworkStoreControllerIT {
 
     @BeforeEach
     void setup() {
+        SimpleModule module = new SimpleModule();
+        module.addKeyDeserializer(OperationalLimitsGroupIdentifier.class, new OperationalLimitsGroupIdentifierDeserializer());
         this.objectMapper.registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
-                .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false);
+                .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
+            .registerModule(module);
     }
 
     @Test
@@ -1610,5 +1614,123 @@ class NetworkStoreControllerIT {
                 .contentType(APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(ids)))
                 .andExpect(status().isOk());
+    }
+
+    private void setupOperationalLimitsGroupAttributesTest() throws Exception {
+        // Create network
+        Resource<NetworkAttributes> n1 = Resource.networkBuilder()
+            .id("n1")
+            .variantNum(0)
+            .attributes(NetworkAttributes.builder()
+                .uuid(NETWORK_UUID)
+                .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
+                .build())
+            .build();
+
+        mvc.perform(post("/" + VERSION + "/networks")
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Collections.singleton(n1))))
+            .andExpect(status().isCreated());
+        // Create first line with two olg
+        String olgId1 = "selectedside1";
+        String olgId2 = "selectedsied2";
+        String olgId3 = "otherside1line1";
+        String olgId4 = "otherside1line2";
+        OperationalLimitsGroupAttributes olg1 = createOperationalLimitsGroupAttributes(olgId1);
+        OperationalLimitsGroupAttributes olg2 = createOperationalLimitsGroupAttributes(olgId2);
+        OperationalLimitsGroupAttributes olg3 = createOperationalLimitsGroupAttributes(olgId3);
+        OperationalLimitsGroupAttributes olg4 = createOperationalLimitsGroupAttributes(olgId4);
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+            .id("line1")
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+                .name("line1")
+                .selectedOperationalLimitsGroupId1(olgId1)
+                .operationalLimitsGroups1(Map.of(olgId1, olg1, olgId3, olg3))
+                .selectedOperationalLimitsGroupId2(olgId2)
+                .operationalLimitsGroups2(Map.of(olgId2, olg2))
+                .build())
+            .build();
+
+        Resource<LineAttributes> line2 = Resource.lineBuilder()
+            .id("line2")
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl3")
+                .voltageLevelId2("vl4")
+                .name("line2")
+                .selectedOperationalLimitsGroupId1(olgId1)
+                .operationalLimitsGroups1(Map.of(olgId1, olg1))
+                .selectedOperationalLimitsGroupId2(olgId2)
+                .operationalLimitsGroups2(Map.of(olgId2, olg2, olgId4, olg4))
+                .build())
+            .build();
+
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/lines")
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(List.of(line1, line2))))
+            .andExpect(status().isCreated());
+    }
+
+    private OperationalLimitsGroupAttributes createOperationalLimitsGroupAttributes(String operationalLimitsGroupId) {
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = new TreeMap<>();
+        temporaryLimits.put(10, TemporaryLimitAttributes.builder()
+            .operationalLimitsGroupId(operationalLimitsGroupId)
+            .limitType(LimitType.CURRENT)
+            .value(12)
+            .name("temporarylimit1")
+            .acceptableDuration(10)
+            .fictitious(false)
+            .side(1)
+            .build());
+        return OperationalLimitsGroupAttributes.builder()
+            .id(operationalLimitsGroupId)
+            .currentLimits(LimitsAttributes.builder()
+                .permanentLimit(1)
+                .temporaryLimits(temporaryLimits)
+                .operationalLimitsGroupId(operationalLimitsGroupId)
+                .build())
+            .build();
+    }
+
+    @Test
+    void getAllOperationalLimitsGroupAttributesTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(getClass().getResourceAsStream("/allOperationalLimitsGroupResultTest.json").readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/types/LINE/operationalLimitsGroup"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getAllSelectedOperationalLimitsGroupAttributesTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(Objects.requireNonNull(getClass().getResourceAsStream("/allSelectedOperationalLimitsGroupResultTest.json")).readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/types/LINE/operationalLimitsGroup/selected"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getAllOperationalLimitsGroupAttributesForBranchSideTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(Objects.requireNonNull(getClass().getResourceAsStream("/allOperationalLimitsGroupForBranchLine1ResultTest.json")).readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/line1/types/LINE/side/1/operationalLimitsGroup"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getOneOperationalLimitsGroupAttributesTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(Objects.requireNonNull(getClass().getResourceAsStream("/OneOperationalLimitsGroupResultTest.json")).readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/line1/types/LINE/operationalLimitsGroup/selectedside1/side/1"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
     }
 }

@@ -1593,7 +1593,7 @@ public class NetworkStoreController {
         return getOperationalLimitsGroupAttributes(() -> repository.getOperationalLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupId, side));
     }
 
-    @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/")
+    @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup")
     @Operation(summary = "Get all operational limits group attributes for a specific type of equipment")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits groups attributes"))
     public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllOperationalLimitsGroupsAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
@@ -1603,7 +1603,7 @@ public class NetworkStoreController {
             repository.getAllOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type));
     }
 
-    @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/selected/")
+    @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/selected")
     @Operation(summary = "Get all selected operational limits groups for a specific type of equipment")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits groups attributes"))
     public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
