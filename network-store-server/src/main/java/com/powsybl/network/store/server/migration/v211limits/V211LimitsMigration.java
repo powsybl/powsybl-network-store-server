@@ -182,11 +182,11 @@ public class V211LimitsMigration implements CustomTaskChange {
     private static void insertNewLimitsAndDeleteV211(NetworkStoreRepository repository, UUID networkUuid, int variantNum, Map<OwnerInfo, List<TemporaryLimitAttributes>> v211TemporaryLimits, Map<OwnerInfo, List<PermanentLimitAttributes>> v211PermanentLimits) {
         try (Connection connection = repository.getDataSource().getConnection()) {
             if (!v211PermanentLimits.keySet().isEmpty()) {
-                repository.insertPermanentLimitsAttributes(v211PermanentLimits);
+                repository.getLimitsHandler().insertPermanentLimitsAttributes(v211PermanentLimits);
                 deleteV211PermanentLimits(connection, networkUuid, variantNum, v211PermanentLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
             }
             if (!v211TemporaryLimits.keySet().isEmpty()) {
-                repository.insertTemporaryLimitsAttributes(v211TemporaryLimits);
+                repository.getLimitsHandler().insertTemporaryLimitsAttributes(v211TemporaryLimits);
                 deleteV211TemporaryLimits(connection, networkUuid, variantNum, v211TemporaryLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
             }
         } catch (SQLException e) {

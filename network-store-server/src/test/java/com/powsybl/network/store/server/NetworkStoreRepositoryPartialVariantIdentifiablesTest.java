@@ -381,10 +381,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(LineAttributes.builder()
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl3")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
-                                .id("group1")
-                                .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
-                                .build()))
                         .build())
                 .build();
         networkStoreRepository.createLines(NETWORK_UUID, List.of(line2));
@@ -396,10 +392,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(LineAttributes.builder()
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
-                                .id("group1")
-                                .currentLimits(LimitsAttributes.builder().permanentLimit(30.).build())
-                                .build()))
                         .build())
                 .build();
 

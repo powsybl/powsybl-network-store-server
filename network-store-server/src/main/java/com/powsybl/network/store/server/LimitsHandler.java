@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.network.store.model.*;
@@ -18,6 +19,7 @@ import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.PermanentLimitSqlData;
 import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -27,10 +29,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Utils.*;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -47,145 +49,638 @@ public class LimitsHandler {
         this.mappings = mappings;
     }
 
-    // for one equipment
-    public Optional<LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String type, String equipmentId) {
-        List<TemporaryLimitAttributes> temporaryLimitAttributes = getTemporaryLimits(networkUuid, variantNum, type, equipmentId);
-        List<PermanentLimitAttributes> permanentLimitAttributes = getPermanentLimits(networkUuid, variantNum, type, equipmentId);
-        if (permanentLimitAttributes == null || permanentLimitAttributes.isEmpty() && temporaryLimitAttributes.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(new LimitsInfos(permanentLimitAttributes, temporaryLimitAttributes));
-    }
-
     // temporary limits
-    public List<TemporaryLimitAttributes> getTemporaryLimits(UUID networkUuid, int variantNum, String type, String equipmentId) {
-        try (Connection connection = dataSource.getConnection()) {
-            var preparedStmt = connection.prepareStatement(QueryCatalog.buildTemporaryLimitQuery());
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            preparedStmt.setString(3, type);
-            preparedStmt.setString(4, equipmentId);
-
-            return innerGetTemporaryLimits(preparedStmt);
+    public Map<OwnerInfo, List<TemporaryLimitAttributes>> getTemporaryLimitsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getExternalAttributes(
+                variantNum,
+                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                () -> getTombstonedTemporaryLimitsIds(connection, networkUuid, variantNum),
+                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                variant -> getTemporaryLimitsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
+                OwnerInfo::getEquipmentId);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    private List<TemporaryLimitAttributes> innerGetTemporaryLimits(PreparedStatement preparedStmt) throws SQLException {
+    private Map<OwnerInfo, List<TemporaryLimitAttributes>> getTemporaryLimitsWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+        if (valuesForInClause.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try (var preparedStmt = connection.prepareStatement(buildTemporaryLimitWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            for (int i = 0; i < valuesForInClause.size(); i++) {
+                preparedStmt.setString(3 + i, valuesForInClause.get(i));
+            }
+
+            return innerGetTemporaryLimits(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimitsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getExternalAttributes(
+                variantNum,
+                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                () -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
+                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                variant -> getPermanentLimitsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
+                OwnerInfo::getEquipmentId);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimitsWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+        if (valuesForInClause.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        try (var preparedStmt = connection.prepareStatement(buildPermanentLimitWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            for (int i = 0; i < valuesForInClause.size(); i++) {
+                preparedStmt.setString(3 + i, valuesForInClause.get(i));
+            }
+
+            return innerGetPermanentLimits(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = getTemporaryLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
+        Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = getPermanentLimits(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
+        return mergeLimitsIntoLimitsInfos(temporaryLimits, permanentLimits);
+    }
+
+    public Map<OwnerInfo, LimitsInfos> getLimitsInfosWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = getTemporaryLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
+        Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = getPermanentLimitsWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
+        return mergeLimitsIntoLimitsInfos(temporaryLimits, permanentLimits);
+    }
+
+    private Map<OwnerInfo, LimitsInfos> mergeLimitsIntoLimitsInfos(Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits, Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
+        Map<OwnerInfo, LimitsInfos> limitsInfos = new HashMap<>();
+        temporaryLimits.forEach((ownerInfo, temporaryLimitAttributes) -> limitsInfos.put(ownerInfo,
+            new LimitsInfos(new ArrayList<>(), temporaryLimitAttributes)));
+        permanentLimits.forEach((ownerInfo, permanentLimitAttributes) -> {
+            if (limitsInfos.containsKey(ownerInfo)) {
+                limitsInfos.get(ownerInfo).getPermanentLimits().addAll(permanentLimitAttributes);
+            } else {
+                limitsInfos.put(ownerInfo, new LimitsInfos(permanentLimitAttributes, new ArrayList<>()));
+            }
+        });
+        return limitsInfos;
+    }
+
+    public Map<OwnerInfo, List<TemporaryLimitAttributes>> getTemporaryLimits(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getExternalAttributes(
+                variantNum,
+                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                () -> getTombstonedTemporaryLimitsIds(connection, networkUuid, variantNum),
+                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                variant -> getTemporaryLimitsForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
+                OwnerInfo::getEquipmentId);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<TemporaryLimitAttributes>> getTemporaryLimitsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(buildTemporaryLimitQuery(columnNameForWhereClause))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetTemporaryLimits(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimits(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getExternalAttributes(
+                variantNum,
+                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                () -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
+                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                variant -> getPermanentLimitsForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
+                OwnerInfo::getEquipmentId);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, List<PermanentLimitAttributes>> getPermanentLimitsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(buildGetPermanentLimitQuery(columnNameForWhereClause))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetPermanentLimits(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private Map<OwnerInfo, List<TemporaryLimitAttributes>> innerGetTemporaryLimits(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            if (resultSet.next()) {
-                String temporaryLimitData = resultSet.getString(1);
+            Map<OwnerInfo, List<TemporaryLimitAttributes>> map = new HashMap<>();
+            while (resultSet.next()) {
+                OwnerInfo owner = new OwnerInfo();
+                // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
+                // equipmentId, equipmentType, networkUuid, variantNum, side, limitType, name, value, acceptableDuration, fictitious
+                owner.setEquipmentId(resultSet.getString(1));
+                owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
+                owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
+                owner.setVariantNum(variantNumOverride);
+                String temporaryLimitData = resultSet.getString(5);
                 List<TemporaryLimitSqlData> parsedTemporaryLimitData = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
-                return parsedTemporaryLimitData.stream().map(TemporaryLimitSqlData::toTemporaryLimitAttributes).toList();
+                List<TemporaryLimitAttributes> temporaryLimits = parsedTemporaryLimitData.stream().map(TemporaryLimitSqlData::toTemporaryLimitAttributes).toList();
+                if (!temporaryLimits.isEmpty()) {
+                    map.put(owner, temporaryLimits);
+                }
             }
-            return Collections.emptyList();
+            return map;
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
     }
 
-    // permanent limits
-    public List<PermanentLimitAttributes> getPermanentLimits(UUID networkUuid, int variantNum, String type, String equipmentId) {
-        try (Connection connection = dataSource.getConnection()) {
-            var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetPermanentLimitDataQuery());
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            preparedStmt.setString(3, type);
-            preparedStmt.setString(4, equipmentId);
+    private Map<OwnerInfo, List<PermanentLimitAttributes>> innerGetPermanentLimits(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
+        try (ResultSet resultSet = preparedStmt.executeQuery()) {
+            Map<OwnerInfo, List<PermanentLimitAttributes>> map = new HashMap<>();
+            while (resultSet.next()) {
+                OwnerInfo owner = new OwnerInfo();
+                owner.setEquipmentId(resultSet.getString(1));
+                owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
+                owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
+                owner.setVariantNum(variantNumOverride);
+                String permanentLimitData = resultSet.getString(5);
+                List<PermanentLimitSqlData> parsedTemporaryLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
+                List<PermanentLimitAttributes> permanentLimits = parsedTemporaryLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
+                if (!permanentLimits.isEmpty()) {
+                    map.put(owner, permanentLimits);
+                }
+            }
+            return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 
-            return innerGetPermanentLimits(preparedStmt);
+    protected <T extends LimitHolder & IdentifiableAttributes> Map<OwnerInfo, LimitsInfos> getLimitsInfosFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
+        Map<OwnerInfo, LimitsInfos> map = new HashMap<>();
+
+        if (!resources.isEmpty()) {
+            for (Resource<T> resource : resources) {
+                OwnerInfo info = new OwnerInfo(
+                    resource.getId(),
+                    resource.getType(),
+                    networkUuid,
+                    resource.getVariantNum()
+                );
+                T equipment = resource.getAttributes();
+                map.put(info, getAllLimitsInfos(equipment));
+            }
+        }
+        return map;
+    }
+
+    public void insertTemporaryLimits(Map<OwnerInfo, LimitsInfos> limitsInfos) {
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits = limitsInfos.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getTemporaryLimits()));
+        insertTemporaryLimitsAttributes(temporaryLimits);
+    }
+
+    public void insertTemporaryLimitsAttributes(Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildInsertTemporaryLimitsQuery())) {
+                List<Object> values = new ArrayList<>(5);
+                List<Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>>> list = new ArrayList<>(temporaryLimits.entrySet());
+                for (List<Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>> entry : subUnit) {
+                        if (!entry.getValue().isEmpty()) {
+                            values.clear();
+                            values.add(entry.getKey().getEquipmentId());
+                            values.add(entry.getKey().getEquipmentType().toString());
+                            values.add(entry.getKey().getNetworkUuid());
+                            values.add(entry.getKey().getVariantNum());
+                            values.add(entry.getValue().stream()
+                                .map(TemporaryLimitSqlData::of).toList());
+                            bindValues(preparedStmt, values, mapper);
+                            preparedStmt.addBatch();
+                        }
+                    }
+                    preparedStmt.executeBatch();
+                }
+            }
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    private List<PermanentLimitAttributes> innerGetPermanentLimits(PreparedStatement preparedStmt) throws SQLException {
-        try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            if (resultSet.next()) {
-                String permanentLimitData = resultSet.getString(1);
-                List<PermanentLimitSqlData> parsedTemporaryLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
-                return parsedTemporaryLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
+    public void insertPermanentLimits(Map<OwnerInfo, LimitsInfos> limitsInfos) {
+        Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits = limitsInfos.entrySet().stream()
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getPermanentLimits()));
+        insertPermanentLimitsAttributes(permanentLimits);
+    }
+
+    public void insertPermanentLimitsAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertPermanentLimitsQuery())) {
+                List<Object> values = new ArrayList<>(8);
+                List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> list = new ArrayList<>(permanentLimits.entrySet());
+                for (List<Map.Entry<OwnerInfo, List<PermanentLimitAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : subUnit) {
+                        if (!entry.getValue().isEmpty()) {
+                            values.clear();
+                            values.add(entry.getKey().getEquipmentId());
+                            values.add(entry.getKey().getEquipmentType().toString());
+                            values.add(entry.getKey().getNetworkUuid());
+                            values.add(entry.getKey().getVariantNum());
+                            values.add(entry.getValue().stream()
+                                .map(PermanentLimitSqlData::of).toList());
+                            bindValues(preparedStmt, values, mapper);
+                            preparedStmt.addBatch();
+                        }
+                    }
+                    preparedStmt.executeBatch();
+                }
             }
-            return null;
-        } catch (JsonProcessingException e) {
-            throw new UncheckedIOException(e);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
         }
     }
 
-    private Optional<OperationalLimitsGroupAttributes> convertLimitInfosToOperationalLimitsGroup(Optional<LimitsInfos> limitsInfos,
-                                                                                                 String operationalLimitsGroupName, int side) {
-        if (limitsInfos.isPresent()) {
-            LimitsAttributes.LimitsAttributesBuilder currentLimitsBuilder = LimitsAttributes.builder();
-            LimitsAttributes.LimitsAttributesBuilder apparentPowerLimitsLimitsBuilder = LimitsAttributes.builder();
-            LimitsAttributes.LimitsAttributesBuilder activePowerLimitsBuilder = LimitsAttributes.builder();
-            List<TemporaryLimitAttributes> temporaryLimitAttributes = limitsInfos.get().getTemporaryLimits().stream().filter(tl -> tl.getSide() == side
-                && tl.getOperationalLimitsGroupId().equals(operationalLimitsGroupName)).toList();
-            TreeMap<Integer, TemporaryLimitAttributes> currentTemporaryLimitAttributes = new TreeMap<>(temporaryLimitAttributes.stream()
-                .filter(tl -> tl.getLimitType().equals(LimitType.CURRENT))
-                .collect(Collectors.toMap(TemporaryLimitAttributes::getAcceptableDuration, Function.identity())));
-            TreeMap<Integer, TemporaryLimitAttributes> apparentPowerTemporaryLimitAttributes = new TreeMap<>(temporaryLimitAttributes.stream()
-                .filter(tl -> tl.getLimitType().equals(LimitType.APPARENT_POWER))
-                .collect(Collectors.toMap(TemporaryLimitAttributes::getAcceptableDuration, Function.identity())));
-            TreeMap<Integer, TemporaryLimitAttributes> activePowerTemporaryLimitAttributes = new TreeMap<>(temporaryLimitAttributes.stream()
-                .filter(tl -> tl.getLimitType().equals(LimitType.ACTIVE_POWER))
-                .collect(Collectors.toMap(TemporaryLimitAttributes::getAcceptableDuration, Function.identity())));
+    protected <T extends LimitHolder & IdentifiableAttributes> void insertLimitsInEquipments(UUID networkUuid, List<Resource<T>> equipments, Map<OwnerInfo, LimitsInfos> limitsInfos) {
 
-            for (PermanentLimitAttributes permanentLimit : limitsInfos.get().getPermanentLimits()) {
-                if (permanentLimit.getSide().equals(side) && permanentLimit.getOperationalLimitsGroupId().equals(operationalLimitsGroupName)) {
-                    switch (permanentLimit.getLimitType()) {
-                        case CURRENT -> currentLimitsBuilder
-                            .operationalLimitsGroupId(operationalLimitsGroupName)
-                            .permanentLimit(permanentLimit.getValue())
-                            .temporaryLimits(currentTemporaryLimitAttributes);
-                        case APPARENT_POWER -> apparentPowerLimitsLimitsBuilder
-                            .operationalLimitsGroupId(operationalLimitsGroupName)
-                            .permanentLimit(permanentLimit.getValue())
-                            .temporaryLimits(apparentPowerTemporaryLimitAttributes);
-                        case ACTIVE_POWER -> activePowerLimitsBuilder
-                            .operationalLimitsGroupId(operationalLimitsGroupName)
-                            .permanentLimit(permanentLimit.getValue())
-                            .temporaryLimits(activePowerTemporaryLimitAttributes);
-                        case VOLTAGE, VOLTAGE_ANGLE ->
-                            throw new PowsyblException("Voltage and Voltage angle not supported for operational limits");
+        if (!limitsInfos.isEmpty() && !equipments.isEmpty()) {
+            for (Resource<T> equipmentAttributesResource : equipments) {
+                OwnerInfo owner = new OwnerInfo(
+                    equipmentAttributesResource.getId(),
+                    equipmentAttributesResource.getType(),
+                    networkUuid,
+                    equipmentAttributesResource.getVariantNum()
+                );
+                if (limitsInfos.containsKey(owner)) {
+                    T equipment = equipmentAttributesResource.getAttributes();
+                    for (TemporaryLimitAttributes temporaryLimit : limitsInfos.get(owner).getTemporaryLimits()) {
+                        insertTemporaryLimitInEquipment(equipment, temporaryLimit);
+                    }
+                    for (PermanentLimitAttributes permanentLimit : limitsInfos.get(owner).getPermanentLimits()) {
+                        insertPermanentLimitInEquipment(equipment, permanentLimit);
                     }
                 }
             }
-            return Optional.of(OperationalLimitsGroupAttributes.builder()
-                .id(operationalLimitsGroupName)
-                .currentLimits(currentLimitsBuilder.build())
-                .apparentPowerLimits(apparentPowerLimitsLimitsBuilder.build())
-                .activePowerLimits(activePowerLimitsBuilder.build())
-                .build());
-        } else {
+        }
+    }
+
+    private <T extends LimitHolder> void insertTemporaryLimitInEquipment(T equipment, TemporaryLimitAttributes temporaryLimit) {
+        LimitType type = temporaryLimit.getLimitType();
+        int side = temporaryLimit.getSide();
+        String groupId = temporaryLimit.getOperationalLimitsGroupId();
+        if (getLimits(equipment, type, side, groupId) == null) {
+            setLimits(equipment, type, side, new LimitsAttributes(), groupId);
+        }
+        if (getLimits(equipment, type, side, groupId).getTemporaryLimits() == null) {
+            getLimits(equipment, type, side, groupId).setTemporaryLimits(new TreeMap<>());
+        }
+        getLimits(equipment, type, side, groupId).getTemporaryLimits().put(temporaryLimit.getAcceptableDuration(), temporaryLimit);
+    }
+
+    private <T extends LimitHolder> void insertPermanentLimitInEquipment(T equipment, PermanentLimitAttributes permanentLimit) {
+        LimitType type = permanentLimit.getLimitType();
+        int side = permanentLimit.getSide();
+        String groupId = permanentLimit.getOperationalLimitsGroupId();
+        if (getLimits(equipment, type, side, groupId) == null) {
+            setLimits(equipment, type, side, new LimitsAttributes(), groupId);
+        }
+        getLimits(equipment, type, side, groupId).setPermanentLimit(permanentLimit.getValue());
+    }
+
+    public void deleteTemporaryLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(buildDeleteTemporaryLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
+                preparedStmt.setObject(1, networkUuid);
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < equipmentIds.size(); i++) {
+                    preparedStmt.setString(3 + i, equipmentIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public void deletePermanentLimits(UUID networkUuid, int variantNum, List<String> equipmentIds) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(buildDeletePermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
+                preparedStmt.setObject(1, networkUuid);
+                preparedStmt.setInt(2, variantNum);
+                for (int i = 0; i < equipmentIds.size(); i++) {
+                    preparedStmt.setString(3 + i, equipmentIds.get(i));
+                }
+                preparedStmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public <T extends IdentifiableAttributes> void deleteTemporaryLimits(UUID networkUuid, List<Resource<T>> resources) {
+        Map<Integer, List<String>> resourceIdsByVariant = new HashMap<>();
+        for (Resource<T> resource : resources) {
+            List<String> resourceIds = resourceIdsByVariant.get(resource.getVariantNum());
+            if (resourceIds != null) {
+                resourceIds.add(resource.getId());
+            } else {
+                resourceIds = new ArrayList<>();
+                resourceIds.add(resource.getId());
+            }
+            resourceIdsByVariant.put(resource.getVariantNum(), resourceIds);
+        }
+        resourceIdsByVariant.forEach((k, v) -> deleteTemporaryLimits(networkUuid, k, v));
+    }
+
+    private <T extends IdentifiableAttributes> void deletePermanentLimits(UUID networkUuid, List<Resource<T>> resources) {
+        Map<Integer, List<String>> resourceIdsByVariant = new HashMap<>();
+        for (Resource<T> resource : resources) {
+            List<String> resourceIds = resourceIdsByVariant.get(resource.getVariantNum());
+            if (resourceIds != null) {
+                resourceIds.add(resource.getId());
+            } else {
+                resourceIds = new ArrayList<>();
+                resourceIds.add(resource.getId());
+            }
+            resourceIdsByVariant.put(resource.getVariantNum(), resourceIds);
+        }
+        resourceIdsByVariant.forEach((k, v) -> deletePermanentLimits(networkUuid, k, v));
+    }
+
+    private NetworkAttributes getNetworkAttributes(Connection connection, UUID networkUuid, int variantNum) {
+        try {
+            Resource<NetworkAttributes> networkAttributesResource = getNetwork(connection, networkUuid, variantNum).orElseThrow(() -> new PowsyblException("Cannot retrieve source network attributes uuid : " + networkUuid + ", variantNum : " + variantNum));
+            return networkAttributesResource.getAttributes();
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private Optional<Resource<NetworkAttributes>> getNetwork(Connection connection, UUID uuid, int variantNum) throws SQLException {
+        var networkMapping = mappings.getNetworkMappings();
+        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetNetworkQuery(networkMapping.getColumnsMapping().keySet()))) {
+            preparedStmt.setObject(1, uuid);
+            preparedStmt.setInt(2, variantNum);
+            try (ResultSet resultSet = preparedStmt.executeQuery()) {
+                if (resultSet.next()) {
+                    NetworkAttributes attributes = new NetworkAttributes();
+                    MutableInt columnIndex = new MutableInt(2);
+                    networkMapping.getColumnsMapping().forEach((columnName, columnMapping) -> {
+                        bindAttributes(resultSet, columnIndex.getValue(), columnMapping, attributes, mapper);
+                        columnIndex.increment();
+                    });
+                    String networkId = resultSet.getString(1); // id is first
+                    Resource<NetworkAttributes> resource = Resource.networkBuilder()
+                        .id(networkId)
+                        .variantNum(variantNum)
+                        .attributes(attributes)
+                        .build();
+                    return Optional.of(resource);
+                }
+            }
             return Optional.empty();
         }
-
     }
 
-    public Optional<OperationalLimitsGroupAttributes> getOperationalLimitsGroup(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
-        Optional<LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, type.toString(), branchId);
-        return convertLimitInfosToOperationalLimitsGroup(limitsInfos, operationalLimitsGroupName, side);
+    private Set<String> getTombstonedTemporaryLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
+        Set<String> identifiableIds = new HashSet<>();
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.TEMPORARY_LIMIT.toString());
+            try (var resultSet = preparedStmt.executeQuery()) {
+                while (resultSet.next()) {
+                    identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
+                }
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+        return identifiableIds;
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> convertLimitInfosToOperationalLimitsGroup(OwnerInfo owner, LimitsInfos limitsInfos) {
+    private Set<String> getTombstonedPermanentLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
+        Set<String> identifiableIds = new HashSet<>();
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, ExternalAttributesType.PERMANENT_LIMIT.toString());
+            try (var resultSet = preparedStmt.executeQuery()) {
+                while (resultSet.next()) {
+                    identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
+                }
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+        return identifiableIds;
+    }
+
+    public Set<String> getTombstonedIdentifiableIds(Connection connection, UUID networkUuid, int variantNum) {
+        Set<String> tombstonedIdentifiableIds = new HashSet<>();
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedIdentifiablesIdsQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            try (var resultSet = preparedStmt.executeQuery()) {
+                while (resultSet.next()) {
+                    tombstonedIdentifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
+                }
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+        return tombstonedIdentifiableIds;
+    }
+
+    private static final String EXCEPTION_UNKNOWN_LIMIT_TYPE = "Unknown limit type";
+
+    private void fillLimitsInfosByTypeAndSide(LimitHolder equipment, LimitsInfos result, LimitType type, int side) {
+        Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroups = equipment.getOperationalLimitsGroups(side);
+        if (operationalLimitsGroups != null) {
+            for (Map.Entry<String, OperationalLimitsGroupAttributes> entry : operationalLimitsGroups.entrySet()) {
+                LimitsAttributes limits = getLimits(equipment, type, side, entry.getKey());
+                if (limits != null) {
+                    if (limits.getTemporaryLimits() != null) {
+                        List<TemporaryLimitAttributes> temporaryLimits = new ArrayList<>(
+                            limits.getTemporaryLimits().values());
+                        temporaryLimits.forEach(e -> {
+                            e.setSide(side);
+                            e.setLimitType(type);
+                            e.setOperationalLimitsGroupId(entry.getKey());
+                        });
+                        result.getTemporaryLimits().addAll(temporaryLimits);
+                    }
+                    if (!Double.isNaN(limits.getPermanentLimit())) {
+                        result.getPermanentLimits().add(PermanentLimitAttributes.builder()
+                            .side(side)
+                            .limitType(type)
+                            .value(limits.getPermanentLimit())
+                            .operationalLimitsGroupId(entry.getKey())
+                            .build());
+                    }
+                }
+            }
+        }
+    }
+
+    private LimitsInfos getAllLimitsInfos(LimitHolder equipment) {
+        LimitsInfos result = new LimitsInfos();
+        for (Integer side : equipment.getSideList()) {
+            fillLimitsInfosByTypeAndSide(equipment, result, LimitType.CURRENT, side);
+            fillLimitsInfosByTypeAndSide(equipment, result, LimitType.ACTIVE_POWER, side);
+            fillLimitsInfosByTypeAndSide(equipment, result, LimitType.APPARENT_POWER, side);
+        }
+        return result;
+    }
+
+    private void setLimits(LimitHolder equipment, LimitType type, int side, LimitsAttributes limits, String operationalLimitsGroupId) {
+        switch (type) {
+            case CURRENT -> equipment.setCurrentLimits(side, limits, operationalLimitsGroupId);
+            case APPARENT_POWER -> equipment.setApparentPowerLimits(side, limits, operationalLimitsGroupId);
+            case ACTIVE_POWER -> equipment.setActivePowerLimits(side, limits, operationalLimitsGroupId);
+            default -> throw new IllegalArgumentException(EXCEPTION_UNKNOWN_LIMIT_TYPE);
+        }
+    }
+
+    private LimitsAttributes getLimits(LimitHolder equipment, LimitType type, int side, String operationalLimitsGroupId) {
+        return switch (type) {
+            case CURRENT -> equipment.getCurrentLimits(side, operationalLimitsGroupId);
+            case APPARENT_POWER -> equipment.getApparentPowerLimits(side, operationalLimitsGroupId);
+            case ACTIVE_POWER -> equipment.getActivePowerLimits(side, operationalLimitsGroupId);
+            default -> throw new IllegalArgumentException(EXCEPTION_UNKNOWN_LIMIT_TYPE);
+        };
+    }
+
+    public <T extends IdentifiableAttributes> void updateTemporaryLimits(UUID networkUuid, List<Resource<T>> resources, Map<OwnerInfo, LimitsInfos> limitsInfos) {
+        deleteTemporaryLimits(networkUuid, resources);
+        insertTemporaryLimits(limitsInfos);
+        insertTombstonedTemporaryLimits(networkUuid, limitsInfos, resources);
+    }
+
+    private <T extends IdentifiableAttributes> void insertTombstonedTemporaryLimits(UUID networkUuid, Map<OwnerInfo, LimitsInfos> limitsInfos, List<Resource<T>> resources) {
+        try (var connection = dataSource.getConnection()) {
+            Map<Integer, List<String>> resourcesByVariant = resources.stream()
+                .collect(Collectors.groupingBy(
+                    Resource::getVariantNum,
+                    Collectors.mapping(Resource::getId, Collectors.toList())
+                ));
+            Set<OwnerInfo> tombstonedTemporaryLimits = PartialVariantUtils.getExternalAttributesToTombstone(
+                resourcesByVariant,
+                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum),
+                (fullVariantNum, variantNum, ids) -> getTemporaryLimitsWithInClauseForVariant(connection, networkUuid, fullVariantNum, EQUIPMENT_ID_COLUMN, ids, variantNum).keySet(),
+                variantNum -> getTombstonedTemporaryLimitsIds(connection, networkUuid, variantNum),
+                getTemporaryLimitsToTombstoneFromEquipment(networkUuid, limitsInfos, resources)
+            );
+
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
+                for (OwnerInfo temporaryLimit : tombstonedTemporaryLimits) {
+                    preparedStmt.setObject(1, temporaryLimit.getNetworkUuid());
+                    preparedStmt.setInt(2, temporaryLimit.getVariantNum());
+                    preparedStmt.setString(3, temporaryLimit.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.TEMPORARY_LIMIT.toString());
+                    preparedStmt.addBatch();
+                }
+                preparedStmt.executeBatch();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private <T extends IdentifiableAttributes> Set<OwnerInfo> getPermanentLimitsToTombstoneFromEquipment(UUID networkUuid, Map<OwnerInfo, LimitsInfos> externalAttributesToInsert, List<Resource<T>> resources) {
+        Set<OwnerInfo> externalAttributesToTombstoneFromEquipment = new HashSet<>();
+        for (Resource<T> resource : resources) {
+            OwnerInfo ownerInfo = new OwnerInfo(resource.getId(), resource.getType(), networkUuid, resource.getVariantNum());
+            if (!externalAttributesToInsert.containsKey(ownerInfo) || externalAttributesToInsert.get(ownerInfo).getPermanentLimits().isEmpty()) {
+                externalAttributesToTombstoneFromEquipment.add(ownerInfo);
+            }
+        }
+        return externalAttributesToTombstoneFromEquipment;
+    }
+
+    private <T extends IdentifiableAttributes> Set<OwnerInfo> getTemporaryLimitsToTombstoneFromEquipment(UUID networkUuid, Map<OwnerInfo, LimitsInfos> externalAttributesToInsert, List<Resource<T>> resources) {
+        Set<OwnerInfo> externalAttributesToTombstoneFromEquipment = new HashSet<>();
+        for (Resource<T> resource : resources) {
+            OwnerInfo ownerInfo = new OwnerInfo(resource.getId(), resource.getType(), networkUuid, resource.getVariantNum());
+            if (!externalAttributesToInsert.containsKey(ownerInfo) || externalAttributesToInsert.get(ownerInfo).getTemporaryLimits().isEmpty()) {
+                externalAttributesToTombstoneFromEquipment.add(ownerInfo);
+            }
+        }
+        return externalAttributesToTombstoneFromEquipment;
+    }
+
+    public <T extends IdentifiableAttributes> void updatePermanentLimits(UUID networkUuid, List<Resource<T>> resources, Map<OwnerInfo, LimitsInfos> limitsInfos) {
+        deletePermanentLimits(networkUuid, resources);
+        insertPermanentLimits(limitsInfos);
+        insertTombstonedPermanentLimits(networkUuid, limitsInfos, resources);
+    }
+
+    private <T extends IdentifiableAttributes> void insertTombstonedPermanentLimits(UUID networkUuid, Map<OwnerInfo, LimitsInfos> limitsInfos, List<Resource<T>> resources) {
+        try (var connection = dataSource.getConnection()) {
+            Map<Integer, List<String>> resourcesByVariant = resources.stream()
+                .collect(Collectors.groupingBy(
+                    Resource::getVariantNum,
+                    Collectors.mapping(Resource::getId, Collectors.toList())
+                ));
+            Set<OwnerInfo> tombstonedPermanentLimits = PartialVariantUtils.getExternalAttributesToTombstone(
+                resourcesByVariant,
+                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum),
+                (fullVariantNum, variantNum, ids) -> getPermanentLimitsWithInClauseForVariant(connection, networkUuid, fullVariantNum, EQUIPMENT_ID_COLUMN, ids, variantNum).keySet(),
+                variantNum -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
+                getPermanentLimitsToTombstoneFromEquipment(networkUuid, limitsInfos, resources)
+            );
+            try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedExternalAttributesQuery())) {
+                for (OwnerInfo permanentLimit : tombstonedPermanentLimits) {
+                    preparedStmt.setObject(1, permanentLimit.getNetworkUuid());
+                    preparedStmt.setInt(2, permanentLimit.getVariantNum());
+                    preparedStmt.setString(3, permanentLimit.getEquipmentId());
+                    preparedStmt.setString(4, ExternalAttributesType.PERMANENT_LIMIT.toString());
+                    preparedStmt.addBatch();
+                }
+                preparedStmt.executeBatch();
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> convertLimitInfosToOperationalLimitsGroupMap(String equipmentId, LimitsInfos limitsInfos) {
         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitGroups = new HashMap<>();
         // permanent limits
         limitsInfos.getPermanentLimits().forEach(permanentLimit -> {
-            OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(owner.getEquipmentId(),
+            OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(equipmentId,
                 permanentLimit.getOperationalLimitsGroupId(), permanentLimit.getSide());
             if (operationalLimitGroups.containsKey(identifier)) {
                 setPermanentLimit(operationalLimitGroups.get(identifier), permanentLimit);
             } else {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
-                operationalLimitsGroupAttributes.setId(owner.getEquipmentId());
+                operationalLimitsGroupAttributes.setId(permanentLimit.getOperationalLimitsGroupId());
                 setPermanentLimit(operationalLimitsGroupAttributes, permanentLimit);
                 operationalLimitGroups.put(identifier, operationalLimitsGroupAttributes);
             }
         });
         // temporary limits
         limitsInfos.getTemporaryLimits().forEach(temporaryLimit -> {
-            OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(owner.getEquipmentId(),
+            OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(equipmentId,
                 temporaryLimit.getOperationalLimitsGroupId(), temporaryLimit.getSide());
             if (operationalLimitGroups.containsKey(identifier)) {
                 setTemporaryLimit(operationalLimitGroups.get(identifier), temporaryLimit);
@@ -204,52 +699,89 @@ public class LimitsHandler {
             case CURRENT -> operationalLimitsGroupAttributes.setCurrentLimits(limitsAttributes);
             case ACTIVE_POWER -> operationalLimitsGroupAttributes.setActivePowerLimits(limitsAttributes);
             case APPARENT_POWER -> operationalLimitsGroupAttributes.setApparentPowerLimits(limitsAttributes);
+            case VOLTAGE, VOLTAGE_ANGLE -> throw new IllegalArgumentException("VOLTAGE and VOLTAGE_ANGLE does not support permanent limits");
         }
     }
 
     private void setTemporaryLimit(OperationalLimitsGroupAttributes operationalLimitsGroupAttributes, TemporaryLimitAttributes temporaryLimitAttributes) {
         switch (temporaryLimitAttributes.getLimitType()) {
-            case CURRENT -> operationalLimitsGroupAttributes.getCurrentLimits().addTemporaryLimit(temporaryLimitAttributes);
-            case ACTIVE_POWER -> operationalLimitsGroupAttributes.getActivePowerLimits().addTemporaryLimit(temporaryLimitAttributes);
-            case APPARENT_POWER -> operationalLimitsGroupAttributes.getApparentPowerLimits().addTemporaryLimit(temporaryLimitAttributes);
+            case CURRENT -> setTemporaryLimitInLimitsAttribute(operationalLimitsGroupAttributes.getCurrentLimits(), temporaryLimitAttributes);
+            case ACTIVE_POWER -> setTemporaryLimitInLimitsAttribute(operationalLimitsGroupAttributes.getActivePowerLimits(), temporaryLimitAttributes);
+            case APPARENT_POWER -> setTemporaryLimitInLimitsAttribute(operationalLimitsGroupAttributes.getApparentPowerLimits(), temporaryLimitAttributes);
             case VOLTAGE, VOLTAGE_ANGLE -> throw new IllegalArgumentException("VOLTAGE and VOLTAGE_ANGLE does not support temporary limits");
         }
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
-        UUID networkId, int variantNum, ResourceType type, Map<OwnerInfo, LimitsInfos> limitsInfos, int fullVariantNum, Set<String> tombstonedElements) {
-        // get selected operational limits ids for each element of type indicated
-        Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups =
-            getPartialVariantSelectedOperationalLimitsGroupIds(networkId, variantNum, fullVariantNum, type, tombstonedElements);
+    private void setTemporaryLimitInLimitsAttribute(LimitsAttributes limitsAttributes, TemporaryLimitAttributes temporaryLimitAttributes) {
+        if (limitsAttributes.getTemporaryLimits() == null) {
+            limitsAttributes.setTemporaryLimits(new TreeMap<>());
+        }
+        limitsAttributes.addTemporaryLimit(temporaryLimitAttributes);
+    }
 
+    public Optional<OperationalLimitsGroupAttributes> getOperationalLimitsGroup(UUID networkId, int variantNum,
+                                                                                String branchId, ResourceType type,
+                                                                                String operationalLimitsGroupName,
+                                                                                int side) {
+        OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
+        LimitsInfos limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
+        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos);
+        return Optional.ofNullable(operationalLimitsGroupAttributes.get(new OperationalLimitsGroupIdentifier(branchId, operationalLimitsGroupName, side)));
+    }
+
+    public List<OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesForBranchSide(
+        UUID networkId, int variantNum, ResourceType type, String branchId, int side) {
+        OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
+        Optional<LimitsInfos> limitsInfos = Optional.ofNullable(getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo));
+        if (limitsInfos.isPresent()) {
+            Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> allBranchOperationalLimitsGroups =
+                convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos.get());
+            List<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = new ArrayList<>();
+            allBranchOperationalLimitsGroups.keySet().stream().filter(identifier -> identifier.side() == side)
+                .forEach(identifier ->
+                    operationalLimitsGroupAttributes.add(allBranchOperationalLimitsGroups.get(identifier)));
+            return operationalLimitsGroupAttributes;
+        }
+        return Collections.emptyList();
+    }
+
+    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
+            UUID networkId, int variantNum, ResourceType type, int fullVariantNum, Set<String> tombstonedElements) {
+        // get selected operational limits ids for each element of type indicated
+        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups =
+            getSelectedOperationalLimitsGroupIdsForVariant(networkId, variantNum, fullVariantNum, type, tombstonedElements);
         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> selectedOperationalLimitsGroupAttributes = new HashMap<>();
         // get operational limits group associated
         selectedOperationalLimitsGroups.forEach((owner, selectedOperationalLimitsGroupIdentifiers) -> {
-            Optional<LimitsInfos> selectedLimitsInfos = Optional.ofNullable(limitsInfos.get(owner));
-
-            // side 1
-            if (selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1() != null) {
-                Optional<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroup(
-                    selectedLimitsInfos, selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 1);
-                operationalLimitsGroupAttributes.ifPresent(limitsGroupAttributes ->
-                    selectedOperationalLimitsGroupAttributes.put(
-                        OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1(), 1),
-                        limitsGroupAttributes));
-            }
-            // side 2
-            if (selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2() != null) {
-                Optional<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroup(
-                    selectedLimitsInfos, selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2(), 2);
-                operationalLimitsGroupAttributes.ifPresent(limitsGroupAttributes ->
-                    selectedOperationalLimitsGroupAttributes.put(
-                        OperationalLimitsGroupIdentifier.of(owner.getEquipmentId(), selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2(), 2),
-                        limitsGroupAttributes));
+            String selectedOperationalLimitsGroupId1 = selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1();
+            String selectedOperationalLimitsGroupId2 = selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2();
+            if (selectedOperationalLimitsGroupId1 != null || selectedOperationalLimitsGroupId2 != null) {
+                String equipmentId = owner.getEquipmentId();
+                Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
+                    equipmentId, limitsInfos.get(owner));
+                // side 1
+                addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId1, operationalLimitsGroupAttributesMap, 1, equipmentId, selectedOperationalLimitsGroupAttributes);
+                addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId2, operationalLimitsGroupAttributesMap, 2, equipmentId, selectedOperationalLimitsGroupAttributes);
             }
         });
         return selectedOperationalLimitsGroupAttributes;
     }
 
-    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getPartialVariantSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, int fullVariantNum, ResourceType type, Set<String> tombstonedElements) {
+    private void addSelectedOperationalLimitsGroupOnSide(String selectedOperationalLimitsGroupId,
+                                                         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesMap,
+                                                         int side, String equipmentId,
+                                                         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> selectedOperationalLimitsGroupAttributes) {
+        if (selectedOperationalLimitsGroupId != null) {
+            OperationalLimitsGroupIdentifier identifierSide = new OperationalLimitsGroupIdentifier(equipmentId, selectedOperationalLimitsGroupId, side);
+            OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = operationalLimitsGroupAttributesMap.get(identifierSide);
+            if (operationalLimitsGroupAttributes != null) {
+                selectedOperationalLimitsGroupAttributes.put(identifierSide, operationalLimitsGroupAttributes);
+            }
+        }
+    }
+
+    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIdsForVariant(UUID networkId, int variantNum, int fullVariantNum, ResourceType type, Set<String> tombstonedElements) {
         Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedGroupIds = getSelectedOperationalLimitsGroupIds(networkId, variantNum, type, tombstonedElements, variantNum);
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             return selectedGroupIds;

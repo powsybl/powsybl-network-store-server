@@ -1595,7 +1595,7 @@ public class NetworkStoreController {
 
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/")
     @Operation(summary = "Get all operational limits group attributes for a specific type of equipment")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get extension attributes"))
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits groups attributes"))
     public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllOperationalLimitsGroupsAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                                      @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                      @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
@@ -1605,11 +1605,23 @@ public class NetworkStoreController {
 
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/selected/")
     @Operation(summary = "Get all selected operational limits groups for a specific type of equipment")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get extension attributes"))
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits groups attributes"))
     public ResponseEntity<Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                                                                                       @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                                                                       @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
             repository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type));
+    }
+
+    @GetMapping(value = "{networkId}/{variantNum}/branch/{branchId}/types/{resourceType}/side/{side}/operationalLimitsGroup")
+    @Operation(summary = "Get all operational limits groups for a branch side")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits groups attributes"))
+    public ResponseEntity<List<OperationalLimitsGroupAttributes>> getOperationalLimitsGroupAttributesForBranchSide(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                                                                                                                                @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
+                                                                                                                                                                @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type,
+                                                                                                                                                                @Parameter(description = "Branch id", required = true) @PathVariable("branchId") String branchId,
+                                                                                                                                                                @Parameter(description = "Branch side", required = true) @PathVariable("side") int side) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
+            repository.getOperationalLimitsGroupAttributesForBranchSide(networkId, variantNum, type, branchId, side));
     }
 }

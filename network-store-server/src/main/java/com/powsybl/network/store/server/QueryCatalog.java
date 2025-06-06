@@ -385,15 +385,6 @@ public final class QueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildTemporaryLimitQuery() {
-        return "select " + TEMPORARY_LIMITS_COLUMN +
-            " from " + TEMPORARY_LIMITS_TABLE + " where " +
-            NETWORK_UUID_COLUMN + " = ? and " +
-            VARIANT_NUM_COLUMN + " = ? and " +
-            EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            EQUIPMENT_ID_COLUMN + " = ?";
-    }
-
     public static String buildTemporaryLimitWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
@@ -496,15 +487,6 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 columnNameForWhereClause + " = ?";
-    }
-
-    public static String buildGetPermanentLimitDataQuery() {
-        return "select " + PERMANENT_LIMITS_COLUMN +
-            " from " + PERMANENT_LIMITS_TABLE + " where " +
-            NETWORK_UUID_COLUMN + " = ? and " +
-            VARIANT_NUM_COLUMN + " = ? and " +
-            EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            EQUIPMENT_ID_COLUMN + " = ?";
     }
 
     public static String buildPermanentLimitWithInClauseQuery(String columnNameForInClause, int numberOfValues) {

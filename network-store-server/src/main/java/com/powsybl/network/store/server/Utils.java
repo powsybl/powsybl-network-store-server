@@ -25,6 +25,9 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class Utils {
+
+    public static final int BATCH_SIZE = 1000;
+
     private Utils() throws IllegalAccessException {
         throw new IllegalAccessException("Utility class can not be initialize.");
     }
