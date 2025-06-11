@@ -77,9 +77,10 @@ public final class QueryCatalog {
                 " and " + ID_COLUMN + " = ?";
     }
 
-    public static String buildGetIdentifiablesSpecificColumnsQuery(String tableName, Collection<String> columns) {
-        return "select " +
-            String.join(", ", columns) +
+    public static String buildGetIdentifiablesSpecificColumnsQuery(String tableName) {
+        return "select " + ID_COLUMN + ", " +
+            SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 + ", " +
+            SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 +
             " from " + tableName +
             " where " + NETWORK_UUID_COLUMN + " = ?" +
             " and " + VARIANT_NUM_COLUMN + " = ?";

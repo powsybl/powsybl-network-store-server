@@ -19,7 +19,6 @@ import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.PermanentLimitSqlData;
 import com.powsybl.network.store.server.json.TemporaryLimitSqlData;
-import org.apache.commons.lang3.mutable.MutableInt;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -54,7 +53,7 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getExternalAttributes(
                 variantNum,
-                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedTemporaryLimitsIds(connection, networkUuid, variantNum),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 variant -> getTemporaryLimitsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
@@ -85,7 +84,7 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getExternalAttributes(
                 variantNum,
-                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 variant -> getPermanentLimitsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
@@ -142,7 +141,7 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getExternalAttributes(
                 variantNum,
-                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedTemporaryLimitsIds(connection, networkUuid, variantNum),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 variant -> getTemporaryLimitsForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
@@ -168,7 +167,7 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getExternalAttributes(
                 variantNum,
-                getNetworkAttributes(connection, networkUuid, variantNum).getFullVariantNum(),
+                getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 variant -> getPermanentLimitsForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
@@ -426,41 +425,6 @@ public class LimitsHandler {
         resourceIdsByVariant.forEach((k, v) -> deletePermanentLimits(networkUuid, k, v));
     }
 
-    private NetworkAttributes getNetworkAttributes(Connection connection, UUID networkUuid, int variantNum) {
-        try {
-            Resource<NetworkAttributes> networkAttributesResource = getNetwork(connection, networkUuid, variantNum).orElseThrow(() -> new PowsyblException("Cannot retrieve source network attributes uuid : " + networkUuid + ", variantNum : " + variantNum));
-            return networkAttributesResource.getAttributes();
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-    }
-
-    private Optional<Resource<NetworkAttributes>> getNetwork(Connection connection, UUID uuid, int variantNum) throws SQLException {
-        var networkMapping = mappings.getNetworkMappings();
-        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetNetworkQuery(networkMapping.getColumnsMapping().keySet()))) {
-            preparedStmt.setObject(1, uuid);
-            preparedStmt.setInt(2, variantNum);
-            try (ResultSet resultSet = preparedStmt.executeQuery()) {
-                if (resultSet.next()) {
-                    NetworkAttributes attributes = new NetworkAttributes();
-                    MutableInt columnIndex = new MutableInt(2);
-                    networkMapping.getColumnsMapping().forEach((columnName, columnMapping) -> {
-                        bindAttributes(resultSet, columnIndex.getValue(), columnMapping, attributes, mapper);
-                        columnIndex.increment();
-                    });
-                    String networkId = resultSet.getString(1); // id is first
-                    Resource<NetworkAttributes> resource = Resource.networkBuilder()
-                        .id(networkId)
-                        .variantNum(variantNum)
-                        .attributes(attributes)
-                        .build();
-                    return Optional.of(resource);
-                }
-            }
-            return Optional.empty();
-        }
-    }
-
     private Set<String> getTombstonedTemporaryLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> identifiableIds = new HashSet<>();
         try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
@@ -585,7 +549,7 @@ public class LimitsHandler {
                 ));
             Set<OwnerInfo> tombstonedTemporaryLimits = PartialVariantUtils.getExternalAttributesToTombstone(
                 resourcesByVariant,
-                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum),
+                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper),
                 (fullVariantNum, variantNum, ids) -> getTemporaryLimitsWithInClauseForVariant(connection, networkUuid, fullVariantNum, EQUIPMENT_ID_COLUMN, ids, variantNum).keySet(),
                 variantNum -> getTombstonedTemporaryLimitsIds(connection, networkUuid, variantNum),
                 getTemporaryLimitsToTombstoneFromEquipment(networkUuid, limitsInfos, resources)
@@ -643,7 +607,7 @@ public class LimitsHandler {
                 ));
             Set<OwnerInfo> tombstonedPermanentLimits = PartialVariantUtils.getExternalAttributesToTombstone(
                 resourcesByVariant,
-                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum),
+                variantNum -> getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper),
                 (fullVariantNum, variantNum, ids) -> getPermanentLimitsWithInClauseForVariant(connection, networkUuid, fullVariantNum, EQUIPMENT_ID_COLUMN, ids, variantNum).keySet(),
                 variantNum -> getTombstonedPermanentLimitsIds(connection, networkUuid, variantNum),
                 getPermanentLimitsToTombstoneFromEquipment(networkUuid, limitsInfos, resources)
@@ -795,8 +759,7 @@ public class LimitsHandler {
 
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(
-                    QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(mappings.getTableMapping(type).getTable(),
-                        List.of(ID_COLUMN, SELECTED_OPERATIONAL_LIMITS_GROUP_ID1, SELECTED_OPERATIONAL_LIMITS_GROUP_ID2)))) {
+                    QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(mappings.getTableMapping(type).getTable()))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
                 return getInnerSelectedOperationalLimitsGroupIds(networkId, type, preparedStmt, tombstonedElements, refVariantNum);
