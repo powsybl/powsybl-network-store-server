@@ -29,7 +29,7 @@ public class NetworkStoreObserver {
     private static final String OBSERVATION_PREFIX = "app.network.store.server.";
     private static final String RESOURCE_TYPE_TAG_NAME = "resource_type";
     private static final String EMPTY_TAG_NAME = "empty";
-    private static final String PER_ITEM = ".per.item";
+    private static final String PER_RESOURCE = ".per.resource";
     private static final TimeUnit TIME_UNIT = TimeUnit.NANOSECONDS;
 
     private final MeterRegistry meterRegistry;
@@ -48,7 +48,7 @@ public class NetworkStoreObserver {
                 .register(meterRegistry)
                 .record(duration, TIME_UNIT);
 
-        Timer.builder(OBSERVATION_PREFIX + name + PER_ITEM)
+        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE)
                 .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
                 .tag(EMPTY_TAG_NAME, size > 0 ? "false" : "true")
                 .register(meterRegistry)
@@ -81,7 +81,7 @@ public class NetworkStoreObserver {
                 .register(meterRegistry)
                 .record(duration, TIME_UNIT);
 
-        Timer.builder(OBSERVATION_PREFIX + name + PER_ITEM)
+        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE)
                 .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
                 .tag(EMPTY_TAG_NAME, !results.isEmpty() ? "false" : "true")
                 .register(meterRegistry)
