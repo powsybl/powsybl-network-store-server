@@ -701,7 +701,7 @@ public class LimitsHandler {
             Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> allBranchOperationalLimitsGroups =
                 convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos.get());
             List<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = new ArrayList<>();
-            allBranchOperationalLimitsGroups.keySet().stream().filter(identifier -> identifier.side() == side)
+            allBranchOperationalLimitsGroups.keySet().stream().filter(identifier -> identifier.getSide() == side)
                 .forEach(identifier ->
                     operationalLimitsGroupAttributes.add(allBranchOperationalLimitsGroups.get(identifier)));
             return operationalLimitsGroupAttributes;
