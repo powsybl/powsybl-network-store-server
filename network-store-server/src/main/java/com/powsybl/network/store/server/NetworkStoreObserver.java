@@ -28,9 +28,10 @@ import java.util.concurrent.TimeUnit;
 public class NetworkStoreObserver {
 
     private static final String OBSERVATION_PREFIX = "app.network.store.server.";
+    private static final String PER_RESOURCE_SUFFIX = ".per.resource";
+
     private static final String RESOURCE_TYPE_TAG_NAME = "resource_type";
-    private static final String EMPTY_TAG_NAME = "empty";
-    private static final String PER_RESOURCE = ".per.resource";
+
     private static final TimeUnit TIME_UNIT = TimeUnit.NANOSECONDS;
     private static final String UNKNOWN_RESOURCE_TYPE = "UNKNOWN";
 
@@ -60,6 +61,10 @@ public class NetworkStoreObserver {
     }
 
     private void recordPerVariantMetric(String name, int numberOfVariants) {
+        if (numberOfVariants == 0) {
+            return;
+        }
+
         Long duration = getDurationFromObservation();
         if (duration == null) {
             return;
@@ -95,15 +100,18 @@ public class NetworkStoreObserver {
     }
 
     private void recordPerResourceMetric(String name, ResourceType resourceType, int size) {
+        if (size == 0) {
+            return;
+        }
+
         Long duration = getDurationFromObservation();
         if (duration == null) {
             return;
         }
-        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE)
+        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE_SUFFIX)
                 .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
-                .tag(EMPTY_TAG_NAME, size > 0 ? "false" : "true")
                 .register(meterRegistry)
-                .record(size > 0 ? duration / size : duration, TIME_UNIT);
+                .record(duration / size, TIME_UNIT);
     }
 
     public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, ResourceType resourceType, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
