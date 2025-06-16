@@ -44,28 +44,58 @@ public class NetworkStoreObserver {
     }
 
     public <E extends Throwable> void observe(String name, ResourceType resourceType, int size, Observation.CheckedRunnable<E> runnable) throws E {
-        Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
-                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType.name())
+        Observation observation = createObservation(name, resourceType);
+        observation
                 .observeChecked(() -> {
                     runnable.run();
-                    recordPerResourceMetric(name, resourceType, size);
+                    recordPerResourceMetric(observation, name, resourceType, size);
                 });
+    }
+
+    private Observation createObservation(String name, ResourceType resourceType) {
+        return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
+                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType.name());
+    }
+
+    private void recordPerResourceMetric(Observation observation, String name, ResourceType resourceType, int size) {
+        if (size == 0) {
+            return;
+        }
+
+        Long duration = getDurationFromObservation(observation);
+        if (duration == null) {
+            return;
+        }
+        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE_SUFFIX)
+                .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
+                .register(meterRegistry)
+                .record(duration / size, TIME_UNIT);
+    }
+
+    private Long getDurationFromObservation(Observation observation) {
+        LongTaskTimer.Sample timer = observation.getContext().get(LongTaskTimer.Sample.class);
+        if (timer == null) {
+            return null;
+        }
+
+        return (long) timer.duration(TIME_UNIT);
     }
 
     public <E extends Throwable> void observeClone(String name, int numberOfVariantsCloned, Observation.CheckedRunnable<E> runnable) throws E {
-        Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
+        Observation observation = Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry);
+        observation
                 .observeChecked(() -> {
                     runnable.run();
-                    recordPerVariantMetric(name, numberOfVariantsCloned);
+                    recordPerVariantMetric(observation, name, numberOfVariantsCloned);
                 });
     }
 
-    private void recordPerVariantMetric(String name, int numberOfVariants) {
+    private void recordPerVariantMetric(Observation observation, String name, int numberOfVariants) {
         if (numberOfVariants == 0) {
             return;
         }
 
-        Long duration = getDurationFromObservation();
+        Long duration = getDurationFromObservation(observation);
         if (duration == null) {
             return;
         }
@@ -74,44 +104,14 @@ public class NetworkStoreObserver {
                 .record(duration / numberOfVariants, TIME_UNIT);
     }
 
-    private Long getDurationFromObservation() {
-        Observation currentObservation = observationRegistry.getCurrentObservation();
-        if (currentObservation == null) {
-            return null;
-        }
-
-        Observation.Context context = currentObservation.getContext();
-        LongTaskTimer.Sample timer = context.get(LongTaskTimer.Sample.class);
-        if (timer == null) {
-            return null;
-        }
-
-        return (long) timer.duration(TIME_UNIT);
-    }
-
     public <T, E extends Throwable> List<T> observe(String name, ResourceType resourceType, Observation.CheckedCallable<List<T>, E> callable) throws E {
-        return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
-                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType.name())
+        Observation observation = createObservation(name, resourceType);
+        return observation
                 .observeChecked(() -> {
                     List<T> results = callable.call();
-                    recordPerResourceMetric(name, resourceType, results.size());
+                    recordPerResourceMetric(observation, name, resourceType, results.size());
                     return results;
                 });
-    }
-
-    private void recordPerResourceMetric(String name, ResourceType resourceType, int size) {
-        if (size == 0) {
-            return;
-        }
-
-        Long duration = getDurationFromObservation();
-        if (duration == null) {
-            return;
-        }
-        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE_SUFFIX)
-                .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
-                .register(meterRegistry)
-                .record(duration / size, TIME_UNIT);
     }
 
     public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, ResourceType resourceType, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
