@@ -6,14 +6,15 @@
  */
 package com.powsybl.network.store.server;
 
-import com.google.common.base.Stopwatch;
 import com.powsybl.network.store.model.Attributes;
 import com.powsybl.network.store.model.Resource;
 import com.powsybl.network.store.model.ResourceType;
+import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
 
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,23 +32,73 @@ public class NetworkStoreObserver {
     private static final String EMPTY_TAG_NAME = "empty";
     private static final String PER_RESOURCE = ".per.resource";
     private static final TimeUnit TIME_UNIT = TimeUnit.NANOSECONDS;
+    private static final String UNKNOWN_RESOURCE_TYPE = "UNKNOWN";
 
     private final MeterRegistry meterRegistry;
+    private final ObservationRegistry observationRegistry;
 
-    public NetworkStoreObserver(MeterRegistry meterRegistry) {
+    public NetworkStoreObserver(MeterRegistry meterRegistry, ObservationRegistry observationRegistry) {
         this.meterRegistry = meterRegistry;
+        this.observationRegistry = observationRegistry;
     }
 
     public <E extends Throwable> void observe(String name, ResourceType resourceType, int size, Observation.CheckedRunnable<E> runnable) throws E {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        runnable.run();
-        long duration = stopwatch.elapsed(TIME_UNIT);
+        Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
+                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType.name())
+                .observeChecked(() -> {
+                    runnable.run();
+                    recordPerResourceMetric(name, resourceType, size);
+                });
+    }
 
-        Timer.builder(OBSERVATION_PREFIX + name)
-                .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
+    public <E extends Throwable> void observeClone(String name, int numberOfVariantsCloned, Observation.CheckedRunnable<E> runnable) throws E {
+        Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
+                .observeChecked(() -> {
+                    runnable.run();
+                    recordPerVariantMetric(name, numberOfVariantsCloned);
+                });
+    }
+
+    private void recordPerVariantMetric(String name, int numberOfVariants) {
+        Long duration = getDurationFromObservation();
+        if (duration == null) {
+            return;
+        }
+        Timer.builder(OBSERVATION_PREFIX + name + ".per.variant")
                 .register(meterRegistry)
-                .record(duration, TIME_UNIT);
+                .record(duration / numberOfVariants, TIME_UNIT);
+    }
 
+    private Long getDurationFromObservation() {
+        Observation currentObservation = observationRegistry.getCurrentObservation();
+        if (currentObservation == null) {
+            return null;
+        }
+
+        Observation.Context context = currentObservation.getContext();
+        LongTaskTimer.Sample timer = context.get(LongTaskTimer.Sample.class);
+        if (timer == null) {
+            return null;
+        }
+
+        return (long) timer.duration(TIME_UNIT);
+    }
+
+    public <T, E extends Throwable> List<T> observe(String name, ResourceType resourceType, Observation.CheckedCallable<List<T>, E> callable) throws E {
+        return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
+                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType.name())
+                .observeChecked(() -> {
+                    List<T> results = callable.call();
+                    recordPerResourceMetric(name, resourceType, results.size());
+                    return results;
+                });
+    }
+
+    private void recordPerResourceMetric(String name, ResourceType resourceType, int size) {
+        Long duration = getDurationFromObservation();
+        if (duration == null) {
+            return;
+        }
         Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE)
                 .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
                 .tag(EMPTY_TAG_NAME, size > 0 ? "false" : "true")
@@ -55,51 +106,9 @@ public class NetworkStoreObserver {
                 .record(size > 0 ? duration / size : duration, TIME_UNIT);
     }
 
-    public <E extends Throwable> void observeClone(String name, int numberOfVariantsCloned, Observation.CheckedRunnable<E> runnable) throws E {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        runnable.run();
-        long duration = stopwatch.elapsed(TIME_UNIT);
-
-        if (numberOfVariantsCloned > 0) {
-            Timer.builder(OBSERVATION_PREFIX + name)
-                    .register(meterRegistry)
-                    .record(duration, TIME_UNIT);
-
-            Timer.builder(OBSERVATION_PREFIX + name + ".per.variant")
-                    .register(meterRegistry)
-                    .record(duration / numberOfVariantsCloned, TIME_UNIT);
-        }
-    }
-
-    public <T, E extends Throwable> List<T> observe(String name, ResourceType resourceType, Observation.CheckedCallable<List<T>, E> callable) throws E {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        List<T> results = callable.call();
-        long duration = stopwatch.elapsed(TIME_UNIT);
-
-        Timer.builder(OBSERVATION_PREFIX + name)
-                .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
-                .register(meterRegistry)
-                .record(duration, TIME_UNIT);
-
-        Timer.builder(OBSERVATION_PREFIX + name + PER_RESOURCE)
-                .tag(RESOURCE_TYPE_TAG_NAME, resourceType.name())
-                .tag(EMPTY_TAG_NAME, !results.isEmpty() ? "false" : "true")
-                .register(meterRegistry)
-                .record(!results.isEmpty() ? duration / results.size() : duration, TIME_UNIT);
-
-        return results;
-    }
-
-    public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
-        Stopwatch stopwatch = Stopwatch.createStarted();
-        Optional<Resource<T>> result = callable.call();
-        long duration = stopwatch.elapsed(TIME_UNIT);
-
-        Timer.builder(OBSERVATION_PREFIX + name)
-                .tag(RESOURCE_TYPE_TAG_NAME, result.map(resource -> resource.getType().name()).orElse("UNKNOWN"))
-                .register(meterRegistry)
-                .record(duration, TIME_UNIT);
-
-        return result;
+    public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, ResourceType resourceType, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
+        return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
+                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType != null ? resourceType.name() : UNKNOWN_RESOURCE_TYPE)
+                .observeChecked(callable);
     }
 }
