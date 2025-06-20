@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.powsybl.network.store.model.Attributes;
 import com.powsybl.network.store.model.Resource;
 import com.powsybl.network.store.model.ResourceType;
+import io.micrometer.common.KeyValue;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -115,16 +116,14 @@ public class NetworkStoreObserver {
     }
 
     public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
-        Timer.Sample sample = Timer.start(meterRegistry);
-
-        Optional<Resource<T>> result = callable.call();
-
-        if (result.isPresent()) {
-            sample.stop(Timer.builder(OBSERVATION_PREFIX + name)
-                    .tag(RESOURCE_TYPE_TAG_NAME, result.get().getType().name())
-                    .register(meterRegistry));
-        }
-
-        return result;
+        Observation observation = Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry);
+        return observation
+                .observeChecked(() -> {
+                    Optional<Resource<T>> result = callable.call();
+                    if (result.isPresent()) {
+                        observation.getContext().addLowCardinalityKeyValue(KeyValue.of(RESOURCE_TYPE_TAG_NAME, result.get().getType().name()));
+                    }
+                    return result;
+                });
     }
 }
