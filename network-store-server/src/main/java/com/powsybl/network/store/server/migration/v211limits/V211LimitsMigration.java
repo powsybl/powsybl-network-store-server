@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.network.store.model.ResourceType;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
 import com.powsybl.network.store.server.ExtensionHandler;
+import com.powsybl.network.store.server.LimitsHandler;
 import com.powsybl.network.store.server.Mappings;
 import com.powsybl.network.store.server.NetworkStoreRepository;
 import com.powsybl.network.store.server.dto.OwnerInfo;
@@ -49,7 +50,9 @@ public class V211LimitsMigration implements CustomTaskChange {
     public void init(Database database) {
         DataSource dataSource = new SingleConnectionDataSource(((JdbcConnection) database.getConnection()).getUnderlyingConnection(), true);
         ObjectMapper mapper = new ObjectMapper();
-        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(), new ExtensionHandler(mapper));
+        Mappings mappings = new Mappings();
+        this.repository = new NetworkStoreRepository(dataSource, mapper, mappings,
+            new ExtensionHandler(mapper), new LimitsHandler(dataSource, mapper, mappings));
     }
 
     @Override
@@ -179,11 +182,11 @@ public class V211LimitsMigration implements CustomTaskChange {
     private static void insertNewLimitsAndDeleteV211(NetworkStoreRepository repository, UUID networkUuid, int variantNum, Map<OwnerInfo, List<TemporaryLimitAttributes>> v211TemporaryLimits, Map<OwnerInfo, List<PermanentLimitAttributes>> v211PermanentLimits) {
         try (Connection connection = repository.getDataSource().getConnection()) {
             if (!v211PermanentLimits.keySet().isEmpty()) {
-                repository.insertPermanentLimitsAttributes(v211PermanentLimits);
+                repository.getLimitsHandler().insertPermanentLimitsAttributes(v211PermanentLimits);
                 deleteV211PermanentLimits(connection, networkUuid, variantNum, v211PermanentLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
             }
             if (!v211TemporaryLimits.keySet().isEmpty()) {
-                repository.insertTemporaryLimitsAttributes(v211TemporaryLimits);
+                repository.getLimitsHandler().insertTemporaryLimitsAttributes(v211TemporaryLimits);
                 deleteV211TemporaryLimits(connection, networkUuid, variantNum, v211TemporaryLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
             }
         } catch (SQLException e) {
