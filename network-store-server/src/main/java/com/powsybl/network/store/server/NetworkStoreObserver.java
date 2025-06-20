@@ -29,11 +29,11 @@ public class NetworkStoreObserver {
 
     private static final String OBSERVATION_PREFIX = "app.network.store.server.";
     private static final String PER_RESOURCE_SUFFIX = ".per.resource";
+    public static final String PER_VARIANT_SUFFIX = ".per.variant";
 
     private static final String RESOURCE_TYPE_TAG_NAME = "resource_type";
 
     private static final TimeUnit TIME_UNIT = TimeUnit.NANOSECONDS;
-    private static final String UNKNOWN_RESOURCE_TYPE = "UNKNOWN";
 
     private final MeterRegistry meterRegistry;
     private final ObservationRegistry observationRegistry;
@@ -99,7 +99,7 @@ public class NetworkStoreObserver {
         if (duration == null) {
             return;
         }
-        Timer.builder(OBSERVATION_PREFIX + name + ".per.variant")
+        Timer.builder(OBSERVATION_PREFIX + name + PER_VARIANT_SUFFIX)
                 .register(meterRegistry)
                 .record(duration / numberOfVariants, TIME_UNIT);
     }
@@ -114,9 +114,17 @@ public class NetworkStoreObserver {
                 });
     }
 
-    public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, ResourceType resourceType, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
-        return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
-                .lowCardinalityKeyValue(RESOURCE_TYPE_TAG_NAME, resourceType != null ? resourceType.name() : UNKNOWN_RESOURCE_TYPE)
-                .observeChecked(callable);
+    public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
+        Timer.Sample sample = Timer.start(meterRegistry);
+
+        Optional<Resource<T>> result = callable.call();
+
+        if (result.isPresent()) {
+            sample.stop(Timer.builder(OBSERVATION_PREFIX + name)
+                    .tag(RESOURCE_TYPE_TAG_NAME, result.get().getType().name())
+                    .register(meterRegistry));
+        }
+
+        return result;
     }
 }

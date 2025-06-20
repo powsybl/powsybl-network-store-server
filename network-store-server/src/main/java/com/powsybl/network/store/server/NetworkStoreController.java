@@ -39,8 +39,8 @@ public class NetworkStoreController {
     @Autowired
     private NetworkStoreObserver networkStoreObserver;
 
-    private <T extends IdentifiableAttributes> ResponseEntity<TopLevelDocument<T>> get(Supplier<Optional<Resource<T>>> f, ResourceType resourceType) {
-        Optional<Resource<T>> optResource = networkStoreObserver.observeOne("get", resourceType, f::get);
+    private <T extends IdentifiableAttributes> ResponseEntity<TopLevelDocument<T>> get(Supplier<Optional<Resource<T>>> f) {
+        Optional<Resource<T>> optResource = networkStoreObserver.observeOne("get", f::get);
         return optResource
                 .map(resource -> ResponseEntity.ok(TopLevelDocument.of(resource)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(TopLevelDocument.empty()));
@@ -110,7 +110,7 @@ public class NetworkStoreController {
     })
     public ResponseEntity<TopLevelDocument<NetworkAttributes>> getNetwork(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID id,
                                                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum) {
-        return get(() -> repository.getNetwork(id, variantNum), ResourceType.NETWORK);
+        return get(() -> repository.getNetwork(id, variantNum));
     }
 
     @PostMapping(consumes = APPLICATION_JSON_VALUE)
@@ -206,7 +206,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<SubstationAttributes>> getSubstation(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                 @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                 @Parameter(description = "Substation ID", required = true) @PathVariable("substationId") String substationId) {
-        return get(() -> repository.getSubstation(networkId, variantNum, substationId), ResourceType.SUBSTATION);
+        return get(() -> repository.getSubstation(networkId, variantNum, substationId));
     }
 
     @PostMapping(value = "/{networkId}/substations")
@@ -259,7 +259,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<VoltageLevelAttributes>> getVoltageLevel(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                     @Parameter(description = "Voltage level ID", required = true) @PathVariable("voltageLevelId") String voltageLevelId) {
-        return get(() -> repository.getVoltageLevel(networkId, variantNum, voltageLevelId), ResourceType.VOLTAGE_LEVEL);
+        return get(() -> repository.getVoltageLevel(networkId, variantNum, voltageLevelId));
     }
 
     @PostMapping(value = "/{networkId}/voltage-levels")
@@ -465,7 +465,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<GeneratorAttributes>> getGenerator(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                               @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                               @Parameter(description = "Generator ID", required = true) @PathVariable("generatorId") String generatorId) {
-        return get(() -> repository.getGenerator(networkId, variantNum, generatorId), ResourceType.GENERATOR);
+        return get(() -> repository.getGenerator(networkId, variantNum, generatorId));
     }
 
     @PutMapping(value = "/{networkId}/generators")
@@ -525,7 +525,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<TieLineAttributes>> getTieLine(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                           @Parameter(description = "Tie Line ID", required = true) @PathVariable("tieLineId") String tieLineId) {
-        return get(() -> repository.getTieLine(networkId, variantNum, tieLineId), ResourceType.TIE_LINE);
+        return get(() -> repository.getTieLine(networkId, variantNum, tieLineId));
     }
 
     @PutMapping(value = "/{networkId}/tie-lines")
@@ -576,7 +576,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<AreaAttributes>> getArea(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                           @Parameter(description = "area ID", required = true) @PathVariable("areaId") String areaId) {
-        return get(() -> repository.getArea(networkId, variantNum, areaId), ResourceType.AREA);
+        return get(() -> repository.getArea(networkId, variantNum, areaId));
     }
 
     @PutMapping(value = "/{networkId}/areas")
@@ -627,7 +627,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<BatteryAttributes>> getBattery(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                           @Parameter(description = "Battery ID", required = true) @PathVariable("batteryId") String batteryId) {
-        return get(() -> repository.getBattery(networkId, variantNum, batteryId), ResourceType.BATTERY);
+        return get(() -> repository.getBattery(networkId, variantNum, batteryId));
     }
 
     @PutMapping(value = "/{networkId}/batteries")
@@ -688,7 +688,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<LoadAttributes>> getLoad(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                     @Parameter(description = "Load ID", required = true) @PathVariable("loadId") String loadId) {
-        return get(() -> repository.getLoad(networkId, variantNum, loadId), ResourceType.LOAD);
+        return get(() -> repository.getLoad(networkId, variantNum, loadId));
     }
 
     @PutMapping(value = "/{networkId}/loads")
@@ -749,7 +749,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<ShuntCompensatorAttributes>> getShuntCompensator(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                             @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                             @Parameter(description = "Shunt compensator ID", required = true) @PathVariable("shuntCompensatorId") String shuntCompensatorId) {
-        return get(() -> repository.getShuntCompensator(networkId, variantNum, shuntCompensatorId), ResourceType.SHUNT_COMPENSATOR);
+        return get(() -> repository.getShuntCompensator(networkId, variantNum, shuntCompensatorId));
     }
 
     @PutMapping(value = "/{networkId}/shunt-compensators")
@@ -811,7 +811,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<VscConverterStationAttributes>> getVscConverterStation(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                   @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                   @Parameter(description = "VSC converter station ID", required = true) @PathVariable("vscConverterStationId") String vscConverterStationId) {
-        return get(() -> repository.getVscConverterStation(networkId, variantNum, vscConverterStationId), ResourceType.VSC_CONVERTER_STATION);
+        return get(() -> repository.getVscConverterStation(networkId, variantNum, vscConverterStationId));
     }
 
     @PutMapping(value = "/{networkId}/vsc-converter-stations")
@@ -874,7 +874,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<LccConverterStationAttributes>> getLccConverterStation(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                   @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                   @Parameter(description = "LCC converter station ID", required = true) @PathVariable("lccConverterStationId") String lccConverterStationId) {
-        return get(() -> repository.getLccConverterStation(networkId, variantNum, lccConverterStationId), ResourceType.LCC_CONVERTER_STATION);
+        return get(() -> repository.getLccConverterStation(networkId, variantNum, lccConverterStationId));
     }
 
     @PutMapping(value = "/{networkId}/lcc-converter-stations")
@@ -937,7 +937,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<StaticVarCompensatorAttributes>> getStaticVarCompensator(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                     @Parameter(description = "Static var compensator ID", required = true) @PathVariable("staticVarCompensatorId") String staticVarCompensatorId) {
-        return get(() -> repository.getStaticVarCompensator(networkId, variantNum, staticVarCompensatorId), ResourceType.STATIC_VAR_COMPENSATOR);
+        return get(() -> repository.getStaticVarCompensator(networkId, variantNum, staticVarCompensatorId));
     }
 
     @PutMapping(value = "/{networkId}/static-var-compensators")
@@ -999,7 +999,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<BusbarSectionAttributes>> getBusbarSection(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                       @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                       @Parameter(description = "Busbar section ID", required = true) @PathVariable("busbarSectionId") String busbarSectionId) {
-        return get(() -> repository.getBusbarSection(networkId, variantNum, busbarSectionId), ResourceType.BUSBAR_SECTION);
+        return get(() -> repository.getBusbarSection(networkId, variantNum, busbarSectionId));
     }
 
     @DeleteMapping(value = "/{networkId}/{variantNum}/busbar-sections", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
@@ -1051,7 +1051,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<SwitchAttributes>> getSwitch(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                         @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                         @Parameter(description = "Switch ID", required = true) @PathVariable("switchId") String switchId) {
-        return get(() -> repository.getSwitch(networkId, variantNum, switchId), ResourceType.SWITCH);
+        return get(() -> repository.getSwitch(networkId, variantNum, switchId));
     }
 
     @PutMapping(value = "/{networkId}/switches")
@@ -1105,7 +1105,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<TwoWindingsTransformerAttributes>> getTwoWindingsTransformer(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                         @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                         @Parameter(description = "2 windings transformer ID", required = true) @PathVariable("twoWindingsTransformerId") String twoWindingsTransformerId) {
-        return get(() -> repository.getTwoWindingsTransformer(networkId, variantNum, twoWindingsTransformerId), ResourceType.TWO_WINDINGS_TRANSFORMER);
+        return get(() -> repository.getTwoWindingsTransformer(networkId, variantNum, twoWindingsTransformerId));
     }
 
     @PutMapping(value = "/{networkId}/2-windings-transformers")
@@ -1167,7 +1167,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<ThreeWindingsTransformerAttributes>> getThreeWindingsTransformer(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                             @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                             @Parameter(description = "3 windings transformer ID", required = true) @PathVariable("threeWindingsTransformerId") String threeWindingsTransformerId) {
-        return get(() -> repository.getThreeWindingsTransformer(networkId, variantNum, threeWindingsTransformerId), ResourceType.THREE_WINDINGS_TRANSFORMER);
+        return get(() -> repository.getThreeWindingsTransformer(networkId, variantNum, threeWindingsTransformerId));
     }
 
     @PutMapping(value = "/{networkId}/3-windings-transformers")
@@ -1229,7 +1229,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<LineAttributes>> getLine(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                     @Parameter(description = "Line ID", required = true) @PathVariable("lineId") String lineId) {
-        return get(() -> repository.getLine(networkId, variantNum, lineId), ResourceType.LINE);
+        return get(() -> repository.getLine(networkId, variantNum, lineId));
     }
 
     @PutMapping(value = "/{networkId}/lines")
@@ -1291,7 +1291,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<HvdcLineAttributes>> getHvdcLine(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                             @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                             @Parameter(description = "Hvdc line ID", required = true) @PathVariable("hvdcLineId") String hvdcLineId) {
-        return get(() -> repository.getHvdcLine(networkId, variantNum, hvdcLineId), ResourceType.HVDC_LINE);
+        return get(() -> repository.getHvdcLine(networkId, variantNum, hvdcLineId));
     }
 
     @PutMapping(value = "/{networkId}/hvdc-lines")
@@ -1344,7 +1344,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<DanglingLineAttributes>> getDanglingLine(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                     @Parameter(description = "Dangling line ID", required = true) @PathVariable("danglingLineId") String danglingLineId) {
-        return get(() -> repository.getDanglingLine(networkId, variantNum, danglingLineId), ResourceType.DANGLING_LINE);
+        return get(() -> repository.getDanglingLine(networkId, variantNum, danglingLineId));
     }
 
     @DeleteMapping(value = "/{networkId}/{variantNum}/dangling-lines", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
@@ -1396,7 +1396,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<GroundAttributes>> getGround(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                         @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                         @Parameter(description = "Ground ID", required = true) @PathVariable("groundId") String groundId) {
-        return get(() -> repository.getGround(networkId, variantNum, groundId), ResourceType.GROUND);
+        return get(() -> repository.getGround(networkId, variantNum, groundId));
     }
 
     @PostMapping(value = "/{networkId}/grounds")
@@ -1456,7 +1456,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<ConfiguredBusAttributes>> getBuses(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                               @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                               @Parameter(description = "bus ID", required = true) @PathVariable("busId") String busId) {
-        return get(() -> repository.getConfiguredBus(networkId, variantNum, busId), ResourceType.CONFIGURED_BUS);
+        return get(() -> repository.getConfiguredBus(networkId, variantNum, busId));
     }
 
     @GetMapping(value = "/{networkId}/{variantNum}/voltage-levels/{voltageLevelId}/configured-buses", produces = APPLICATION_JSON_VALUE)
@@ -1501,7 +1501,7 @@ public class NetworkStoreController {
     public ResponseEntity<TopLevelDocument<IdentifiableAttributes>> getIdentifiable(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                     @Parameter(description = "Identifiable ID", required = true) @PathVariable("id") String id) {
-        return get(() -> repository.getIdentifiable(networkId, variantNum, id), null);
+        return get(() -> repository.getIdentifiable(networkId, variantNum, id));
     }
 
     @GetMapping(value = "/{networkUuid}/{variantNum}/identifiables-ids", produces = APPLICATION_JSON_VALUE)
