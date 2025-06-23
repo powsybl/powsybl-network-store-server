@@ -120,10 +120,12 @@ public class NetworkStoreObserver {
         return observation
                 .observeChecked(() -> {
                     Optional<Resource<T>> result = callable.call();
-                    if (result.isPresent()) {
-                        observation.getContext().addLowCardinalityKeyValue(KeyValue.of(RESOURCE_TYPE_TAG_NAME, result.get().getType().name()));
-                    }
+                    result.ifPresent(resource -> addTag(observation, result.get()));
                     return result;
                 });
+    }
+
+    private static <T extends Attributes> void addTag(Observation observation, Resource<T> resource) {
+        observation.getContext().addLowCardinalityKeyValue(KeyValue.of(RESOURCE_TYPE_TAG_NAME, resource.getType().name()));
     }
 }
