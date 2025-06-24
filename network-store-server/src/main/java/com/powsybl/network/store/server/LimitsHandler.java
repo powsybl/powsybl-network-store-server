@@ -223,8 +223,8 @@ public class LimitsHandler {
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
                 owner.setVariantNum(variantNumOverride);
                 String permanentLimitData = resultSet.getString(5);
-                List<PermanentLimitSqlData> parsedTemporaryLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
-                List<PermanentLimitAttributes> permanentLimits = parsedTemporaryLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
+                List<PermanentLimitSqlData> parsedPermanentLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
+                List<PermanentLimitAttributes> permanentLimits = parsedPermanentLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
                 if (!permanentLimits.isEmpty()) {
                     map.put(owner, permanentLimits);
                 }
