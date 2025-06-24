@@ -28,6 +28,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
@@ -191,7 +192,7 @@ public class LimitsHandler {
 
     private Map<OwnerInfo, List<TemporaryLimitAttributes>> innerGetTemporaryLimits(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            Map<OwnerInfo, List<TemporaryLimitAttributes>> map = new HashMap<>();
+            Map<OwnerInfo, String> rawTemporaryLimitData = new HashMap<>();
             while (resultSet.next()) {
                 OwnerInfo owner = new OwnerInfo();
                 // In order, from the QueryCatalog.buildTemporaryLimitQuery SQL query :
@@ -201,21 +202,27 @@ public class LimitsHandler {
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
                 owner.setVariantNum(variantNumOverride);
                 String temporaryLimitData = resultSet.getString(5);
-                List<TemporaryLimitSqlData> parsedTemporaryLimitData = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
-                List<TemporaryLimitAttributes> temporaryLimits = parsedTemporaryLimitData.stream().map(TemporaryLimitSqlData::toTemporaryLimitAttributes).toList();
-                if (!temporaryLimits.isEmpty()) {
-                    map.put(owner, temporaryLimits);
+                if (temporaryLimitData != null && !temporaryLimitData.isEmpty()) {
+                    rawTemporaryLimitData.put(owner, temporaryLimitData);
                 }
             }
-            return map;
-        } catch (JsonProcessingException e) {
-            throw new UncheckedIOException(e);
+
+            if (rawTemporaryLimitData.isEmpty()) {
+                return new HashMap<>();
+            }
+
+            TypeReference<List<TemporaryLimitSqlData>> typeRef = new TypeReference<>() { };
+            return rawTemporaryLimitData.entrySet().parallelStream()
+                    .collect(Collectors.toConcurrentMap(
+                            Map.Entry::getKey,
+                            entry -> parseLimitData(entry.getValue(), typeRef, TemporaryLimitSqlData::toTemporaryLimitAttributes)
+                    ));
         }
     }
 
     private Map<OwnerInfo, List<PermanentLimitAttributes>> innerGetPermanentLimits(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            Map<OwnerInfo, List<PermanentLimitAttributes>> map = new HashMap<>();
+            Map<OwnerInfo, String> rawPermanentLimitData = new HashMap<>();
             while (resultSet.next()) {
                 OwnerInfo owner = new OwnerInfo();
                 owner.setEquipmentId(resultSet.getString(1));
@@ -223,13 +230,30 @@ public class LimitsHandler {
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
                 owner.setVariantNum(variantNumOverride);
                 String permanentLimitData = resultSet.getString(5);
-                List<PermanentLimitSqlData> parsedTemporaryLimitData = mapper.readValue(permanentLimitData, new TypeReference<>() { });
-                List<PermanentLimitAttributes> permanentLimits = parsedTemporaryLimitData.stream().map(PermanentLimitSqlData::toPermanentLimitAttributes).toList();
-                if (!permanentLimits.isEmpty()) {
-                    map.put(owner, permanentLimits);
+                if (permanentLimitData != null && !permanentLimitData.isEmpty()) {
+                    rawPermanentLimitData.put(owner, permanentLimitData);
                 }
             }
-            return map;
+
+            if (rawPermanentLimitData.isEmpty()) {
+                return new HashMap<>();
+            }
+
+            TypeReference<List<PermanentLimitSqlData>> typeRef = new TypeReference<>() { };
+            return rawPermanentLimitData.entrySet().parallelStream()
+                    .collect(Collectors.toConcurrentMap(
+                            Map.Entry::getKey,
+                            entry -> parseLimitData(entry.getValue(), typeRef, PermanentLimitSqlData::toPermanentLimitAttributes)
+                    ));
+        }
+    }
+
+    private <T, R> List<R> parseLimitData(String json, TypeReference<List<T>> typeRef, Function<T, R> converter) {
+        try {
+            List<T> parsedLimitData = mapper.readValue(json, typeRef);
+            return parsedLimitData.stream()
+                    .map(converter)
+                    .toList();
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
