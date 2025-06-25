@@ -627,27 +627,43 @@ public class LimitsHandler {
         }
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> convertLimitInfosToOperationalLimitsGroupMap(String equipmentId, LimitsInfos limitsInfos) {
-        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitGroups = new HashMap<>();
+    private boolean isMapContainsOperationalLimitsGroup(Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map, String branchId, Integer side, String groupId) {
+        return map.containsKey(branchId) && map.get(branchId).containsKey(side) && map.get(branchId).get(side).containsKey(groupId);
+    }
+
+    private void addElementToOperationalLimitsGroupMap(Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map, String branchId, Integer side, String groupId, OperationalLimitsGroupAttributes operationalLimitsGroupAttributes) {
+        map.putIfAbsent(branchId, new HashMap<>());
+        map.get(branchId).putIfAbsent(side, new HashMap<>());
+        map.get(branchId).get(side).put(groupId, operationalLimitsGroupAttributes);
+    }
+
+    private OperationalLimitsGroupAttributes getElementFromOperationalLimitsGroupMap(Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map, String branchId, Integer side, String groupId) {
+        if (isMapContainsOperationalLimitsGroup(map, branchId, side, groupId)) {
+            return map.get(branchId).get(side).get(groupId);
+        }
+        return null;
+    }
+
+    public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertLimitInfosToOperationalLimitsGroupMap(String equipmentId, LimitsInfos limitsInfos) {
+        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitGroups = new HashMap<>();
         // permanent limits
         limitsInfos.getPermanentLimits().forEach(permanentLimit -> {
-            OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(equipmentId,
-                permanentLimit.getOperationalLimitsGroupId(), permanentLimit.getSide());
-            if (operationalLimitGroups.containsKey(identifier)) {
-                setPermanentLimit(operationalLimitGroups.get(identifier), permanentLimit);
+            if (isMapContainsOperationalLimitsGroup(operationalLimitGroups, equipmentId, permanentLimit.getSide(), permanentLimit.getOperationalLimitsGroupId())) {
+                setPermanentLimit(operationalLimitGroups.get(equipmentId).get(permanentLimit.getSide())
+                    .get(permanentLimit.getOperationalLimitsGroupId()), permanentLimit);
             } else {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
                 operationalLimitsGroupAttributes.setId(permanentLimit.getOperationalLimitsGroupId());
                 setPermanentLimit(operationalLimitsGroupAttributes, permanentLimit);
-                operationalLimitGroups.put(identifier, operationalLimitsGroupAttributes);
+                addElementToOperationalLimitsGroupMap(operationalLimitGroups, equipmentId, permanentLimit.getSide(),
+                    permanentLimit.getOperationalLimitsGroupId(), operationalLimitsGroupAttributes);
             }
         });
         // temporary limits
         limitsInfos.getTemporaryLimits().forEach(temporaryLimit -> {
-            OperationalLimitsGroupIdentifier identifier = new OperationalLimitsGroupIdentifier(equipmentId,
-                temporaryLimit.getOperationalLimitsGroupId(), temporaryLimit.getSide());
-            if (operationalLimitGroups.containsKey(identifier)) {
-                setTemporaryLimit(operationalLimitGroups.get(identifier), temporaryLimit);
+            if (isMapContainsOperationalLimitsGroup(operationalLimitGroups, equipmentId, temporaryLimit.getSide(), temporaryLimit.getOperationalLimitsGroupId())) {
+                setTemporaryLimit(operationalLimitGroups.get(equipmentId).get(temporaryLimit.getSide())
+                    .get(temporaryLimit.getOperationalLimitsGroupId()), temporaryLimit);
             } else {
                 throw new PowsyblException("a limit groups can not have temporary limits without a permanent limit");
             }
@@ -689,8 +705,8 @@ public class LimitsHandler {
                                                                                 int side) {
         OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
         LimitsInfos limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
-        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos);
-        return Optional.ofNullable(operationalLimitsGroupAttributes.get(new OperationalLimitsGroupIdentifier(branchId, operationalLimitsGroupName, side)));
+        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos);
+        return Optional.ofNullable(getElementFromOperationalLimitsGroupMap(operationalLimitsGroupAttributes, branchId, side, operationalLimitsGroupName));
     }
 
     public List<OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesForBranchSide(
@@ -698,31 +714,33 @@ public class LimitsHandler {
         OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
         Optional<LimitsInfos> limitsInfos = Optional.ofNullable(getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo));
         if (limitsInfos.isPresent()) {
-            Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> allBranchOperationalLimitsGroups =
+            Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> allBranchOperationalLimitsGroups =
                 convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos.get());
             List<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = new ArrayList<>();
-            allBranchOperationalLimitsGroups.keySet().stream().filter(identifier -> identifier.getSide() == side)
-                .forEach(identifier ->
-                    operationalLimitsGroupAttributes.add(allBranchOperationalLimitsGroups.get(identifier)));
+            allBranchOperationalLimitsGroups.forEach((equipmentId, map1) -> {
+                if (map1.get(side) != null) {
+                    operationalLimitsGroupAttributes.addAll(map1.get(side).values().stream().toList());
+                }
+            });
             return operationalLimitsGroupAttributes;
         }
         return Collections.emptyList();
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
+    public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
             UUID networkId, int variantNum, ResourceType type, int fullVariantNum, Set<String> tombstonedElements) {
         // get selected operational limits ids for each element of type indicated
         Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
         Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups =
             getSelectedOperationalLimitsGroupIdsForVariant(networkId, variantNum, fullVariantNum, type, tombstonedElements);
-        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> selectedOperationalLimitsGroupAttributes = new HashMap<>();
+        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> selectedOperationalLimitsGroupAttributes = new HashMap<>();
         // get operational limits group associated
         selectedOperationalLimitsGroups.forEach((owner, selectedOperationalLimitsGroupIdentifiers) -> {
             String selectedOperationalLimitsGroupId1 = selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId1();
             String selectedOperationalLimitsGroupId2 = selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2();
             if (selectedOperationalLimitsGroupId1 != null || selectedOperationalLimitsGroupId2 != null) {
                 String equipmentId = owner.getEquipmentId();
-                Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
+                Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
                     equipmentId, limitsInfos.get(owner));
                 // side 1
                 addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId1, operationalLimitsGroupAttributesMap, 1, equipmentId, selectedOperationalLimitsGroupAttributes);
@@ -733,14 +751,13 @@ public class LimitsHandler {
     }
 
     private void addSelectedOperationalLimitsGroupOnSide(String selectedOperationalLimitsGroupId,
-                                                         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesMap,
+                                                         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributesMap,
                                                          int side, String equipmentId,
-                                                         Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> selectedOperationalLimitsGroupAttributes) {
+                                                         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> selectedOperationalLimitsGroupAttributes) {
         if (selectedOperationalLimitsGroupId != null) {
-            OperationalLimitsGroupIdentifier identifierSide = new OperationalLimitsGroupIdentifier(equipmentId, selectedOperationalLimitsGroupId, side);
-            OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = operationalLimitsGroupAttributesMap.get(identifierSide);
+            OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = getElementFromOperationalLimitsGroupMap(operationalLimitsGroupAttributesMap, equipmentId, side, selectedOperationalLimitsGroupId);
             if (operationalLimitsGroupAttributes != null) {
-                selectedOperationalLimitsGroupAttributes.put(identifierSide, operationalLimitsGroupAttributes);
+                addElementToOperationalLimitsGroupMap(selectedOperationalLimitsGroupAttributes, equipmentId, side, selectedOperationalLimitsGroupId, operationalLimitsGroupAttributes);
             }
         }
     }

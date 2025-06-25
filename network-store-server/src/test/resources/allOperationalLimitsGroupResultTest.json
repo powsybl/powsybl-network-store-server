@@ -1,84 +1,96 @@
 {
-  "{\"branchId\":\"line1\",\"operationalLimitsGroupId\":\"selectedsied2\",\"side\":2}": {
-    "id": "selectedsied2",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
+  "line2": {
+    "1": {
+      "selectedside1": {
+        "id": "selectedside1",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      }
+    },
+    "2": {
+      "otherside1line2": {
+        "id": "otherside1line2",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      },
+      "selectedside2": {
+        "id": "selectedside2",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
         }
       }
     }
   },
-  "{\"branchId\":\"line1\",\"operationalLimitsGroupId\":\"otherside1line1\",\"side\":1}": {
-    "id": "otherside1line1",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
+  "line1": {
+    "1": {
+      "otherside1line1": {
+        "id": "otherside1line1",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      },
+      "selectedside1": {
+        "id": "selectedside1",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
         }
       }
-    }
-  },
-  "{\"branchId\":\"line1\",\"operationalLimitsGroupId\":\"selectedside1\",\"side\":1}": {
-    "id": "selectedside1",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
-        }
-      }
-    }
-  },
-  "{\"branchId\":\"line2\",\"operationalLimitsGroupId\":\"selectedsied2\",\"side\":2}": {
-    "id": "selectedsied2",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
-        }
-      }
-    }
-  },
-  "{\"branchId\":\"line2\",\"operationalLimitsGroupId\":\"selectedside1\",\"side\":1}": {
-    "id": "selectedside1",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
-        }
-      }
-    }
-  },
-  "{\"branchId\":\"line2\",\"operationalLimitsGroupId\":\"otherside1line2\",\"side\":2}": {
-    "id": "otherside1line2",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
+    },
+    "2": {
+      "selectedside2": {
+        "id": "selectedside2",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
         }
       }
     }

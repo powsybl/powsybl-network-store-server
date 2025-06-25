@@ -3602,16 +3602,16 @@ public class NetworkStoreRepository {
         return limitsHandler.getOperationalLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesByResourceType(
+    public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-        Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> map = new HashMap<>();
+        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map = new HashMap<>();
         limitsInfos.forEach((owner, limitsInfo) ->
             map.putAll(limitsHandler.convertLimitInfosToOperationalLimitsGroupMap(owner.getEquipmentId(), limitsInfo)));
         return map;
     }
 
-    public Map<OperationalLimitsGroupIdentifier, OperationalLimitsGroupAttributes> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
+    public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         try (var connection = dataSource.getConnection()) {
             int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).getFullVariantNum();

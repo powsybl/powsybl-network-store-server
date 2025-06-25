@@ -9,7 +9,6 @@ package com.powsybl.network.store.server;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
@@ -63,12 +62,9 @@ class NetworkStoreControllerIT {
 
     @BeforeEach
     void setup() {
-        SimpleModule module = new SimpleModule();
-        module.addKeyDeserializer(OperationalLimitsGroupIdentifier.class, new OperationalLimitsGroupIdentifierDeserializer());
         this.objectMapper.registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
-                .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
-            .registerModule(module);
+                .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false);
     }
 
     @Test
@@ -1634,7 +1630,7 @@ class NetworkStoreControllerIT {
             .andExpect(status().isCreated());
         // Create first line with two olg
         String olgId1 = "selectedside1";
-        String olgId2 = "selectedsied2";
+        String olgId2 = "selectedside2";
         String olgId3 = "otherside1line1";
         String olgId4 = "otherside1line2";
         OperationalLimitsGroupAttributes olg1 = createOperationalLimitsGroupAttributes(olgId1);
