@@ -77,7 +77,7 @@ public final class QueryCatalog {
                 " and " + ID_COLUMN + " = ?";
     }
 
-    public static String buildGetIdentifiablesSpecificColumnsQuery(String tableName) {
+    public static String buildGetSelectedOperationalLimitsGroupsQuery(String tableName) {
         return "select " + ID_COLUMN + ", " +
             SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 + ", " +
             SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 +

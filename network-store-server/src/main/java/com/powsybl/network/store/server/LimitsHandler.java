@@ -632,9 +632,9 @@ public class LimitsHandler {
     }
 
     private void addElementToOperationalLimitsGroupMap(Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map, String branchId, Integer side, String groupId, OperationalLimitsGroupAttributes operationalLimitsGroupAttributes) {
-        map.putIfAbsent(branchId, new HashMap<>());
-        map.get(branchId).putIfAbsent(side, new HashMap<>());
-        map.get(branchId).get(side).put(groupId, operationalLimitsGroupAttributes);
+        map.computeIfAbsent(branchId, k -> new HashMap<>())
+            .computeIfAbsent(side, k -> new HashMap<>())
+            .put(groupId, operationalLimitsGroupAttributes);
     }
 
     private OperationalLimitsGroupAttributes getElementFromOperationalLimitsGroupMap(Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map, String branchId, Integer side, String groupId) {
@@ -776,7 +776,7 @@ public class LimitsHandler {
 
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(
-                    QueryCatalog.buildGetIdentifiablesSpecificColumnsQuery(mappings.getTableMapping(type).getTable()))) {
+                    QueryCatalog.buildGetSelectedOperationalLimitsGroupsQuery(mappings.getTableMapping(type).getTable()))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
                 return getInnerSelectedOperationalLimitsGroupIds(networkId, type, preparedStmt, tombstonedElements, refVariantNum);
