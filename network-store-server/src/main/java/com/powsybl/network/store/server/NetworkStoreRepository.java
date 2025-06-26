@@ -1206,40 +1206,6 @@ public class NetworkStoreRepository {
         return identifiableIds;
     }
 
-    private Set<String> getTombstonedTemporaryLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
-        Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            preparedStmt.setString(3, ExternalAttributesType.TEMPORARY_LIMIT.toString());
-            try (var resultSet = preparedStmt.executeQuery()) {
-                while (resultSet.next()) {
-                    identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
-                }
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-        return identifiableIds;
-    }
-
-    private Set<String> getTombstonedPermanentLimitsIds(Connection connection, UUID networkUuid, int variantNum) {
-        Set<String> identifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedExternalAttributesIdsQuery())) {
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            preparedStmt.setString(3, ExternalAttributesType.PERMANENT_LIMIT.toString());
-            try (var resultSet = preparedStmt.executeQuery()) {
-                while (resultSet.next()) {
-                    identifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
-                }
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-        return identifiableIds;
-    }
-
     public Set<String> getTombstonedIdentifiableIds(Connection connection, UUID networkUuid, int variantNum) {
         Set<String> tombstonedIdentifiableIds = new HashSet<>();
         try (var preparedStmt = connection.prepareStatement(buildGetTombstonedIdentifiablesIdsQuery())) {
@@ -2196,8 +2162,6 @@ public class NetworkStoreRepository {
         }
         return Optional.empty();
     }
-
-    // Temporary Limits
 
     // Regulating Points
     public void insertRegulatingPoints(Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPoints) {
