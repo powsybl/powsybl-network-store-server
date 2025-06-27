@@ -58,6 +58,8 @@ public final class QueryCatalog {
     public static final String SIDE_COLUMN = "side";
     private static final String TYPE_COLUMN = "type";
     static final String REGULATING = "regulating";
+    public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 = "selectedoperationallimitsgroupid1";
+    public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 = "selectedoperationallimitsgroupid2";
     private static final Predicate<String> CLONE_PREDICATE = column -> !column.equals(UUID_COLUMN) && !column.equals(VARIANT_ID_COLUMN)
             && !column.equals(NAME_COLUMN) && !column.equals(FULL_VARIANT_NUM_COLUMN);
     private static final String TOMBSTONED_IDENTIFIABLE_TABLE = "tombstonedidentifiable";
@@ -73,6 +75,15 @@ public final class QueryCatalog {
                 " where " + NETWORK_UUID_COLUMN + " = ?" +
                 " and " + VARIANT_NUM_COLUMN + " = ?" +
                 " and " + ID_COLUMN + " = ?";
+    }
+
+    public static String buildGetSelectedOperationalLimitsGroupsQuery(String tableName) {
+        return "select " + ID_COLUMN + ", " +
+            SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 + ", " +
+            SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 +
+            " from " + tableName +
+            " where " + NETWORK_UUID_COLUMN + " = ?" +
+            " and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildGetNetworkQuery(Collection<String> columns) {
@@ -467,7 +478,7 @@ public final class QueryCatalog {
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
-    public static String buildPermanentLimitQuery(String columnNameForWhereClause) {
+    public static String buildGetPermanentLimitQuery(String columnNameForWhereClause) {
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
