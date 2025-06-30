@@ -3570,8 +3570,11 @@ public class NetworkStoreRepository {
         UUID networkId, int variantNum, ResourceType type) {
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map = new HashMap<>();
-        limitsInfos.forEach((owner, limitsInfo) ->
-            map.putAll(limitsHandler.convertLimitInfosToOperationalLimitsGroupMap(owner.getEquipmentId(), limitsInfo)));
+        limitsInfos.forEach((owner, limitsInfo) -> {
+            if (limitsInfo != null) {
+                map.putAll(limitsHandler.convertLimitInfosToOperationalLimitsGroupMap(owner.getEquipmentId(), limitsInfo));
+            }
+        });
         return map;
     }
 

@@ -704,6 +704,9 @@ public class LimitsHandler {
                                                                                 int side) {
         OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
         LimitsInfos limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
+        if (limitsInfos == null) {
+            return Optional.empty();
+        }
         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos);
         return getElementFromOperationalLimitsGroupMap(operationalLimitsGroupAttributes, branchId, side, operationalLimitsGroupName);
     }
@@ -739,11 +742,13 @@ public class LimitsHandler {
             String selectedOperationalLimitsGroupId2 = selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2();
             if (selectedOperationalLimitsGroupId1 != null || selectedOperationalLimitsGroupId2 != null) {
                 String equipmentId = owner.getEquipmentId();
-                Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
-                    equipmentId, limitsInfos.get(owner));
-                // side 1
-                addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId1, operationalLimitsGroupAttributesMap, 1, equipmentId, selectedOperationalLimitsGroupAttributes);
-                addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId2, operationalLimitsGroupAttributesMap, 2, equipmentId, selectedOperationalLimitsGroupAttributes);
+                LimitsInfos limitsInfos1 = limitsInfos.get(owner);
+                if (limitsInfos1 != null) {
+                    Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
+                        equipmentId, limitsInfos1);
+                    addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId1, operationalLimitsGroupAttributesMap, 1, equipmentId, selectedOperationalLimitsGroupAttributes);
+                    addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId2, operationalLimitsGroupAttributesMap, 2, equipmentId, selectedOperationalLimitsGroupAttributes);
+                }
             }
         });
         return selectedOperationalLimitsGroupAttributes;
