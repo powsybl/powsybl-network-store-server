@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
+import com.google.gdata.util.common.base.Pair;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.LimitType;
 import com.powsybl.network.store.model.*;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
+import static com.powsybl.network.store.server.Utils.getNetworkAttributes;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -532,6 +534,64 @@ public class LimitsHandler {
             case ACTIVE_POWER -> equipment.getActivePowerLimits(side, operationalLimitsGroupId);
             default -> throw new IllegalArgumentException(EXCEPTION_UNKNOWN_LIMIT_TYPE);
         };
+    }
+
+    public <T extends IdentifiableAttributes> void updateLimits(UUID networkUuid, List<Resource<T>> resources, Map<OwnerInfo, LimitsInfos> limitsInfos) {
+        updateLimitsInfos(networkUuid, resources, limitsInfos);
+        updateTemporaryLimits(networkUuid, resources, limitsInfos);
+        updatePermanentLimits(networkUuid, resources, limitsInfos);
+    }
+
+    public <T extends IdentifiableAttributes> void updateLimitsInfos(UUID networkUuid, List<Resource<T>> resources, Map<OwnerInfo, LimitsInfos> limitsInfos) {
+        Map<Integer, List<OwnerInfo>> resourceIdsByVariant = new HashMap<>();
+        for (Resource<T> resource : resources) {
+            OwnerInfo ownerInfo = new OwnerInfo(resource.getId(), resource.getType(), networkUuid, resource.getVariantNum());
+            resourceIdsByVariant.computeIfAbsent(resource.getVariantNum(), k -> new ArrayList<>()).add(ownerInfo);
+        }
+        try (var connection = dataSource.getConnection()) {
+            resourceIdsByVariant.forEach((variantNum, ownerInfoList) -> {
+                NetworkAttributes networkAttributes = getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper);
+                if (!networkAttributes.isFullVariant()) {
+                    int fullVariantNum = networkAttributes.getFullVariantNum();
+                    Map<OwnerInfo, LimitsInfos> fullVariantLimitInfos =
+                        getLimitsInfosWithInClause(networkUuid, fullVariantNum, EQUIPMENT_ID_COLUMN, ownerInfoList.stream().map(OwnerInfo::getEquipmentId).toList());
+                    updateLimitsInfosMap(limitsInfos, fullVariantLimitInfos, fullVariantNum);
+                }
+            });
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private void updateLimitsInfosMap(Map<OwnerInfo, LimitsInfos> toUpdateLimitsInfos, Map<OwnerInfo, LimitsInfos> fullVariantLimitsInfos, int fullVariantNum) {
+        toUpdateLimitsInfos.forEach((ownerInfo, limitsInfo) -> {
+            // collect groups and side that will be modified
+            Set<Pair<Integer, String>> operationalLimitsGroupUpdated = limitsInfo.getPermanentLimits()
+                .stream()
+                .map(permanentLimitAttributes -> Pair.of(permanentLimitAttributes.getSide(), permanentLimitAttributes.getOperationalLimitsGroupId()))
+                .collect(Collectors.toSet());
+            operationalLimitsGroupUpdated.addAll(limitsInfo.getTemporaryLimits()
+                .stream()
+                .map(temporaryLimitAttributes -> Pair.of(temporaryLimitAttributes.getSide(), temporaryLimitAttributes.getOperationalLimitsGroupId()))
+                .collect(Collectors.toSet()));
+
+            // collect limits sets that won't be modified
+            LimitsInfos fullVariantLimitsInfo = fullVariantLimitsInfos.get(new OwnerInfo(ownerInfo.getEquipmentId(), ownerInfo.getEquipmentType(), ownerInfo.getNetworkUuid(), fullVariantNum));
+
+            // insert in modification limitInfos
+            List<PermanentLimitAttributes> updatedPermanentLimitAttributes = limitsInfo.getPermanentLimits();
+            List<TemporaryLimitAttributes> updatedTemporaryLimitAttributes = limitsInfo.getTemporaryLimits();
+            fullVariantLimitsInfo.getPermanentLimits().stream()
+                .filter(permanentLimit ->
+                    !operationalLimitsGroupUpdated.contains(Pair.of(permanentLimit.getSide(), permanentLimit.getOperationalLimitsGroupId())))
+                .forEach(updatedPermanentLimitAttributes::add);
+            fullVariantLimitsInfo.getTemporaryLimits().stream()
+                .filter(temporaryLimitAttributes ->
+                    !operationalLimitsGroupUpdated.contains(Pair.of(temporaryLimitAttributes.getSide(), temporaryLimitAttributes.getOperationalLimitsGroupId())))
+                .forEach(updatedTemporaryLimitAttributes::add);
+            limitsInfo.setPermanentLimits(updatedPermanentLimitAttributes);
+            limitsInfo.setTemporaryLimits(updatedTemporaryLimitAttributes);
+        });
     }
 
     public <T extends IdentifiableAttributes> void updateTemporaryLimits(UUID networkUuid, List<Resource<T>> resources, Map<OwnerInfo, LimitsInfos> limitsInfos) {

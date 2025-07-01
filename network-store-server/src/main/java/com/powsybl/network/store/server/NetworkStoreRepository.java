@@ -1690,8 +1690,7 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
 
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.updateTemporaryLimits(networkUuid, resources, limitsInfos);
-        limitsHandler.updatePermanentLimits(networkUuid, resources, limitsInfos);
+        limitsHandler.updateLimits(networkUuid, resources, limitsInfos);
         updateTapChangerSteps(networkUuid, resources);
         updateRegulatingPoints(networkUuid, resources, ResourceType.TWO_WINDINGS_TRANSFORMER, getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
     }
@@ -1885,8 +1884,7 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
 
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.updateTemporaryLimits(networkUuid, resources, limitsInfos);
-        limitsHandler.updatePermanentLimits(networkUuid, resources, limitsInfos);
+        limitsHandler.updateLimits(networkUuid, resources, limitsInfos);
     }
 
     private <T extends IdentifiableAttributes, U> Set<RegulatingOwnerInfo> getRegulatingPointsToTombstoneFromEquipment(UUID networkUuid, Map<RegulatingOwnerInfo, U> externalAttributesToInsert, List<Resource<T>> resources) {
