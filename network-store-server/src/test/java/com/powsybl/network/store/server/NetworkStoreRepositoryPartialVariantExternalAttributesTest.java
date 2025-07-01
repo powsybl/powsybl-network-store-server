@@ -28,6 +28,8 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
@@ -1176,5 +1178,99 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
+    }
+
+    @Test
+    void testUpdateLimitsOnLines() {
+        String networkId = "test";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        String line1Id = "line1";
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+            .id(line1Id)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+                .operationalLimitsGroups1(Map.of(
+                    "group1", createOperationalLimitsGroup("group1", 1),
+                    "group2", createOperationalLimitsGroup("group2", 1),
+                    "group3", createOperationalLimitsGroup("group3", 1),
+                    "group4", createOperationalLimitsGroup("group4", 1)
+                ))
+                .operationalLimitsGroups2(Map.of(
+                    "group1", createOperationalLimitsGroup("group1", 2),
+                    "group2", createOperationalLimitsGroup("group2", 2),
+                    "group3", createOperationalLimitsGroup("group3", 2),
+                    "group4", createOperationalLimitsGroup("group4", 2)
+                ))
+                .build())
+            .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line1));
+
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", Resource.INITIAL_VARIANT_NUM);
+
+        Resource<LineAttributes> updatedline1 = Resource.lineBuilder()
+            .id(line1Id)
+            .variantNum(Resource.INITIAL_VARIANT_NUM + 1)
+            .attributes(LineAttributes.builder()
+                .operationalLimitsGroups1(Map.of(
+                    "group1", createUpdatedOperationalLimitsGroup("group1", 1)
+                ))
+                .operationalLimitsGroups2(Map.of(
+                    "group2", createUpdatedOperationalLimitsGroup("group2", 2)
+                ))
+                .build())
+            .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedline1));
+
+        // side 1
+        List<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesListSide1 = networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, line1Id, 1);
+        assertEquals(4, operationalLimitsGroupAttributesListSide1.size());
+        Map<String, OperationalLimitsGroupAttributes> map = operationalLimitsGroupAttributesListSide1.stream().collect(Collectors.toMap(OperationalLimitsGroupAttributes::getId, Function.identity()));
+        assertTrue(map.keySet().containsAll(Set.of("group1", "group2", "group3", "group4")));
+        assertEquals(100, map.get("group1").getCurrentLimits().getPermanentLimit());
+        assertEquals(2, map.get("group1").getCurrentLimits().getTemporaryLimits().size());
+        assertNotNull(map.get("group1").getCurrentLimits().getTemporaryLimits().get(500));
+        assertNull(map.get("group1").getCurrentLimits().getTemporaryLimits().get(1000));
+        assertEquals(20, map.get("group2").getCurrentLimits().getPermanentLimit());
+        assertEquals(20, map.get("group3").getCurrentLimits().getPermanentLimit());
+        assertEquals(20, map.get("group4").getCurrentLimits().getPermanentLimit());
+
+        // side 2
+        List<OperationalLimitsGroupAttributes> operationalLimitsGroupAttributesListSide2 = networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, line1Id, 2);
+        assertEquals(4, operationalLimitsGroupAttributesListSide2.size());
+        Map<String, OperationalLimitsGroupAttributes> map2 = operationalLimitsGroupAttributesListSide2.stream().collect(Collectors.toMap(OperationalLimitsGroupAttributes::getId, Function.identity()));
+        assertTrue(map2.keySet().containsAll(Set.of("group1", "group2", "group3", "group4")));
+        assertEquals(100, map2.get("group2").getCurrentLimits().getPermanentLimit());
+        assertEquals(2, map2.get("group2").getCurrentLimits().getTemporaryLimits().size());
+        assertNotNull(map2.get("group2").getCurrentLimits().getTemporaryLimits().get(500));
+        assertNull(map2.get("group2").getCurrentLimits().getTemporaryLimits().get(1000));
+        assertEquals(20, map2.get("group1").getCurrentLimits().getPermanentLimit());
+        assertEquals(1, map2.get("group1").getCurrentLimits().getTemporaryLimits().size());
+        assertNotNull(map2.get("group1").getCurrentLimits().getTemporaryLimits().get(1000));
+        assertEquals(20, map2.get("group3").getCurrentLimits().getPermanentLimit());
+        assertEquals(20, map2.get("group4").getCurrentLimits().getPermanentLimit());
+    }
+
+    private OperationalLimitsGroupAttributes createOperationalLimitsGroup(String groupId, int side) {
+        TreeMap<Integer, TemporaryLimitAttributes> treeMap = new TreeMap<>();
+        treeMap.put(1000, new TemporaryLimitAttributes(side, LimitType.CURRENT, groupId, "temp1", 100, 1000, false));
+        return OperationalLimitsGroupAttributes.builder()
+            .id(groupId)
+            .currentLimits(LimitsAttributes.builder()
+                .permanentLimit(20.)
+                .temporaryLimits(treeMap)
+                .build())
+            .build();
+    }
+
+    private OperationalLimitsGroupAttributes createUpdatedOperationalLimitsGroup(String groupId, int side) {
+        TreeMap<Integer, TemporaryLimitAttributes> treeMap = new TreeMap<>();
+        treeMap.put(500, new TemporaryLimitAttributes(side, LimitType.CURRENT, groupId, "temp2", 200, 500, false));
+        treeMap.put(250, new TemporaryLimitAttributes(side, LimitType.CURRENT, groupId, "temp3", 400, 250, false));
+        return OperationalLimitsGroupAttributes.builder()
+            .id(groupId)
+            .currentLimits(LimitsAttributes.builder().permanentLimit(100.).temporaryLimits(treeMap).build())
+            .build();
     }
 }
