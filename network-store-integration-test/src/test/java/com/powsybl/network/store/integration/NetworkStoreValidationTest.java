@@ -22,6 +22,7 @@ import org.springframework.test.context.ContextHierarchy;
 
 import java.util.NoSuchElementException;
 
+import static com.powsybl.iidm.network.RatioTapChanger.RegulationMode.VOLTAGE;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -300,19 +301,19 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("bmin is invalid"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).add())
                 .getMessage().contains("bmax is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).add())
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setRegulationMode(null).setNode(1).setBmin(1).setBmax(10).add())
                 .getMessage().contains("Regulation mode is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).add())
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).add())
                 .getMessage().matches("(.*)voltage setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).add())
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).add())
                 .getMessage().matches("(.*)reactive power setpoint(.*)"));
 
-        StaticVarCompensator svc = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setReactivePowerSetpoint(10).add();
+        StaticVarCompensator svc = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setReactivePowerSetpoint(10).add();
 
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmin(Double.NaN)).getMessage().contains("bmin is invalid"));
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmax(Double.NaN)).getMessage().contains("bmax is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setReactivePowerSetpoint(Double.NaN)).getMessage().matches("(.*)invalid value(.*)reactive power setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setVoltageSetpoint(Double.NaN)).getMessage().matches("(.*)invalid value(.*)voltage setpoint(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setRegulating(true).setReactivePowerSetpoint(Double.NaN)).getMessage().matches("(.*)invalid value(.*)reactive power setpoint(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setVoltageSetpoint(Double.NaN).setRegulating(true)).getMessage().matches("(.*)invalid value(.*)voltage setpoint(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(null)).getMessage().contains("Regulation mode is invalid"));
     }
 
@@ -483,7 +484,9 @@ class NetworkStoreValidationTest {
                 .beginStep().setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()
                 .beginStep().setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
                 .beginStep().setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
+                .setLoadTapChangingCapabilities(true)
                 .setRegulating(true)
+                .setRegulationMode(VOLTAGE)
                 .setRegulationTerminal(t2e.getTerminal1())
                 .setTargetV(100)
                 .add())
@@ -494,6 +497,8 @@ class NetworkStoreValidationTest {
                 .beginStep().setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
                 .beginStep().setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
                 .setRegulating(true)
+                .setRegulationMode(VOLTAGE)
+                .setLoadTapChangingCapabilities(true)
                 .setRegulationTerminal(t2e.getTerminal1())
                 .setTargetV(100)
                 .setTargetDeadband(-10)
@@ -565,15 +570,6 @@ class NetworkStoreValidationTest {
                 .setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL)
                 .add())
                 .getMessage().contains("phase regulation is on and threshold/setpoint value is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> t2e.newPhaseTapChanger()
-                .setTapPosition(1)
-                .beginStep().setAlpha(1.0).setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()
-                .beginStep().setAlpha(1.0).setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
-                .beginStep().setAlpha(1.0).setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
-                .setRegulating(true)
-                .setRegulationMode(PhaseTapChanger.RegulationMode.FIXED_TAP)
-                .add())
-                .getMessage().contains("phase regulation cannot be on if mode is FIXED"));
         assertTrue(assertThrows(PowsyblException.class, () -> t2e.newPhaseTapChanger()
                 .setTapPosition(1)
                 .beginStep().setAlpha(1.0).setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()

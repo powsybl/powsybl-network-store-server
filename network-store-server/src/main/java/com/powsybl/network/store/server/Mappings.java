@@ -474,6 +474,7 @@ public class Mappings {
         shuntCompensatorMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, ShuntCompensatorAttributes::getAliasByType, ShuntCompensatorAttributes::setAliasByType));
         shuntCompensatorMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, ShuntCompensatorAttributes::getAliasesWithoutType, ShuntCompensatorAttributes::setAliasesWithoutType));
         shuntCompensatorMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, ShuntCompensatorAttributes::getPosition, ShuntCompensatorAttributes::setPosition));
+        shuntCompensatorMappings.addColumnMapping("solvedSectionCount", new ColumnMapping<>(Integer.class, ShuntCompensatorAttributes::getSolvedSectionCount, ShuntCompensatorAttributes::setSolvedSectionCount));
     }
 
     private void createVscConverterStationMappings() {
@@ -630,6 +631,22 @@ public class Mappings {
                 }
                 attributes.getPhaseTapChangerAttributes().setRegulationValue(value);
             }));
+        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities", new ColumnMapping<>(Boolean.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
+            (TwoWindingsTransformerAttributes attributes, Boolean value) -> {
+                if (attributes.getPhaseTapChangerAttributes() == null) {
+                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                attributes.getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
+            }));
+        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
+            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
+                if (attributes.getPhaseTapChangerAttributes() == null) {
+                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                attributes.getPhaseTapChangerAttributes().setSolvedTapPosition(value);
+            }));
         // ratioTapChanger
         twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerLowTapPosition", new ColumnMapping<>(Integer.class,
             (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getLowTapPosition() : null,
@@ -670,6 +687,14 @@ public class Mappings {
                     attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
                 }
                 attributes.getRatioTapChangerAttributes().setRegulationValue(value);
+            }));
+        twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getSolvedTapPosition() : null,
+            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
+                if (attributes.getRatioTapChangerAttributes() == null) {
+                    attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+                }
+                attributes.getRatioTapChangerAttributes().setSolvedTapPosition(value);
             }));
     }
 
