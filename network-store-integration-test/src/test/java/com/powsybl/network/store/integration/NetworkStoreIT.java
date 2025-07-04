@@ -29,7 +29,6 @@ import com.powsybl.network.store.iidm.impl.NetworkImpl;
 import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -1664,7 +1663,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = FourSubstationsNodeBreakerFactory.create(service.getNetworkFactory());
             assertEquals(26, network.getConnectableCount());
-            assertEquals(26, IterableUtils.size(network.getConnectables()));
+            assertEquals(26, StreamSupport.stream(network.getConnectables().spliterator(), false).count());
 
             assertEquals(2, network.getConnectableCount(Line.class));
             service.flush(network);
@@ -1675,10 +1674,11 @@ class NetworkStoreIT {
 
             assertEquals(1, networkIds.size());
 
+            assertTrue(networkIds.keySet().stream().findFirst().isPresent());
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
 
             assertEquals(26, readNetwork.getConnectableCount());
-            assertEquals(26, IterableUtils.size(readNetwork.getConnectables()));
+            assertEquals(26, StreamSupport.stream(readNetwork.getConnectables().spliterator(), false).count());
 
             assertEquals(2, readNetwork.getConnectableCount(Line.class));
         }
@@ -2703,7 +2703,7 @@ class NetworkStoreIT {
                 .setId("SVC1")
                 .setName("SVC1")
                 .setConnectableBus("04878f11-c766-11e1-8775-005056c00008")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
+                .setRegulating(false)
                 .setReactivePowerSetpoint(5.2f)
                 .setBmax(0.5f)
                 .setBmin(0.1f)
@@ -2881,6 +2881,7 @@ class NetworkStoreIT {
             .setLowTapPosition(0)
             .setTapPosition(0)
             .setRegulating(true)
+            .setLoadTapChangingCapabilities(true)
             .setTargetV(200)
             .setRegulationTerminal(twt.getTerminal2())
             .setTargetDeadband(22)
