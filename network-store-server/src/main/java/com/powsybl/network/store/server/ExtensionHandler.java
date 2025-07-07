@@ -23,10 +23,10 @@ import java.util.*;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+import static com.powsybl.network.store.server.NetworkStoreRepository.BATCH_SIZE;
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.QueryExtensionCatalog.EXTENSION_NAME_COLUMN;
 import static com.powsybl.network.store.server.QueryExtensionCatalog.buildIsTombstonedExtensionQuery;
-import static com.powsybl.network.store.server.Utils.BATCH_SIZE;
 import static com.powsybl.network.store.server.Utils.bindValues;
 
 /**
