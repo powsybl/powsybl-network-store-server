@@ -430,7 +430,7 @@ public class NetworkStoreRepository {
                 Resource<NetworkAttributes> sourceNetworkAttribute = getNetwork(sourceNetworkUuid, variantInfos.getNum()).orElseThrow(() -> new PowsyblException("Cannot retrieve source network attributes uuid : " + sourceNetworkUuid + ", variantId : " + variantInfos.getId()));
                 sourceNetworkAttribute.getAttributes().setUuid(targetNetworkUuid);
                 sourceNetworkAttribute.getAttributes().setExtensionAttributes(Collections.emptyMap());
-                sourceNetworkAttribute.setVariantNum(VariantUtils.findFistAvailableVariantNum(newNetworkVariants));
+                sourceNetworkAttribute.setVariantNum(VariantUtils.findFirstAvailableVariantNum(newNetworkVariants));
 
                 newNetworkVariants.add(new VariantInfos(sourceNetworkAttribute.getAttributes().getVariantId(), sourceNetworkAttribute.getVariantNum()));
                 variantsNotFound.remove(sourceNetworkAttribute.getAttributes().getVariantId());
@@ -565,7 +565,7 @@ public class NetworkStoreRepository {
             }
         }
         int sourceVariantNum = VariantUtils.getVariantNum(sourceVariantId, variantsInfos);
-        int targetVariantNum = VariantUtils.findFistAvailableVariantNum(variantsInfos);
+        int targetVariantNum = VariantUtils.findFirstAvailableVariantNum(variantsInfos);
         cloneNetworkVariant(networkUuid, sourceVariantNum, targetVariantNum, targetVariantId);
     }
 
