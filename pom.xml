@@ -74,7 +74,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- imports -->
             <dependency>
                 <groupId>com.powsybl</groupId>
                 <artifactId>powsybl-ws-dependencies</artifactId>
