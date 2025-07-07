@@ -10,15 +10,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.network.store.model.IdentifiableAttributes;
-import com.powsybl.network.store.model.NetworkAttributes;
-import com.powsybl.network.store.model.Resource;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
-import org.apache.commons.lang3.mutable.MutableInt;
 
-import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,9 +24,6 @@ import java.util.*;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 public final class Utils {
-
-    public static final int BATCH_SIZE = 1000;
-
     private Utils() throws IllegalAccessException {
         throw new IllegalAccessException("Utility class can not be initialize.");
     }
@@ -101,48 +93,5 @@ public final class Utils {
             placeholders.add("?");
         }
         return placeholders.toString();
-    }
-
-    public static NetworkAttributes getNetworkAttributes(Connection connection, UUID networkUuid, int variantNum, Mappings mappings, ObjectMapper mapper) {
-        try {
-            Resource<NetworkAttributes> networkAttributesResource = getNetwork(connection, networkUuid, variantNum, mappings, mapper).orElseThrow(() -> new PowsyblException("Cannot retrieve source network attributes uuid : " + networkUuid + ", variantNum : " + variantNum));
-            return networkAttributesResource.getAttributes();
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-    }
-
-    public static Optional<Resource<NetworkAttributes>> getNetwork(UUID uuid, int variantNum, DataSource dataSource, Mappings mappings, ObjectMapper mapper) {
-        try (var connection = dataSource.getConnection()) {
-            return getNetwork(connection, uuid, variantNum, mappings, mapper);
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-    }
-
-    private static Optional<Resource<NetworkAttributes>> getNetwork(Connection connection, UUID uuid, int variantNum, Mappings mappings, ObjectMapper mapper) throws SQLException {
-        var networkMapping = mappings.getNetworkMappings();
-        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildGetNetworkQuery(networkMapping.getColumnsMapping().keySet()))) {
-            preparedStmt.setObject(1, uuid);
-            preparedStmt.setInt(2, variantNum);
-            try (ResultSet resultSet = preparedStmt.executeQuery()) {
-                if (resultSet.next()) {
-                    NetworkAttributes attributes = new NetworkAttributes();
-                    MutableInt columnIndex = new MutableInt(2);
-                    networkMapping.getColumnsMapping().forEach((columnName, columnMapping) -> {
-                        bindAttributes(resultSet, columnIndex.getValue(), columnMapping, attributes, mapper);
-                        columnIndex.increment();
-                    });
-                    String networkId = resultSet.getString(1); // id is first
-                    Resource<NetworkAttributes> resource = Resource.networkBuilder()
-                        .id(networkId)
-                        .variantNum(variantNum)
-                        .attributes(attributes)
-                        .build();
-                    return Optional.of(resource);
-                }
-            }
-            return Optional.empty();
-        }
     }
 }

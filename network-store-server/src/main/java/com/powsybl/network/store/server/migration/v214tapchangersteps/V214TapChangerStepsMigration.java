@@ -12,7 +12,6 @@ import com.powsybl.network.store.model.ResourceType;
 import com.powsybl.network.store.model.TapChangerStepAttributes;
 import com.powsybl.network.store.model.TapChangerType;
 import com.powsybl.network.store.server.ExtensionHandler;
-import com.powsybl.network.store.server.LimitsHandler;
 import com.powsybl.network.store.server.Mappings;
 import com.powsybl.network.store.server.NetworkStoreRepository;
 import com.powsybl.network.store.server.dto.OwnerInfo;
@@ -51,10 +50,7 @@ public final class V214TapChangerStepsMigration implements CustomTaskChange {
     public void init(Database database) {
         DataSource dataSource = new SingleConnectionDataSource(((JdbcConnection) database.getConnection()).getUnderlyingConnection(), true);
         ObjectMapper mapper = new ObjectMapper();
-        Mappings mappings = new Mappings();
-        this.repository = new NetworkStoreRepository(dataSource, mapper, mappings,
-            new ExtensionHandler(mapper),
-            new LimitsHandler(dataSource, mapper, mappings));
+        this.repository = new NetworkStoreRepository(dataSource, mapper, new Mappings(), new ExtensionHandler(mapper));
     }
 
     @Override

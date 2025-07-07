@@ -183,14 +183,14 @@ class NetworkStoreRepositoryTest {
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
 
-        networkStoreRepository.getLimitsHandler().insertLimitsInEquipments(NETWORK_UUID, lines, new HashMap<>());
+        networkStoreRepository.insertLimitsInEquipments(NETWORK_UUID, lines, new HashMap<>());
 
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1"));
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
 
-        networkStoreRepository.getLimitsHandler().insertLimitsInEquipments(NETWORK_UUID, lines, map);
+        networkStoreRepository.insertLimitsInEquipments(NETWORK_UUID, lines, map);
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1").getCurrentLimits().getTemporaryLimits());
         assertEquals(1, resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits().size());
