@@ -2,7 +2,7 @@
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet author="lesoteti" id="1751631301872-1">
         <addColumn tableName="twowindingstransformer">
-            <column name="phasetapchangerloadtapchangingcapabilities" type="BOOLEAN" defaultValue="true"/>
+            <column name="phasetapchangerloadtapchangingcapabilities" type="BOOLEAN"/>
             <column name="phasetapchangersolvedtapposition" type="INTEGER"/>
             <column name="ratiotapchangersolvedtapposition" type="INTEGER"/>
         </addColumn>
@@ -12,7 +12,7 @@
     </changeSet>
     <changeSet author="lesoteti" id="1751631301872-2">
         <sqlFile
-                path="tapchanger_and_svc_regualtion_mode_migration_20250704T121439Z.sql"
+                path="tapchanger_and_svc_regulation_mode_migration_20250704T121439Z.sql"
                 relativeToChangelogFile="true"
                 splitStatements="true"
                 stripComments="true"/>
