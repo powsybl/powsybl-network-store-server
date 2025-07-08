@@ -107,6 +107,7 @@ public class Mappings {
                                                    areaMappings);
 
     private final Map<String, TableMapping> mappingByTable = new LinkedHashMap<>();
+    private final Map<ResourceType, TableMapping> mappingByType = new LinkedHashMap<>();
 
     private static final String VOLTAGE_LEVEL_ID = "voltageLevelId";
     private static final String VOLTAGE_LEVEL_ID_1 = "voltageLevelId1";
@@ -143,6 +144,15 @@ public class Mappings {
         TableMapping tableMapping = mappingByTable.get(table);
         if (tableMapping == null) {
             throw new IllegalArgumentException("Unknown table: " + table);
+        }
+        return tableMapping;
+    }
+
+    public TableMapping getTableMapping(ResourceType type) {
+        Objects.requireNonNull(type);
+        TableMapping tableMapping = mappingByType.get(type);
+        if (tableMapping == null) {
+            throw new IllegalArgumentException("Unknown type: " + type);
         }
         return tableMapping;
     }
@@ -817,6 +827,7 @@ public class Mappings {
         createAreaMappings();
         for (TableMapping tableMapping : all) {
             mappingByTable.put(tableMapping.getTable().toLowerCase(), tableMapping);
+            mappingByType.put(tableMapping.getResourceType(), tableMapping);
         }
     }
 }
