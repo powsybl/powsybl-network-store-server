@@ -29,12 +29,6 @@ class TapChangerIT extends AbstractTapChangerTest {
         // TODO remove this test when TapChanger.getNeutralPosition and getNeutralStep are implemented
     }
 
-    @Override
-    @Test
-    public void undefinedRegulationValueOnlyWarning() {
-        // TODO remove this test when TapChanger.getNeutralPosition and getNeutralStep are implemented
-    }
-
     @Test
     @Override
     public void testTapChangerSetterGetterInMultiVariants() {

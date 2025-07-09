@@ -1675,6 +1675,7 @@ class NetworkStoreIT {
 
             assertEquals(1, networkIds.size());
 
+            assertTrue(networkIds.keySet().stream().findFirst().isPresent());
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
 
             assertEquals(26, readNetwork.getConnectableCount());
@@ -2703,7 +2704,6 @@ class NetworkStoreIT {
                 .setId("SVC1")
                 .setName("SVC1")
                 .setConnectableBus("04878f11-c766-11e1-8775-005056c00008")
-                .setRegulationMode(StaticVarCompensator.RegulationMode.OFF)
                 .setReactivePowerSetpoint(5.2f)
                 .setBmax(0.5f)
                 .setBmin(0.1f)
@@ -2847,7 +2847,6 @@ class NetworkStoreIT {
         twt.newPhaseTapChanger()
             .setLowTapPosition(0)
             .setTapPosition(0)
-            .setRegulating(false)
             .setRegulationMode(PhaseTapChanger.RegulationMode.CURRENT_LIMITER)
             .setRegulationValue(25)
             .setRegulationTerminal(twt.getTerminal2())
@@ -2881,6 +2880,7 @@ class NetworkStoreIT {
             .setLowTapPosition(0)
             .setTapPosition(0)
             .setRegulating(true)
+            .setLoadTapChangingCapabilities(true)
             .setTargetV(200)
             .setRegulationTerminal(twt.getTerminal2())
             .setTargetDeadband(22)
