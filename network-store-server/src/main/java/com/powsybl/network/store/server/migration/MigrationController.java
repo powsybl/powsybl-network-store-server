@@ -10,6 +10,7 @@ import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.NetworkStoreRepository;
 import com.powsybl.network.store.server.migration.v211limits.V211LimitsMigration;
 import com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration;
+import com.powsybl.network.store.server.migration.v220limits.V220OperationalLimitsGroupMigration;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -47,6 +48,15 @@ public class MigrationController {
     public ResponseEntity<Void> migrateV214TapChangerSteps(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                   @Parameter(description = "Variant num", required = true) @PathVariable("variantNum") int variantNum) {
         V214TapChangerStepsMigration.migrateV214TapChangerSteps(repository, networkId, variantNum);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping(value = "/v220limits/{networkId}/{variantNum}")
+    @Operation(summary = "Migrate operational limits groups of a network")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully migrated operational limits group from V2.20.0 to new model"))
+    public ResponseEntity<Void> migrateV220Limits(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                  @Parameter(description = "Variant num", required = true) @PathVariable("variantNum") int variantNum) {
+        V220OperationalLimitsGroupMigration.migrateV220OperationalLimitsGroup(repository, networkId, variantNum);
         return ResponseEntity.ok().build();
     }
 }
