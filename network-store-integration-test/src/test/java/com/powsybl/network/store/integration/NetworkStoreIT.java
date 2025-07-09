@@ -29,6 +29,7 @@ import com.powsybl.network.store.iidm.impl.NetworkImpl;
 import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -1663,7 +1664,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = FourSubstationsNodeBreakerFactory.create(service.getNetworkFactory());
             assertEquals(26, network.getConnectableCount());
-            assertEquals(26, StreamSupport.stream(network.getConnectables().spliterator(), false).count());
+            assertEquals(26, IterableUtils.size(network.getConnectables()));
 
             assertEquals(2, network.getConnectableCount(Line.class));
             service.flush(network);
@@ -1678,7 +1679,7 @@ class NetworkStoreIT {
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
 
             assertEquals(26, readNetwork.getConnectableCount());
-            assertEquals(26, StreamSupport.stream(readNetwork.getConnectables().spliterator(), false).count());
+            assertEquals(26, IterableUtils.size(readNetwork.getConnectables()));
 
             assertEquals(2, readNetwork.getConnectableCount(Line.class));
         }
