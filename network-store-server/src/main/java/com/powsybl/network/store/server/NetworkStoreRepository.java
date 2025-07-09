@@ -15,16 +15,21 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.model.utils.VariantUtils;
+import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
+import com.powsybl.network.store.server.json.LimitsGroupAttributesSqlData;
 import com.powsybl.network.store.server.dto.LimitsInfos;
+import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.TapChangerStepSqlData;
+import com.powsybl.network.store.server.json.TemporaryLimitInfosSqlData;
 import com.powsybl.ws.commons.LogUtils;
 import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -3579,6 +3584,97 @@ public class NetworkStoreRepository {
             int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).getFullVariantNum();
             return limitsHandler.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type, fullVariantNum,
                 getTombstonedIdentifiableIds(connection, networkId, variantNum));
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    private Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> buildOperationalLimitsGroup(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
+                                                                                                           Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
+        Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result = new HashMap<>();
+
+        // permanent limits
+        for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : permanentLimits.entrySet()) {
+            for (PermanentLimitAttributes permanentLimitAttributes : entry.getValue()) {
+                OperationalLimitsGroupOwnerInfo owner =
+                    new OperationalLimitsGroupOwnerInfo(entry.getKey().getEquipmentId(),
+                                                        entry.getKey().getEquipmentType(),
+                                                        entry.getKey().getNetworkUuid(),
+                                                        entry.getKey().getVariantNum(),
+                                                        permanentLimitAttributes.getOperationalLimitsGroupId(),
+                                                        permanentLimitAttributes.getSide());
+                if (!result.containsKey(owner)) {
+                    result.put(owner, new LimitsGroupAttributesSqlData());
+                }
+                LimitsGroupAttributesSqlData limits = result.get(owner);
+                if (permanentLimitAttributes.getLimitType() == LimitType.CURRENT) {
+                    limits.setCurrentLimitsPermanentLimit(permanentLimitAttributes.getValue());
+                } else if (permanentLimitAttributes.getLimitType() == LimitType.APPARENT_POWER) {
+                    limits.setApparentPowerLimitsPermanentLimit(permanentLimitAttributes.getValue());
+                } else if (permanentLimitAttributes.getLimitType() == LimitType.ACTIVE_POWER) {
+                    limits.setActivePowerLimitsPermanentLimit(permanentLimitAttributes.getValue());
+                }
+            }
+        }
+
+        // temporary limits
+        for (Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>> entry : temporaryLimits.entrySet()) {
+            for (TemporaryLimitAttributes temporaryLimitAttributes : entry.getValue()) {
+                OperationalLimitsGroupOwnerInfo owner =
+                    new OperationalLimitsGroupOwnerInfo(entry.getKey().getEquipmentId(),
+                        entry.getKey().getEquipmentType(),
+                        entry.getKey().getNetworkUuid(),
+                        entry.getKey().getVariantNum(),
+                        temporaryLimitAttributes.getOperationalLimitsGroupId(),
+                        temporaryLimitAttributes.getSide());
+                if (!result.containsKey(owner)) {
+                    result.put(owner, new LimitsGroupAttributesSqlData());
+                }
+                LimitsGroupAttributesSqlData limits = result.get(owner);
+                TemporaryLimitInfosSqlData temporaryLimitInfosSqlData = new TemporaryLimitInfosSqlData(temporaryLimitAttributes.getName(),
+                    temporaryLimitAttributes.getValue(),
+                    temporaryLimitAttributes.getAcceptableDuration(),
+                    temporaryLimitAttributes.isFictitious());
+                if (temporaryLimitAttributes.getLimitType() == LimitType.CURRENT) {
+                    limits.getCurrentLimitsTemporaryLimits().add(temporaryLimitInfosSqlData);
+                } else if (temporaryLimitAttributes.getLimitType() == LimitType.APPARENT_POWER) {
+                    limits.getApparentPowerLimitsTemporaryLimits().add(temporaryLimitInfosSqlData);
+                } else if (temporaryLimitAttributes.getLimitType() == LimitType.ACTIVE_POWER) {
+                    limits.getActivePowerLimitsTemporaryLimits().add(temporaryLimitInfosSqlData);
+                }
+            }
+        }
+        return result;
+    }
+
+    public void insertOperationalLimitsGroupAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
+                                                       Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
+                Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> operationalLimitsGroup = buildOperationalLimitsGroup(permanentLimits, temporaryLimits);
+                List<Object> values = new ArrayList<>(12);
+                List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> list = new ArrayList<>(operationalLimitsGroup.entrySet());
+                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> entry : subUnit) {
+                        values.clear();
+                        values.add(entry.getKey().getNetworkUuid());
+                        values.add(entry.getKey().getVariantNum());
+                        values.add(entry.getKey().getEquipmentType().toString());
+                        values.add(entry.getKey().getEquipmentId());
+                        values.add(entry.getKey().getOperationalLimitsGroupId());
+                        values.add(entry.getKey().getSide());
+                        values.add(entry.getValue().getCurrentLimitsPermanentLimit());
+                        values.add(entry.getValue().getCurrentLimitsTemporaryLimits());
+                        values.add(entry.getValue().getApparentPowerLimitsPermanentLimit());
+                        values.add(entry.getValue().getApparentPowerLimitsTemporaryLimits());
+                        values.add(entry.getValue().getActivePowerLimitsPermanentLimit());
+                        values.add(entry.getValue().getActivePowerLimitsTemporaryLimits());
+                        bindValues(preparedStmt, values, mapper);
+                        preparedStmt.addBatch();
+                    }
+                    preparedStmt.executeBatch();
+                }
+            }
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
