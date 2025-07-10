@@ -1648,7 +1648,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .voltageLevelId2("vl2")
                         .selectedOperationalLimitsGroupId1(selectedOperationalLimitGroupId1)
                         .operationalLimitsGroups1(operationalLimitsGroupAttributes1)
-                        .selectedOperationalLimitsGroupId1(selectedOperationalLimitGroupId2)
+                        .selectedOperationalLimitsGroupId2(selectedOperationalLimitGroupId2)
                         .operationalLimitsGroups2(operationalLimitsGroupAttributes2)
                         .build())
                 .build();
