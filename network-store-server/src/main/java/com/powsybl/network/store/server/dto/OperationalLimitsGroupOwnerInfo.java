@@ -20,15 +20,17 @@ import java.util.UUID;
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class OperationalLimitsGroupOwnerInfo extends OwnerInfo {
-
     private String operationalLimitsGroupId;
+    private Integer side;
 
     public OperationalLimitsGroupOwnerInfo(String equipmentId,
                                            ResourceType equipmentType,
                                            UUID networkUuid,
                                            int variantNum,
-                                           String operationalLimitsGroupId) {
+                                           String operationalLimitsGroupId,
+                                           Integer side) {
         super(equipmentId, equipmentType, networkUuid, variantNum);
         this.operationalLimitsGroupId = operationalLimitsGroupId;
+        this.side = side;
     }
 }

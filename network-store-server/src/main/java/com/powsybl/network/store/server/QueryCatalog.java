@@ -63,8 +63,13 @@ public final class QueryCatalog {
     private static final String TOMBSTONED_IDENTIFIABLE_TABLE = "tombstonedidentifiable";
     private static final String TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE = "tombstonedexternalattributes";
     static final String OPERATIONAL_LIMITS_GROUP_TABLE = "operationallimitsgroup";
-    static final String LIMITS_COLUMN = "limits";
-    static final String GROUP_ID_COLUMN = "groupid";
+    static final String GROUP_ID_COLUMN = "operationallimitgroupid";
+    static final String CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN = "current_limits_permanent_limit";
+    static final String CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN = "current_limits_temporary_limits";
+    static final String APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "apparent_power_limits_permanent_limit";
+    static final String APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "apparent_power_limits_temporary_limits";
+    static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
+    static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
 
     private QueryCatalog() {
     }
@@ -856,11 +861,19 @@ public final class QueryCatalog {
 
     public static String buildInsertOperationalLimitsGroupQuery() {
         return "insert into " + OPERATIONAL_LIMITS_GROUP_TABLE + " (" +
-            EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
-            VARIANT_NUM_COLUMN + ", " + GROUP_ID_COLUMN + ", " +
-            LIMITS_COLUMN + ") " +
-            " values (?, ?, ?, ?, ?, ?)";
+            VARIANT_NUM_COLUMN + ", " +
+            EQUIPMENT_TYPE_COLUMN + ", " +
+            EQUIPMENT_ID_COLUMN + ", " +
+            GROUP_ID_COLUMN + ", " +
+            SIDE_COLUMN + ", " +
+            CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ")" +
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
 }

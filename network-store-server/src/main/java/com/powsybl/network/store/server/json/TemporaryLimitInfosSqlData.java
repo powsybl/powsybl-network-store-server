@@ -7,23 +7,18 @@
 package com.powsybl.network.store.server.json;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @ToString
-@Builder
-@NoArgsConstructor
 @AllArgsConstructor
 @Getter
-public class LimitsInfosSqlData {
-    private List<PermanentLimitSqlData> permanentLimits = new ArrayList<>();
-    private List<TemporaryLimitSqlData> temporaryLimits = new ArrayList<>();
+public class TemporaryLimitInfosSqlData {
+    private String name;
+    private double value;
+    private Integer acceptableDuration;
+    private boolean fictitious;
 }

@@ -6,19 +6,26 @@
  */
 package com.powsybl.network.store.server.json;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @ToString
-@Builder
-@AllArgsConstructor
+@NoArgsConstructor
 @Getter
+@Setter
 public class LimitsGroupAttributesSqlData {
-    private String id;
-    private LimitsInfosSqlData limits;
+    private double currentLimitsPermanentLimit = Double.NaN;
+    private List<TemporaryLimitInfosSqlData> currentLimitsTemporaryLimits = new ArrayList<>();
+    private double apparentPowerLimitsPermanentLimit = Double.NaN;
+    private List<TemporaryLimitInfosSqlData> apparentPowerLimitsTemporaryLimits = new ArrayList<>();
+    private double activePowerLimitsPermanentLimit = Double.NaN;
+    private List<TemporaryLimitInfosSqlData> activePowerLimitsTemporaryLimits = new ArrayList<>();
 }
