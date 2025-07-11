@@ -1,0 +1,70 @@
+{
+  "line2": {
+    "1": {
+      "selectedside1": {
+        "id": "selectedside1",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      }
+    },
+    "2": {
+      "selectedside2": {
+        "id": "selectedside2",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      }
+    }
+  },
+  "line1": {
+    "1": {
+      "selectedside1": {
+        "id": "selectedside1",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      }
+    },
+    "2": {
+      "selectedside2": {
+        "id": "selectedside2",
+        "currentLimits": {
+          "permanentLimit": 1.0,
+          "temporaryLimits": {
+            "10": {
+              "name": "temporarylimit1",
+              "value": 12.0,
+              "acceptableDuration": 10,
+              "fictitious": false
+            }
+          }
+        }
+      }
+    }
+  }
+}
