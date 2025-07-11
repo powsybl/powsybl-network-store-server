@@ -22,6 +22,8 @@
     <name>Network store IIDM tck</name>
 
     <properties>
+		<!-- FIXME to remove at next upgrade of powsybl-ws-dependencies -->
+        <powsybl-network-store.version>1.28.0</powsybl-network-store.version>
         <integration.skip>true</integration.skip>
     </properties>
 
@@ -29,6 +31,8 @@
         <profile>
             <id>tck</id>
             <properties>
+		<!-- FIXME to remove at next upgrade of powsybl-ws-dependencies -->
+        <powsybl-network-store.version>1.28.0</powsybl-network-store.version>
                 <integration.skip>false</integration.skip>
             </properties>
         </profile>

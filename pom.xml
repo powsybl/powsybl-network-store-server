@@ -48,6 +48,8 @@
     </developers>
 
     <properties>
+		<!-- FIXME to remove at next upgrade of powsybl-ws-dependencies -->
+        <powsybl-network-store.version>1.28.0</powsybl-network-store.version>
         <sirocco.version>1.0</sirocco.version>
         <powsybl-ws-dependencies.version>2.22.1</powsybl-ws-dependencies.version>
         <!-- FIXME : to remove when sonar version is updated on github actions -->
