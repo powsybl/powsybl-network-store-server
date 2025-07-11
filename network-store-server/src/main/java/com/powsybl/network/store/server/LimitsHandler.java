@@ -540,6 +540,74 @@ public class LimitsHandler {
         insertTombstonedTemporaryLimits(networkUuid, limitsInfos, resources);
     }
 
+    public <T extends BranchAttributes> void updateTemporaryLimitsWithLazyLoading(UUID networkUuid, List<Resource<T>> resources) {
+        // Update limits for resources with at least one operational limit group
+        Map<Integer, List<Resource<T>>> resourcesByVariant = resources.stream()
+                .filter(r -> !r.getAttributes().getOperationalLimitsGroups1().isEmpty() || !r.getAttributes().getOperationalLimitsGroups2().isEmpty())
+                .collect(Collectors.groupingBy(Resource::getVariantNum));
+        resourcesByVariant.forEach((variantNum, variantResources) ->
+                updateTemporaryLimitsForVariant(networkUuid, variantNum, variantResources));
+    }
+
+    private <T extends BranchAttributes> void updateTemporaryLimitsForVariant(UUID networkUuid, Integer variantNum, List<Resource<T>> variantResources) {
+        List<String> resourceIds = variantResources.stream()
+                .map(Resource::getId)
+                .collect(Collectors.toList());
+
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> existingTemporaryLimits =
+                getTemporaryLimitsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, resourceIds);
+
+        Map<OwnerInfo, LimitsInfos> limitsInfosFromUpdatedEquipments =
+                getLimitsInfosFromEquipments(networkUuid, variantResources);
+
+        Map<OwnerInfo, LimitsInfos> mergedLimitsInfos = existingTemporaryLimits.isEmpty()
+                ? limitsInfosFromUpdatedEquipments
+                : mergeExistingWithUpdatedTemporaryLimits(existingTemporaryLimits, limitsInfosFromUpdatedEquipments, variantResources);
+
+        deleteTemporaryLimits(networkUuid, variantResources);
+        insertTemporaryLimits(mergedLimitsInfos);
+        insertTombstonedTemporaryLimits(networkUuid, mergedLimitsInfos, variantResources);
+    }
+
+    private <T extends BranchAttributes> Map<OwnerInfo, LimitsInfos> mergeExistingWithUpdatedTemporaryLimits(
+            Map<OwnerInfo, List<TemporaryLimitAttributes>> existingTemporaryLimits,
+            Map<OwnerInfo, LimitsInfos> limitsInfosFromUpdatedEquipments,
+            List<Resource<T>> variantResources) {
+        Map<String, Set<String>> updatedOperationalGroupIds1 = getOperationalLimitsGroupIds(variantResources, 1);
+        Map<String, Set<String>> updatedOperationalGroupIds2 = getOperationalLimitsGroupIds(variantResources, 2);
+
+        // Merge updated limits with existing limits in DB
+        Map<OwnerInfo, LimitsInfos> mergedLimitsInfos = new HashMap<>();
+        existingTemporaryLimits.forEach((ownerInfo, existingLimits) -> {
+            List<TemporaryLimitAttributes> mergedTemporaryLimits = existingLimits.stream()
+                    .filter(existingLimit -> !(
+                            updatedOperationalGroupIds1.get(ownerInfo.getEquipmentId()).contains(existingLimit.getOperationalLimitsGroupId()) && existingLimit.getSide() == 1 ||
+                            updatedOperationalGroupIds2.get(ownerInfo.getEquipmentId()).contains(existingLimit.getOperationalLimitsGroupId()) && existingLimit.getSide() == 2))
+                    .collect(Collectors.toList());
+
+            LimitsInfos newLimitsInfos = limitsInfosFromUpdatedEquipments.get(ownerInfo);
+            mergedTemporaryLimits.addAll(newLimitsInfos.getTemporaryLimits());
+            mergedLimitsInfos.put(ownerInfo, new LimitsInfos(newLimitsInfos.getPermanentLimits(), mergedTemporaryLimits));
+        });
+
+        // Create updated limits not existing in DB
+        limitsInfosFromUpdatedEquipments.forEach((ownerInfo, limitsInfos) -> {
+            if (!mergedLimitsInfos.containsKey(ownerInfo)) {
+                mergedLimitsInfos.put(ownerInfo, limitsInfos);
+            }
+        });
+
+        return mergedLimitsInfos;
+    }
+
+    private static <T extends BranchAttributes> Map<String, Set<String>> getOperationalLimitsGroupIds(List<Resource<T>> variantResources, int side) {
+        return variantResources.stream()
+                .collect(Collectors.toMap(
+                        Resource::getId,
+                        r -> r.getAttributes().getOperationalLimitsGroups(side).keySet()
+                ));
+    }
+
     private <T extends IdentifiableAttributes> void insertTombstonedTemporaryLimits(UUID networkUuid, Map<OwnerInfo, LimitsInfos> limitsInfos, List<Resource<T>> resources) {
         try (var connection = dataSource.getConnection()) {
             Map<Integer, List<String>> resourcesByVariant = resources.stream()
@@ -596,6 +664,67 @@ public class LimitsHandler {
         deletePermanentLimits(networkUuid, resources);
         insertPermanentLimits(limitsInfos);
         insertTombstonedPermanentLimits(networkUuid, limitsInfos, resources);
+    }
+
+    public <T extends BranchAttributes> void updatePermanentLimitsWithLazyLoading(UUID networkUuid, List<Resource<T>> resources) {
+        // Update limits for resources with at least one operational limit group
+        Map<Integer, List<Resource<T>>> resourcesByVariant = resources.stream()
+                .filter(r -> !r.getAttributes().getOperationalLimitsGroups1().isEmpty() || !r.getAttributes().getOperationalLimitsGroups2().isEmpty())
+                .collect(Collectors.groupingBy(Resource::getVariantNum));
+        resourcesByVariant.forEach((variantNum, variantResources) ->
+                updatePermanentLimitsForVariant(networkUuid, variantNum, variantResources));
+    }
+
+    private <T extends BranchAttributes> void updatePermanentLimitsForVariant(UUID networkUuid, Integer variantNum, List<Resource<T>> variantResources) {
+        List<String> resourceIds = variantResources.stream()
+                .map(Resource::getId)
+                .collect(Collectors.toList());
+
+        Map<OwnerInfo, List<PermanentLimitAttributes>> existingPermanentLimits =
+                getPermanentLimitsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, resourceIds);
+
+        Map<OwnerInfo, LimitsInfos> limitsInfosFromUpdatedEquipments =
+                getLimitsInfosFromEquipments(networkUuid, variantResources);
+
+        Map<OwnerInfo, LimitsInfos> mergedLimitsInfos = existingPermanentLimits.isEmpty()
+                ? limitsInfosFromUpdatedEquipments
+                : mergeExistingWithUpdatedPermanentLimits(existingPermanentLimits, limitsInfosFromUpdatedEquipments, variantResources);
+
+        deletePermanentLimits(networkUuid, variantResources);
+        insertPermanentLimits(mergedLimitsInfos);
+        insertTombstonedPermanentLimits(networkUuid, mergedLimitsInfos, variantResources);
+    }
+
+    private <T extends BranchAttributes> Map<OwnerInfo, LimitsInfos> mergeExistingWithUpdatedPermanentLimits(
+            Map<OwnerInfo, List<PermanentLimitAttributes>> existingPermanentLimits,
+            Map<OwnerInfo, LimitsInfos> limitsInfosFromUpdatedEquipments,
+            List<Resource<T>> variantResources) {
+        Map<String, Set<String>> updatedOperationalGroupIds1 = getOperationalLimitsGroupIds(variantResources, 1);
+        Map<String, Set<String>> updatedOperationalGroupIds2 = getOperationalLimitsGroupIds(variantResources, 2);
+
+        Map<OwnerInfo, LimitsInfos> mergedLimitsInfos = new HashMap<>();
+
+        // Merge updated limits with existing limits in DB
+        existingPermanentLimits.forEach((ownerInfo, existingLimits) -> {
+            List<PermanentLimitAttributes> mergedPermanentLimits = existingLimits.stream()
+                    .filter(existingLimit -> !(
+                            updatedOperationalGroupIds1.get(ownerInfo.getEquipmentId()).contains(existingLimit.getOperationalLimitsGroupId()) && existingLimit.getSide() == 1 ||
+                            updatedOperationalGroupIds2.get(ownerInfo.getEquipmentId()).contains(existingLimit.getOperationalLimitsGroupId()) && existingLimit.getSide() == 2))
+                    .collect(Collectors.toList());
+
+            LimitsInfos newLimitsInfos = limitsInfosFromUpdatedEquipments.get(ownerInfo);
+            mergedPermanentLimits.addAll(newLimitsInfos.getPermanentLimits());
+            mergedLimitsInfos.put(ownerInfo, new LimitsInfos(mergedPermanentLimits, newLimitsInfos.getTemporaryLimits()));
+        });
+
+        // Create updated limits not existing in DB
+        limitsInfosFromUpdatedEquipments.forEach((ownerInfo, limitsInfo) -> {
+            if (!mergedLimitsInfos.containsKey(ownerInfo)) {
+                mergedLimitsInfos.put(ownerInfo, limitsInfo);
+            }
+        });
+
+        return mergedLimitsInfos;
     }
 
     private <T extends IdentifiableAttributes> void insertTombstonedPermanentLimits(UUID networkUuid, Map<OwnerInfo, LimitsInfos> limitsInfos, List<Resource<T>> resources) {

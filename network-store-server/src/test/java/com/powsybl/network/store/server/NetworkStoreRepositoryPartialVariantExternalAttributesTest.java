@@ -702,11 +702,17 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
     private void updateExternalAttributesWithTombstone(int variantNum, String lineId, String generatorId, String twoWTId, String areaId) {
         Resource<GeneratorAttributes> generator = new Resource<>(ResourceType.GENERATOR, generatorId, variantNum, null, new GeneratorAttributes());
         Resource<TwoWindingsTransformerAttributes> twoWT = new Resource<>(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, variantNum, null, new TwoWindingsTransformerAttributes());
-        Resource<LineAttributes> line = new Resource<>(ResourceType.LINE, lineId, variantNum, null, new LineAttributes());
+        LineAttributes lineAttributes = new LineAttributes();
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = OperationalLimitsGroupAttributes.builder()
+                .id("group1")
+                .build();
+        lineAttributes.setOperationalLimitsGroups1(new TreeMap<>(Map.of("group1", operationalLimitsGroupAttributes)));
+        lineAttributes.setOperationalLimitsGroups2(new TreeMap<>(Map.of("group1", operationalLimitsGroupAttributes)));
+        Resource<LineAttributes> line = new Resource<>(ResourceType.LINE, lineId, variantNum, null, lineAttributes);
         Resource<AreaAttributes> area = new Resource<>(ResourceType.AREA, areaId, variantNum, null, new AreaAttributes());
         networkStoreRepository.updateTapChangerSteps(NETWORK_UUID, List.of(twoWT));
-        networkStoreRepository.getLimitsHandler().updateTemporaryLimits(NETWORK_UUID, List.of(line), networkStoreRepository.getLimitsHandler().getLimitsInfosFromEquipments(NETWORK_UUID, List.of(line)));
-        networkStoreRepository.getLimitsHandler().updatePermanentLimits(NETWORK_UUID, List.of(line), networkStoreRepository.getLimitsHandler().getLimitsInfosFromEquipments(NETWORK_UUID, List.of(line)));
+        networkStoreRepository.getLimitsHandler().updateTemporaryLimitsWithLazyLoading(NETWORK_UUID, List.of(line));
+        networkStoreRepository.getLimitsHandler().updatePermanentLimitsWithLazyLoading(NETWORK_UUID, List.of(line));
         networkStoreRepository.updateReactiveCapabilityCurvePoints(NETWORK_UUID, List.of(generator));
         networkStoreRepository.updateAreaBoundaries(NETWORK_UUID, List.of(area));
         // Regulating points can't be tombstoned for now so they're not tested
@@ -1176,5 +1182,508 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
+    }
+
+    @Test
+    void updateLineWithoutOperationalLimitGroup() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        // Variant 0
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(2, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 0, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+
+        // Variant 1
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(2, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+    }
+
+    @Test
+    void updateOperationalLimitGroup() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 458);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        // Variant 0
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(2, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 0, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+
+        // Variant 1
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(2, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1Updated, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+    }
+
+    @Test
+    void updateOperationalLimitGroup2() {
+        String networkId = "network1";
+        String lineId = "line";
+        String lineId1 = "line1";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1bis = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 2, 13, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2bis = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 5, 51, 459);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1bis, operationLimitGroupId2, operationalLimitsGroupAttributes2bis), operationLimitGroupId1, lineId1);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 460);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, newOperationalLimitsGroupAttributes))
+                        .build())
+                .build();
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes2Bis = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 7, 300, 441);
+        Resource<LineAttributes> updatedLine1 = Resource.lineBuilder()
+                .id(lineId1)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId2, newOperationalLimitsGroupAttributes2Bis))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine, updatedLine1));
+
+        assertEquals(List.of(newOperationalLimitsGroupAttributes, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1bis, newOperationalLimitsGroupAttributes2Bis), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId1, 1));
+    }
+
+    @Test
+    void updateOperationalLimitGroupWithEmptyTemporaryLimits() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = OperationalLimitsGroupAttributes.builder()
+                .id(operationLimitGroupId1)
+                .currentLimits(LimitsAttributes.builder()
+                        .permanentLimit(3)
+                        .temporaryLimits(null)
+                        .operationalLimitsGroupId(operationLimitGroupId1)
+                        .build())
+                .build();
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        // Variant 0
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(2, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 0, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 0, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+
+        // Variant 1
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(2, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+        assertEquals(List.of(operationalLimitsGroupAttributes1Updated, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId1));
+    }
+
+    @Test
+    void updateOperationalLimitGroupTwice() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 458);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2Updated = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 6, 123, 456);
+        Resource<LineAttributes> updatedLineTwice = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(2)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId2, operationalLimitsGroupAttributes2Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLineTwice));
+
+        // Variant 0
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+
+        // Variant 1
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+
+        // Variant 2
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 2, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 2, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+    }
+
+    @Test
+    void updateOperationalLimitGroupTwiceSameVariant() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 458);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+        operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 9, 145, 456);
+        Resource<LineAttributes> updatedLineTwice = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLineTwice));
+
+        // Variant 0
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+
+        // Variant 1
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+    }
+
+    @Test
+    void updateOperationalLimitGroupTwiceTwoSides() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        String operationLimitGroupId3 = "olg3";
+        String operationLimitGroupId4 = "olg4";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes3 = buildOperationalLimitsGroup(operationLimitGroupId3, 2, 6, 15, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes4 = buildOperationalLimitsGroup(operationLimitGroupId4, 2, 5, 52, 459);
+        createLineWithOperationalLimitGroupsTwoSides(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), Map.of(operationLimitGroupId3, operationalLimitsGroupAttributes3, operationLimitGroupId4, operationalLimitsGroupAttributes4), operationLimitGroupId1, operationLimitGroupId3, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 451);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes3Updated = buildOperationalLimitsGroup(operationLimitGroupId3, 2, 8, 300, 452);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
+                        .selectedOperationalLimitsGroupId2(operationLimitGroupId3)
+                        .operationalLimitsGroups2(Map.of(operationLimitGroupId3, operationalLimitsGroupAttributes3Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2Updated = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 6, 123, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes4Updated = buildOperationalLimitsGroup(operationLimitGroupId4, 2, 15, 456, 457);
+        Resource<LineAttributes> updatedLineTwice = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(2)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId1)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId2, operationalLimitsGroupAttributes2Updated))
+                        .selectedOperationalLimitsGroupId2(operationLimitGroupId4)
+                        .operationalLimitsGroups2(Map.of(operationLimitGroupId4, operationalLimitsGroupAttributes4Updated))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLineTwice));
+
+        // Variant 0
+        assertEquals(operationalLimitsGroupAttributes1, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes3, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId3, 2).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes4, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 0, lineId, ResourceType.LINE, operationLimitGroupId4, 2).orElseThrow());
+
+        // Variant 1
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes3Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId3, 2).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes4, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId4, 2).orElseThrow());
+
+        // Variant 2
+        assertEquals(operationalLimitsGroupAttributes1Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 2, lineId, ResourceType.LINE, operationLimitGroupId1, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes2Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 2, lineId, ResourceType.LINE, operationLimitGroupId2, 1).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes3Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 2, lineId, ResourceType.LINE, operationLimitGroupId3, 2).orElseThrow());
+        assertEquals(operationalLimitsGroupAttributes4Updated, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 2, lineId, ResourceType.LINE, operationLimitGroupId4, 2).orElseThrow());
+    }
+
+    @Test
+    void addOperationalLimitGroup() {
+        String networkId = "network1";
+        String lineId = "line";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        String operationLimitGroupId3 = "olg3";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId3, 1, 5, 255, 458);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId3)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId3, newOperationalLimitsGroupAttributes))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
+
+        assertEquals(newOperationalLimitsGroupAttributes, networkStoreRepository.getOperationalLimitsGroup(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId3, 1).orElseThrow());
+        assertEquals(3, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(newOperationalLimitsGroupAttributes, networkStoreRepository.getAllOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId3));
+        assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2, newOperationalLimitsGroupAttributes), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
+        assertEquals(1, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).size());
+        assertEquals(newOperationalLimitsGroupAttributes, networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, 1, ResourceType.LINE).get(lineId).get(1).get(operationLimitGroupId3));
+    }
+
+    @Test
+    void addOperationalLimitGroup2() {
+        String networkId = "network1";
+        String lineId = "line";
+        String lineId1 = "line1";
+        String operationLimitGroupId1 = "olg1";
+        String operationLimitGroupId2 = "olg2";
+        String operationLimitGroupId3 = "olg3";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        Resource<LineAttributes> line = Resource.lineBuilder()
+                .id(lineId1)
+                .variantNum(0)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line));
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId3, 1, 5, 255, 458);
+        Resource<LineAttributes> updatedLine = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId3)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId3, newOperationalLimitsGroupAttributes))
+                        .build())
+                .build();
+        Resource<LineAttributes> updatedLine1 = Resource.lineBuilder()
+                .id(lineId1)
+                .variantNum(1)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .b1(2.6)
+                        .selectedOperationalLimitsGroupId1(operationLimitGroupId3)
+                        .operationalLimitsGroups1(Map.of(operationLimitGroupId3, newOperationalLimitsGroupAttributes))
+                        .build())
+                .build();
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine, updatedLine1));
+
+        assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2, newOperationalLimitsGroupAttributes), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
+        assertEquals(List.of(newOperationalLimitsGroupAttributes), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId1, 1));
+    }
+
+    private void createLineWithOperationalLimitGroups(Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes, String selectedOperationalLimitGroupId, String lineId) {
+        Resource<LineAttributes> line = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(0)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .selectedOperationalLimitsGroupId1(selectedOperationalLimitGroupId)
+                        .operationalLimitsGroups1(operationalLimitsGroupAttributes)
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line));
+    }
+
+    private void createLineWithOperationalLimitGroupsTwoSides(Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes1, Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes2, String selectedOperationalLimitGroupId1, String selectedOperationalLimitGroupId2, String lineId) {
+        Resource<LineAttributes> line = Resource.lineBuilder()
+                .id(lineId)
+                .variantNum(0)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .selectedOperationalLimitsGroupId1(selectedOperationalLimitGroupId1)
+                        .operationalLimitsGroups1(operationalLimitsGroupAttributes1)
+                        .selectedOperationalLimitsGroupId2(selectedOperationalLimitGroupId2)
+                        .operationalLimitsGroups2(operationalLimitsGroupAttributes2)
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line));
+    }
+
+    private static OperationalLimitsGroupAttributes buildOperationalLimitsGroup(String operationLimitGroupId, int side, int permLimitValue, int tempLimitValue1, int tempLimitValue2) {
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = new TreeMap<>(Map.of(
+                10,
+                TemporaryLimitAttributes.builder()
+                .operationalLimitsGroupId(operationLimitGroupId)
+                .limitType(LimitType.CURRENT)
+                .value(tempLimitValue1)
+                .name("temporarylimit1")
+                .acceptableDuration(10)
+                .fictitious(false)
+                .side(side)
+                .build(),
+                15,
+                TemporaryLimitAttributes.builder()
+                .operationalLimitsGroupId(operationLimitGroupId)
+                .limitType(LimitType.CURRENT)
+                .value(tempLimitValue2)
+                .name("temporarylimit2")
+                .acceptableDuration(15)
+                .fictitious(false)
+                .side(side)
+                .build()));
+        return OperationalLimitsGroupAttributes.builder()
+                .id(operationLimitGroupId)
+                .currentLimits(LimitsAttributes.builder()
+                        .permanentLimit(permLimitValue)
+                        .temporaryLimits(temporaryLimits)
+                        .operationalLimitsGroupId(operationLimitGroupId)
+                        .build())
+                .build();
     }
 }
