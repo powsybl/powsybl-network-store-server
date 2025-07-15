@@ -30,8 +30,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static com.powsybl.network.store.server.NetworkStoreRepository.BATCH_SIZE;
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Utils.BATCH_SIZE;
 import static com.powsybl.network.store.server.Utils.bindValues;
 import static com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration.V214_TAP_CHANGER_STEP_TABLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
