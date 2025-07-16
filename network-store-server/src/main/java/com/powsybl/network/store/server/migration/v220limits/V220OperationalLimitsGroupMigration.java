@@ -172,7 +172,7 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
         Stopwatch stopwatch = Stopwatch.createStarted();
         Map<OwnerInfo, List<TemporaryLimitAttributes>> v220TemporaryLimits = getV220TemporaryLimits(repository, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
         Map<OwnerInfo, List<PermanentLimitAttributes>> v220PermanentLimits = getV220PermanentLimits(repository, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        insertNewLimitsAndDeleteV220(repository, v220TemporaryLimits, v220PermanentLimits);
+        insertNewLimitsAndDeleteV220(repository, networkUuid, variantNum, v220TemporaryLimits, v220PermanentLimits);
         stopwatch.stop();
         LOGGER.info("Limits of {}S of network {}/variantNum={} migrated in {} ms.", valueForWhereClause, networkUuid, variantNum, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         LOGGER.info("       The permanent limits of {} {}S were migrated.", v220PermanentLimits.size(), valueForWhereClause);
@@ -180,6 +180,8 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
     }
 
     private static void insertNewLimitsAndDeleteV220(NetworkStoreRepository repository,
+                                                     UUID networkUuid,
+                                                     int variantNum,
                                                      Map<OwnerInfo, List<TemporaryLimitAttributes>> v220TemporaryLimits,
                                                      Map<OwnerInfo, List<PermanentLimitAttributes>> v220PermanentLimits) {
         try (Connection connection = repository.getDataSource().getConnection()) {

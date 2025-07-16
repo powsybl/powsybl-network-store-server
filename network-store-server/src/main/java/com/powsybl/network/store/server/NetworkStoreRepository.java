@@ -15,7 +15,6 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.network.store.model.*;
@@ -29,7 +28,6 @@ import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import com.powsybl.network.store.server.json.TapChangerStepSqlData;
-import com.powsybl.network.store.server.json.TemporaryLimitInfosSqlData;
 import com.powsybl.ws.commons.LogUtils;
 import lombok.Getter;
 import org.apache.commons.lang3.mutable.MutableInt;
@@ -53,6 +51,7 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.model.TapChangerType.PHASE;
 import static com.powsybl.network.store.model.TapChangerType.RATIO;
+import static com.powsybl.network.store.server.LimitsHandler.buildOperationalLimitsGroup;
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
@@ -306,8 +305,7 @@ public class NetworkStoreRepository {
 
     private static void deleteExternalAttributes(UUID uuid, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesQueries = List.of(
-                QueryCatalog.buildDeleteTemporaryLimitsQuery(),
-                QueryCatalog.buildDeletePermanentLimitsQuery(),
+                QueryCatalog.buildDeleteOperationalLimitsGroupQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
@@ -343,8 +341,7 @@ public class NetworkStoreRepository {
 
     private static void deleteExternalAttributesVariant(UUID uuid, int variantNum, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesVariantQueries = List.of(
-                QueryCatalog.buildDeleteTemporaryLimitsVariantQuery(),
-                QueryCatalog.buildDeletePermanentLimitsVariantQuery(),
+                QueryCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
@@ -461,8 +458,7 @@ public class NetworkStoreRepository {
     private void cloneExternalAttributes(Connection connection, UUID uuid, UUID targetUuid, int sourceVariantNum, int targetVariantNum) throws SQLException {
         Stopwatch stopwatch = Stopwatch.createStarted();
         List<String> externalAttributesQueries = List.of(
-                QueryCatalog.buildCloneTemporaryLimitsQuery(),
-                QueryCatalog.buildClonePermanentLimitsQuery(),
+                QueryCatalog.buildCloneOperationalLimitsGroupQuery(),
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildCloneAreaBoundariesQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
@@ -1652,10 +1648,9 @@ public class NetworkStoreRepository {
     public void createTwoWindingsTransformers(UUID networkUuid, List<Resource<TwoWindingsTransformerAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
 
-        // Now that twowindingstransformers are created, we will insert in the database the corresponding temporary limits.
+        // Now that twowindingstransformers are created, we will insert in the database the corresponding operational limits groups.
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertTemporaryLimits(limitsInfos);
-        limitsHandler.insertPermanentLimits(limitsInfos);
+        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
         insertRegulatingPoints(getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
 
         // Now that twowindingstransformers are created, we will insert in the database the corresponding tap Changer steps.
@@ -1694,8 +1689,7 @@ public class NetworkStoreRepository {
     public void updateTwoWindingsTransformers(UUID networkUuid, List<Resource<TwoWindingsTransformerAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
 
-        limitsHandler.updateTemporaryLimitsWithLazyLoading(networkUuid, resources);
-        limitsHandler.updatePermanentLimitsWithLazyLoading(networkUuid, resources);
+        limitsHandler.updateOperationalLimitsGroupWithLazyLoading(networkUuid, resources);
         updateTapChangerSteps(networkUuid, resources);
         updateRegulatingPoints(networkUuid, resources, ResourceType.TWO_WINDINGS_TRANSFORMER, getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
     }
@@ -1754,8 +1748,7 @@ public class NetworkStoreRepository {
 
     public void deleteTwoWindingsTransformers(UUID networkUuid, int variantNum, List<String> twoWindingsTransformerIds) {
         deleteIdentifiables(networkUuid, variantNum, twoWindingsTransformerIds, TWO_WINDINGS_TRANSFORMER_TABLE);
-        limitsHandler.deleteTemporaryLimits(networkUuid, variantNum, twoWindingsTransformerIds);
-        limitsHandler.deletePermanentLimits(networkUuid, variantNum, twoWindingsTransformerIds);
+        limitsHandler.deleteOperationalLimitsGroup(networkUuid, variantNum, twoWindingsTransformerIds);
         deleteTapChangerSteps(networkUuid, variantNum, twoWindingsTransformerIds);
         deleteRegulatingPoints(networkUuid, variantNum, twoWindingsTransformerIds, ResourceType.TWO_WINDINGS_TRANSFORMER);
     }
@@ -1765,10 +1758,9 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getThreeWindingsTransformerMappings());
         insertRegulatingPoints(getRegulatingPointFromThreeWindingTransformers(networkUuid, resources));
 
-        // Now that threewindingstransformers are created, we will insert in the database the corresponding temporary limits.
+        // Now that threewindingstransformers are created, we will insert in the database the corresponding operatiobal limits groups.
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertTemporaryLimits(limitsInfos);
-        limitsHandler.insertPermanentLimits(limitsInfos);
+        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
 
         // Now that threewindingstransformers are created, we will insert in the database the corresponding tap Changer steps.
         insertTapChangerSteps(getTapChangerStepsFromEquipment(networkUuid, resources));
@@ -1809,8 +1801,7 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getThreeWindingsTransformerMappings());
 
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.updateTemporaryLimits(networkUuid, resources, limitsInfos);
-        limitsHandler.updatePermanentLimits(networkUuid, resources, limitsInfos);
+        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources, limitsInfos);
         updateTapChangerSteps(networkUuid, resources);
         updateRegulatingPoints(networkUuid, resources, ResourceType.THREE_WINDINGS_TRANSFORMER, getRegulatingPointFromThreeWindingTransformers(networkUuid, resources));
     }
@@ -1846,8 +1837,7 @@ public class NetworkStoreRepository {
 
     public void deleteThreeWindingsTransformers(UUID networkUuid, int variantNum, List<String> threeWindingsTransformerIds) {
         deleteIdentifiables(networkUuid, variantNum, threeWindingsTransformerIds, THREE_WINDINGS_TRANSFORMER_TABLE);
-        limitsHandler.deleteTemporaryLimits(networkUuid, variantNum, threeWindingsTransformerIds);
-        limitsHandler.deletePermanentLimits(networkUuid, variantNum, threeWindingsTransformerIds);
+        limitsHandler.deleteOperationalLimitsGroup(networkUuid, variantNum, threeWindingsTransformerIds);
         deleteTapChangerSteps(networkUuid, variantNum, threeWindingsTransformerIds);
         deleteRegulatingPoints(networkUuid, variantNum, threeWindingsTransformerIds, ResourceType.THREE_WINDINGS_TRANSFORMER);
     }
@@ -1857,10 +1847,9 @@ public class NetworkStoreRepository {
     public void createLines(UUID networkUuid, List<Resource<LineAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getLineMappings());
 
-        // Now that lines are created, we will insert in the database the corresponding temporary limits.
+        // Now that lines are created, we will insert in the database the corresponding operational limits groups.
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertTemporaryLimits(limitsInfos);
-        limitsHandler.insertPermanentLimits(limitsInfos);
+        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
     }
 
     public Optional<Resource<LineAttributes>> getLine(UUID networkUuid, int variantNum, String lineId) {
@@ -1888,8 +1877,7 @@ public class NetworkStoreRepository {
     public void updateLines(UUID networkUuid, List<Resource<LineAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
 
-        limitsHandler.updateTemporaryLimitsWithLazyLoading(networkUuid, resources);
-        limitsHandler.updatePermanentLimitsWithLazyLoading(networkUuid, resources);
+        limitsHandler.updateOperationalLimitsGroupWithLazyLoading(networkUuid, resources);
     }
 
     private <T extends IdentifiableAttributes, U> Set<RegulatingOwnerInfo> getRegulatingPointsToTombstoneFromEquipment(UUID networkUuid, Map<RegulatingOwnerInfo, U> externalAttributesToInsert, List<Resource<T>> resources) {
@@ -1909,8 +1897,7 @@ public class NetworkStoreRepository {
 
     public void deleteLines(UUID networkUuid, int variantNum, List<String> lineIds) {
         deleteIdentifiables(networkUuid, variantNum, lineIds, LINE_TABLE);
-        limitsHandler.deleteTemporaryLimits(networkUuid, variantNum, lineIds);
-        limitsHandler.deletePermanentLimits(networkUuid, variantNum, lineIds);
+        limitsHandler.deleteOperationalLimitsGroup(networkUuid, variantNum, lineIds);
     }
 
     // Hvdc line
@@ -1939,10 +1926,9 @@ public class NetworkStoreRepository {
     public void createDanglingLines(UUID networkUuid, List<Resource<DanglingLineAttributes>> resources) {
         createIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings());
 
-        // Now that the dangling lines are created, we will insert in the database the corresponding temporary limits.
+        // Now that the dangling lines are created, we will insert in the database the corresponding operational limits groups.
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertTemporaryLimits(limitsInfos);
-        limitsHandler.insertPermanentLimits(limitsInfos);
+        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
     }
 
     public Optional<Resource<DanglingLineAttributes>> getDanglingLine(UUID networkUuid, int variantNum, String danglingLineId) {
@@ -1973,16 +1959,14 @@ public class NetworkStoreRepository {
 
     public void deleteDanglingLines(UUID networkUuid, int variantNum, List<String> danglingLineIds) {
         deleteIdentifiables(networkUuid, variantNum, danglingLineIds, DANGLING_LINE_TABLE);
-        limitsHandler.deleteTemporaryLimits(networkUuid, variantNum, danglingLineIds);
-        limitsHandler.deletePermanentLimits(networkUuid, variantNum, danglingLineIds);
+        limitsHandler.deleteOperationalLimitsGroup(networkUuid, variantNum, danglingLineIds);
     }
 
     public void updateDanglingLines(UUID networkUuid, List<Resource<DanglingLineAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings(), VOLTAGE_LEVEL_ID_COLUMN);
 
         Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.updateTemporaryLimits(networkUuid, resources, limitsInfos);
-        limitsHandler.updatePermanentLimits(networkUuid, resources, limitsInfos);
+        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources, limitsInfos);
     }
 
     public void updateDanglingLinesSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -2030,8 +2014,7 @@ public class NetworkStoreRepository {
 
     public void deleteTieLines(UUID networkUuid, int variantNum, List<String> tieLineIds) {
         deleteIdentifiables(networkUuid, variantNum, tieLineIds, TIE_LINE_TABLE);
-        limitsHandler.deleteTemporaryLimits(networkUuid, variantNum, tieLineIds);
-        limitsHandler.deletePermanentLimits(networkUuid, variantNum, tieLineIds);
+        limitsHandler.deleteOperationalLimitsGroup(networkUuid, variantNum, tieLineIds);
     }
 
     public void updateTieLines(UUID networkUuid, List<Resource<TieLineAttributes>> resources) {
@@ -3587,64 +3570,6 @@ public class NetworkStoreRepository {
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
-    }
-
-    private Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> buildOperationalLimitsGroup(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
-                                                                                                           Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
-        Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result = new HashMap<>();
-
-        // permanent limits
-        for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : permanentLimits.entrySet()) {
-            for (PermanentLimitAttributes permanentLimitAttributes : entry.getValue()) {
-                OperationalLimitsGroupOwnerInfo owner =
-                    new OperationalLimitsGroupOwnerInfo(entry.getKey().getEquipmentId(),
-                                                        entry.getKey().getEquipmentType(),
-                                                        entry.getKey().getNetworkUuid(),
-                                                        entry.getKey().getVariantNum(),
-                                                        permanentLimitAttributes.getOperationalLimitsGroupId(),
-                                                        permanentLimitAttributes.getSide());
-                if (!result.containsKey(owner)) {
-                    result.put(owner, new LimitsGroupAttributesSqlData());
-                }
-                LimitsGroupAttributesSqlData limits = result.get(owner);
-                if (permanentLimitAttributes.getLimitType() == LimitType.CURRENT) {
-                    limits.setCurrentLimitsPermanentLimit(permanentLimitAttributes.getValue());
-                } else if (permanentLimitAttributes.getLimitType() == LimitType.APPARENT_POWER) {
-                    limits.setApparentPowerLimitsPermanentLimit(permanentLimitAttributes.getValue());
-                } else if (permanentLimitAttributes.getLimitType() == LimitType.ACTIVE_POWER) {
-                    limits.setActivePowerLimitsPermanentLimit(permanentLimitAttributes.getValue());
-                }
-            }
-        }
-
-        // temporary limits
-        for (Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>> entry : temporaryLimits.entrySet()) {
-            for (TemporaryLimitAttributes temporaryLimitAttributes : entry.getValue()) {
-                OperationalLimitsGroupOwnerInfo owner =
-                    new OperationalLimitsGroupOwnerInfo(entry.getKey().getEquipmentId(),
-                        entry.getKey().getEquipmentType(),
-                        entry.getKey().getNetworkUuid(),
-                        entry.getKey().getVariantNum(),
-                        temporaryLimitAttributes.getOperationalLimitsGroupId(),
-                        temporaryLimitAttributes.getSide());
-                if (!result.containsKey(owner)) {
-                    result.put(owner, new LimitsGroupAttributesSqlData());
-                }
-                LimitsGroupAttributesSqlData limits = result.get(owner);
-                TemporaryLimitInfosSqlData temporaryLimitInfosSqlData = new TemporaryLimitInfosSqlData(temporaryLimitAttributes.getName(),
-                    temporaryLimitAttributes.getValue(),
-                    temporaryLimitAttributes.getAcceptableDuration(),
-                    temporaryLimitAttributes.isFictitious());
-                if (temporaryLimitAttributes.getLimitType() == LimitType.CURRENT) {
-                    limits.getCurrentLimitsTemporaryLimits().add(temporaryLimitInfosSqlData);
-                } else if (temporaryLimitAttributes.getLimitType() == LimitType.APPARENT_POWER) {
-                    limits.getApparentPowerLimitsTemporaryLimits().add(temporaryLimitInfosSqlData);
-                } else if (temporaryLimitAttributes.getLimitType() == LimitType.ACTIVE_POWER) {
-                    limits.getActivePowerLimitsTemporaryLimits().add(temporaryLimitInfosSqlData);
-                }
-            }
-        }
-        return result;
     }
 
     public void insertOperationalLimitsGroupAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
