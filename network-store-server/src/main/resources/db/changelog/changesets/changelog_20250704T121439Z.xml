@@ -6,6 +6,17 @@
             <column name="phasetapchangersolvedtapposition" type="INTEGER"/>
             <column name="ratiotapchangersolvedtapposition" type="INTEGER"/>
         </addColumn>
+        <addColumn tableName="threewindingstransformer">
+            <column name="phasetapchangerloadtapchangingcapabilities1" type="BOOLEAN"/>
+            <column name="phasetapchangerloadtapchangingcapabilities2" type="BOOLEAN"/>
+            <column name="phasetapchangerloadtapchangingcapabilities3" type="BOOLEAN"/>
+            <column name="phasetapchangersolvedtapposition1" type="INTEGER"/>
+            <column name="phasetapchangersolvedtapposition2" type="INTEGER"/>
+            <column name="phasetapchangersolvedtapposition3" type="INTEGER"/>
+            <column name="ratiotapchangersolvedtapposition1" type="INTEGER"/>
+            <column name="ratiotapchangersolvedtapposition2" type="INTEGER"/>
+            <column name="ratiotapchangersolvedtapposition3" type="INTEGER"/>
+        </addColumn>
         <addColumn tableName="shuntcompensator">
             <column name="solvedsectioncount" type="INTEGER"/>
         </addColumn>
