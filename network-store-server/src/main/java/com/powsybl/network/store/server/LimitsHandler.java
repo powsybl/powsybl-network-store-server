@@ -100,6 +100,9 @@ public class LimitsHandler {
     }
 
     public Map<OwnerInfo, LimitsInfos> getOperationalLimitsGroupWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+        if (valuesForInClause.isEmpty()) {
+            return Collections.emptyMap();
+        }
         try (var preparedStmt = connection.prepareStatement(buildOperationalLimitsGroupWithInClauseQuery(columnNameForWhereClause, valuesForInClause.size()))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -121,21 +124,21 @@ public class LimitsHandler {
                 .side(side)
                 .value((Double) permanentLimit)
                 .build());
+        }
 
-            if (!StringUtils.isEmpty(temporaryLimitData)) {
-                List<TemporaryLimitInfosSqlData> parsedCurrentLimitTemporaryLimitData = mapper.readValue(temporaryLimitData, new TypeReference<>() {
-                });
-                for (TemporaryLimitInfosSqlData sqlData : parsedCurrentLimitTemporaryLimitData) {
-                    limitsInfos.addTemporaryLimit(TemporaryLimitAttributes.builder()
-                        .operationalLimitsGroupId(operationalLimitsGroupId)
-                        .limitType(limitType)
-                        .side(side)
-                        .name(sqlData.getName())
-                        .value(sqlData.getValue())
-                        .acceptableDuration(sqlData.getAcceptableDuration())
-                        .fictitious(sqlData.isFictitious())
-                        .build());
-                }
+        if (!StringUtils.isEmpty(temporaryLimitData)) {
+            List<TemporaryLimitInfosSqlData> parsedCurrentLimitTemporaryLimitData = mapper.readValue(temporaryLimitData, new TypeReference<>() {
+            });
+            for (TemporaryLimitInfosSqlData sqlData : parsedCurrentLimitTemporaryLimitData) {
+                limitsInfos.addTemporaryLimit(TemporaryLimitAttributes.builder()
+                    .operationalLimitsGroupId(operationalLimitsGroupId)
+                    .limitType(limitType)
+                    .side(side)
+                    .name(sqlData.getName())
+                    .value(sqlData.getValue())
+                    .acceptableDuration(sqlData.getAcceptableDuration())
+                    .fictitious(sqlData.isFictitious())
+                    .build());
             }
         }
     }
@@ -622,27 +625,31 @@ public class LimitsHandler {
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertLimitInfosToOperationalLimitsGroupMap(String equipmentId, LimitsInfos limitsInfos) {
         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitGroups = new HashMap<>();
         // permanent limits
-        limitsInfos.getPermanentLimits().forEach(permanentLimit -> {
-            if (containsOperationalLimitsGroup(operationalLimitGroups, equipmentId, permanentLimit.getSide(), permanentLimit.getOperationalLimitsGroupId())) {
-                setPermanentLimit(operationalLimitGroups.get(equipmentId).get(permanentLimit.getSide())
-                    .get(permanentLimit.getOperationalLimitsGroupId()), permanentLimit);
-            } else {
-                OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
-                operationalLimitsGroupAttributes.setId(permanentLimit.getOperationalLimitsGroupId());
-                setPermanentLimit(operationalLimitsGroupAttributes, permanentLimit);
-                addElementToOperationalLimitsGroupMap(operationalLimitGroups, equipmentId, permanentLimit.getSide(),
-                    permanentLimit.getOperationalLimitsGroupId(), operationalLimitsGroupAttributes);
-            }
-        });
+        if (!CollectionUtils.isEmpty(limitsInfos.getPermanentLimits())) {
+            limitsInfos.getPermanentLimits().forEach(permanentLimit -> {
+                if (containsOperationalLimitsGroup(operationalLimitGroups, equipmentId, permanentLimit.getSide(), permanentLimit.getOperationalLimitsGroupId())) {
+                    setPermanentLimit(operationalLimitGroups.get(equipmentId).get(permanentLimit.getSide())
+                        .get(permanentLimit.getOperationalLimitsGroupId()), permanentLimit);
+                } else {
+                    OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
+                    operationalLimitsGroupAttributes.setId(permanentLimit.getOperationalLimitsGroupId());
+                    setPermanentLimit(operationalLimitsGroupAttributes, permanentLimit);
+                    addElementToOperationalLimitsGroupMap(operationalLimitGroups, equipmentId, permanentLimit.getSide(),
+                        permanentLimit.getOperationalLimitsGroupId(), operationalLimitsGroupAttributes);
+                }
+            });
+        }
         // temporary limits
-        limitsInfos.getTemporaryLimits().forEach(temporaryLimit -> {
-            if (containsOperationalLimitsGroup(operationalLimitGroups, equipmentId, temporaryLimit.getSide(), temporaryLimit.getOperationalLimitsGroupId())) {
-                setTemporaryLimit(operationalLimitGroups.get(equipmentId).get(temporaryLimit.getSide())
-                    .get(temporaryLimit.getOperationalLimitsGroupId()), temporaryLimit);
-            } else {
-                throw new PowsyblException("a limit groups can not have temporary limits without a permanent limit");
-            }
-        });
+        if (!CollectionUtils.isEmpty(limitsInfos.getTemporaryLimits())) {
+            limitsInfos.getTemporaryLimits().forEach(temporaryLimit -> {
+                if (containsOperationalLimitsGroup(operationalLimitGroups, equipmentId, temporaryLimit.getSide(), temporaryLimit.getOperationalLimitsGroupId())) {
+                    setTemporaryLimit(operationalLimitGroups.get(equipmentId).get(temporaryLimit.getSide())
+                        .get(temporaryLimit.getOperationalLimitsGroupId()), temporaryLimit);
+                } else {
+                    throw new PowsyblException("a limit groups can not have temporary limits without a permanent limit");
+                }
+            });
+        }
         return operationalLimitGroups;
     }
 
