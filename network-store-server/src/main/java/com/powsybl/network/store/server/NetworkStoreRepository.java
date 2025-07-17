@@ -20,9 +20,7 @@ import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.model.utils.VariantUtils;
 import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
-import com.powsybl.network.store.server.json.LimitsGroupAttributesSqlData;
 import com.powsybl.network.store.server.dto.LimitsInfos;
-import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
@@ -51,7 +49,6 @@ import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.model.TapChangerType.PHASE;
 import static com.powsybl.network.store.model.TapChangerType.RATIO;
-import static com.powsybl.network.store.server.LimitsHandler.buildOperationalLimitsGroup;
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
@@ -3574,35 +3571,7 @@ public class NetworkStoreRepository {
 
     public void insertOperationalLimitsGroupAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
                                                        Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
-        try (var connection = dataSource.getConnection()) {
-            try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
-                Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> operationalLimitsGroup = buildOperationalLimitsGroup(permanentLimits, temporaryLimits);
-                List<Object> values = new ArrayList<>(12);
-                List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> list = new ArrayList<>(operationalLimitsGroup.entrySet());
-                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
-                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> entry : subUnit) {
-                        values.clear();
-                        values.add(entry.getKey().getNetworkUuid());
-                        values.add(entry.getKey().getVariantNum());
-                        values.add(entry.getKey().getEquipmentType().toString());
-                        values.add(entry.getKey().getEquipmentId());
-                        values.add(entry.getKey().getOperationalLimitsGroupId());
-                        values.add(entry.getKey().getSide());
-                        values.add(entry.getValue().getCurrentLimitsPermanentLimit());
-                        values.add(entry.getValue().getCurrentLimitsTemporaryLimits());
-                        values.add(entry.getValue().getApparentPowerLimitsPermanentLimit());
-                        values.add(entry.getValue().getApparentPowerLimitsTemporaryLimits());
-                        values.add(entry.getValue().getActivePowerLimitsPermanentLimit());
-                        values.add(entry.getValue().getActivePowerLimitsTemporaryLimits());
-                        bindValues(preparedStmt, values, mapper);
-                        preparedStmt.addBatch();
-                    }
-                    preparedStmt.executeBatch();
-                }
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
+        limitsHandler.insertOperationalLimitsGroupAttributes(permanentLimits, temporaryLimits);
     }
 
     public List<OperationalLimitsGroupAttributes> getOperationalLimitsGroupAttributesForBranchSide(
