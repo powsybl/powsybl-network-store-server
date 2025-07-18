@@ -14,7 +14,6 @@ import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
  */
 public final class V211LimitsQueryCatalog {
     public static final String MINIMAL_VALUE_REQUIREMENT_ERROR = "Function should not be called without at least one value.";
-    static final String LIMIT_TYPE_COLUMN = "limitType";
     public static final String V211_TEMPORARY_LIMIT_TABLE = "v211temporarylimit";
     public static final String V211_PERMANENT_LIMIT_TABLE = "v211permanentlimit";
 
