@@ -971,6 +971,28 @@ public class NetworkStoreRepository {
         existingAttributes.setQ2(newAttributes.getQ2());
     }
 
+    static void bindTwoWindingsTransformersSvAttributes(TwoWindingsTransformerSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getP1());
+        values.add(attributes.getQ1());
+        values.add(attributes.getP2());
+        values.add(attributes.getQ2());
+        values.add(attributes.getPhaseTapChangerTapPosition());
+        values.add(attributes.getRatioTapChangerTapPosition());
+    }
+
+    static void updateTwoWindingsTransformersSvAttributes(TwoWindingsTransformerAttributes existingAttributes, TwoWindingsTransformerSvAttributes newAttributes) {
+        existingAttributes.setP1(newAttributes.getP1());
+        existingAttributes.setQ1(newAttributes.getQ1());
+        existingAttributes.setP2(newAttributes.getP2());
+        existingAttributes.setQ2(newAttributes.getQ2());
+        if (newAttributes.getPhaseTapChangerTapPosition() != null) {
+            existingAttributes.getPhaseTapChangerAttributes().setTapPosition(newAttributes.getPhaseTapChangerTapPosition());
+        }
+        if (newAttributes.getRatioTapChangerTapPosition() != null) {
+            existingAttributes.getRatioTapChangerAttributes().setTapPosition(newAttributes.getRatioTapChangerTapPosition());
+        }
+    }
+
     private <T extends IdentifiableAttributes> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
                                                                        TableMapping tableMapping) throws SQLException {
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildUpdateIdentifiableQuery(tableMapping.getTable(), tableMapping.getColumnsMapping().keySet(), null))) {
@@ -1743,8 +1765,16 @@ public class NetworkStoreRepository {
         return externalAttributesToTombstoneFromEquipment;
     }
 
-    public void updateTwoWindingsTransformersSv(UUID networkUuid, List<Resource<BranchSvAttributes>> resources) {
-        updateBranchesSv(networkUuid, resources, TWO_WINDINGS_TRANSFORMER_TABLE, mappings.getTwoWindingsTransformerMappings());
+    public void updateTwoWindingsTransformersSv(UUID networkUuid, List<Resource<TwoWindingsTransformerSvAttributes>> resources) {
+        updateIdentifiablesSv(
+                networkUuid,
+                resources,
+                mappings.getTwoWindingsTransformerMappings(),
+                buildUpdateTwoWindingsTransformerSvQuery(),
+                NetworkStoreRepository::updateTwoWindingsTransformersSvAttributes,
+                NetworkStoreRepository::bindTwoWindingsTransformersSvAttributes
+        );
+
     }
 
     public void deleteTwoWindingsTransformers(UUID networkUuid, int variantNum, List<String> twoWindingsTransformerIds) {

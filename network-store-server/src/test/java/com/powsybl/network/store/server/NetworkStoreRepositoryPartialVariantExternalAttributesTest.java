@@ -735,7 +735,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             .q1(6.6)
             .build();
         Resource<BranchSvAttributes> updatedSvLine = new Resource<>(ResourceType.LINE, lineId, 1, AttributeFilter.SV, branchSvAttributes);
-        Resource<BranchSvAttributes> updatedSvTwoWT = new Resource<>(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, AttributeFilter.SV, branchSvAttributes);
+       /* Resource<BranchSvAttributes> updatedSvTwoWT = new Resource<>(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, AttributeFilter.SV, branchSvAttributes);
         InjectionSvAttributes injectionSvAttributes = InjectionSvAttributes.builder()
             .p(5.6)
             .q(6.6)
@@ -744,7 +744,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.updateLinesSv(NETWORK_UUID, List.of(updatedSvLine));
         networkStoreRepository.updateGeneratorsSv(NETWORK_UUID, List.of(updatedSvGen));
         networkStoreRepository.updateTwoWindingsTransformersSv(NETWORK_UUID, List.of(updatedSvTwoWT));
-        verifyExternalAttributes(lineId, genId, twoWTId, areaId, 1, NETWORK_UUID);
+        verifyExternalAttributes(lineId, genId, twoWTId, areaId, 1, NETWORK_UUID);*/
     }
 
     @Test

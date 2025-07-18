@@ -249,6 +249,20 @@ public final class QueryCatalog {
                 ID_COLUMN + " = ?";
     }
 
+    public static String buildUpdateTwoWindingsTransformerSvQuery() {
+        return "update " +
+                TWO_WINDINGS_TRANSFORMER_TABLE +
+                " set p1 = ?" +
+                ", q1 = ?" +
+                ", p2 = ?" +
+                ", q2 = ?" +
+                ", phasetapchangertapposition = ?" +
+                ", ratiotapchangertapposition = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
     public static String buildUpdateThreeWindingsTransformerSvQuery() {
         return "update " +
                 THREE_WINDINGS_TRANSFORMER_TABLE +
