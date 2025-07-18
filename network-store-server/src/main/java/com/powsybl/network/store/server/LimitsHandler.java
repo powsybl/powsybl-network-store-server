@@ -51,14 +51,6 @@ public class LimitsHandler {
         this.mappings = mappings;
     }
 
-    public Map<OwnerInfo, LimitsInfos> getLimitsInfos(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
-        return getOperationaLimitsGroup(networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-    }
-
-    public Map<OwnerInfo, LimitsInfos> getLimitsInfosWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
-        return getOperationaLimitsGroupWithInClause(networkUuid, variantNum, columnNameForWhereClause, valuesForInClause);
-    }
-
     public Map<OwnerInfo, LimitsInfos> getOperationaLimitsGroup(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getExternalAttributes(
@@ -686,7 +678,7 @@ public class LimitsHandler {
                                                                                 String operationalLimitsGroupName,
                                                                                 int side) {
         OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
-        LimitsInfos limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
+        LimitsInfos limitsInfos = getOperationaLimitsGroup(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributes = convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos);
         return getElementFromOperationalLimitsGroupMap(operationalLimitsGroupAttributes, branchId, side, operationalLimitsGroupName);
     }
@@ -694,7 +686,7 @@ public class LimitsHandler {
     public List<OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesForBranchSide(
         UUID networkId, int variantNum, ResourceType type, String branchId, int side) {
         OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
-        Optional<LimitsInfos> limitsInfos = Optional.ofNullable(getLimitsInfos(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo));
+        Optional<LimitsInfos> limitsInfos = Optional.ofNullable(getOperationaLimitsGroup(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo));
         if (limitsInfos.isPresent()) {
             Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> allBranchOperationalLimitsGroups =
                 convertLimitInfosToOperationalLimitsGroupMap(branchId, limitsInfos.get());
@@ -712,7 +704,7 @@ public class LimitsHandler {
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
             UUID networkId, int variantNum, ResourceType type, int fullVariantNum, Set<String> tombstonedElements) {
         // get selected operational limits ids for each element of type indicated
-        Map<OwnerInfo, LimitsInfos> limitsInfos = getLimitsInfos(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        Map<OwnerInfo, LimitsInfos> limitsInfos = getOperationaLimitsGroup(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
         Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups =
             getSelectedOperationalLimitsGroupIdsForVariant(networkId, variantNum, fullVariantNum, type, tombstonedElements);
         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> selectedOperationalLimitsGroupAttributes = new HashMap<>();
