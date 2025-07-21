@@ -599,6 +599,22 @@ public class Mappings {
         twoWindingsTransformerMappings.addColumnMapping("phaseAngleClock", new ColumnMapping<>(TwoWindingsTransformerPhaseAngleClockAttributes.class, TwoWindingsTransformerAttributes::getPhaseAngleClockAttributes, TwoWindingsTransformerAttributes::setPhaseAngleClockAttributes));
 
         // phaseTapChanger
+        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities", new ColumnMapping<>(Boolean.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
+            (TwoWindingsTransformerAttributes attributes, Boolean value) -> {
+                if (attributes.getPhaseTapChangerAttributes() == null) {
+                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                attributes.getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
+            }));
+        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
+            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
+                if (attributes.getPhaseTapChangerAttributes() == null) {
+                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                attributes.getPhaseTapChangerAttributes().setSolvedTapPosition(value);
+            }));
         twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerLowTapPosition", new ColumnMapping<>(Integer.class,
             (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().getLowTapPosition() : null,
             (TwoWindingsTransformerAttributes attributes, Integer value) -> {
@@ -631,23 +647,15 @@ public class Mappings {
                 }
                 attributes.getPhaseTapChangerAttributes().setRegulationValue(value);
             }));
-        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities", new ColumnMapping<>(Boolean.class,
-            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
-            (TwoWindingsTransformerAttributes attributes, Boolean value) -> {
-                if (attributes.getPhaseTapChangerAttributes() == null) {
-                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
-                }
-                attributes.getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
-            }));
-        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
-            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
-            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
-                if (attributes.getPhaseTapChangerAttributes() == null) {
-                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
-                }
-                attributes.getPhaseTapChangerAttributes().setSolvedTapPosition(value);
-            }));
         // ratioTapChanger
+        twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getSolvedTapPosition() : null,
+            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
+                if (attributes.getRatioTapChangerAttributes() == null) {
+                    attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+                }
+                attributes.getRatioTapChangerAttributes().setSolvedTapPosition(value);
+            }));
         twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerLowTapPosition", new ColumnMapping<>(Integer.class,
             (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getLowTapPosition() : null,
             (TwoWindingsTransformerAttributes attributes, Integer value) -> {
@@ -687,14 +695,6 @@ public class Mappings {
                     attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
                 }
                 attributes.getRatioTapChangerAttributes().setRegulationValue(value);
-            }));
-        twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
-            (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getSolvedTapPosition() : null,
-            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
-                if (attributes.getRatioTapChangerAttributes() == null) {
-                    attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
-                }
-                attributes.getRatioTapChangerAttributes().setSolvedTapPosition(value);
             }));
     }
 
@@ -752,6 +752,22 @@ public class Mappings {
                 (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getSelectedOperationalLimitsGroupId(),
                 (ThreeWindingsTransformerAttributes attributes, String selectedOperationalLimitsGroupId) -> attributes.getLeg(i).setSelectedOperationalLimitsGroupId(selectedOperationalLimitsGroupId)));
             // PhaseTapChanger
+            threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities" + i, new ColumnMapping<>(Boolean.class,
+                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
+                (ThreeWindingsTransformerAttributes attributes, Boolean value) -> {
+                    if (attributes.getLeg(i).getPhaseTapChangerAttributes() == null) {
+                        attributes.getLeg(i).setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                    }
+                    attributes.getLeg(i).getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
+                }));
+            threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition" + i, new ColumnMapping<>(Integer.class,
+                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
+                (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
+                    if (attributes.getLeg(i).getPhaseTapChangerAttributes() == null) {
+                        attributes.getLeg(i).setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                    }
+                    attributes.getLeg(i).getPhaseTapChangerAttributes().setSolvedTapPosition(value);
+                }));
             threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerLowTapPosition" + i, new ColumnMapping<>(Integer.class,
                 (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().getLowTapPosition() : null,
                 (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
@@ -784,24 +800,15 @@ public class Mappings {
                     }
                     attributes.getLeg(i).getPhaseTapChangerAttributes().setRegulationValue(value);
                 }));
-            threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities" + i, new ColumnMapping<>(Boolean.class,
-                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
-                (ThreeWindingsTransformerAttributes attributes, Boolean value) -> {
-                    if (attributes.getLeg(i).getPhaseTapChangerAttributes() == null) {
-                        attributes.getLeg(i).setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
-                    }
-                    attributes.getLeg(i).getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
-                }));
-
-            threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition" + i, new ColumnMapping<>(Integer.class,
-                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
-                (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
-                    if (attributes.getLeg(i).getPhaseTapChangerAttributes() == null) {
-                        attributes.getLeg(i).setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
-                    }
-                    attributes.getLeg(i).getPhaseTapChangerAttributes().setSolvedTapPosition(value);
-                }));
             // RatioTapChanger
+            threeWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition" + i, new ColumnMapping<>(Integer.class,
+                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getRatioTapChangerAttributes() != null ? attributes.getLeg(i).getRatioTapChangerAttributes().getSolvedTapPosition() : null,
+                (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
+                    if (attributes.getLeg(i).getRatioTapChangerAttributes() == null) {
+                        attributes.getLeg(i).setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+                    }
+                    attributes.getLeg(i).getRatioTapChangerAttributes().setSolvedTapPosition(value);
+                }));
             threeWindingsTransformerMappings.addColumnMapping("ratioTapChangerLowTapPosition" + i, new ColumnMapping<>(Integer.class,
                 (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getRatioTapChangerAttributes() != null ? attributes.getLeg(i).getRatioTapChangerAttributes().getLowTapPosition() : null,
                 (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
@@ -841,14 +848,6 @@ public class Mappings {
                         attributes.getLeg(i).setRatioTapChangerAttributes(new RatioTapChangerAttributes());
                     }
                     attributes.getLeg(i).getRatioTapChangerAttributes().setRegulationValue(value);
-                }));
-            threeWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition" + i, new ColumnMapping<>(Integer.class,
-                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getRatioTapChangerAttributes() != null ? attributes.getLeg(i).getRatioTapChangerAttributes().getSolvedTapPosition() : null,
-                (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
-                    if (attributes.getLeg(i).getRatioTapChangerAttributes() == null) {
-                        attributes.getLeg(i).setRatioTapChangerAttributes(new RatioTapChangerAttributes());
-                    }
-                    attributes.getLeg(i).getRatioTapChangerAttributes().setSolvedTapPosition(value);
                 }));
         });
     }
