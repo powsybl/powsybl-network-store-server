@@ -1674,8 +1674,6 @@ class NetworkStoreIT {
             Map<UUID, String> networkIds = service.getNetworkIds();
 
             assertEquals(1, networkIds.size());
-
-            assertTrue(networkIds.keySet().stream().findFirst().isPresent());
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
 
             assertEquals(26, readNetwork.getConnectableCount());
