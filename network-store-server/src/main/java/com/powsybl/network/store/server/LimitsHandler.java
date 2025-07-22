@@ -114,7 +114,7 @@ public class LimitsHandler {
                 .operationalLimitsGroupId(operationalLimitsGroupId)
                 .limitType(limitType)
                 .side(side)
-                .value((Double) permanentLimit)
+                .value(permanentLimit)
                 .build());
         }
 
