@@ -320,8 +320,9 @@ class NetworkStoreValidationTest {
 
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmin(Double.NaN)).getMessage().contains("bmin is invalid"));
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmax(Double.NaN)).getMessage().contains("bmax is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setRegulating(true).setReactivePowerSetpoint(Double.NaN)).getMessage().matches("(.*)invalid value(.*)reactive power setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).setVoltageSetpoint(Double.NaN).setRegulating(true)).getMessage().matches("(.*)invalid value(.*)voltage setpoint(.*)"));
+        StaticVarCompensator svc1 = svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setRegulating(true);
+        assertTrue(assertThrows(PowsyblException.class, () -> svc1.setReactivePowerSetpoint(Double.NaN)).getMessage().matches("(.*)invalid value(.*)reactive power setpoint(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)).getMessage().matches("(.*)invalid value(.*)voltage setpoint(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(null)).getMessage().contains("Regulation mode is invalid"));
     }
 
