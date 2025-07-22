@@ -357,22 +357,22 @@ class NetworkStoreValidationTest {
                 .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300).add()
                 .add())
                 .getMessage().contains("reactive power setpoint"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.newCurrentLimits().setPermanentLimit(-5).add())
+        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(-5).add())
                 .getMessage().contains("permanent limit must be >= 0"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.newCurrentLimits().setPermanentLimit(10)
+        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
                 .beginTemporaryLimit().endTemporaryLimit().add())
                 .getMessage().contains("temporary limit value is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.newCurrentLimits().setPermanentLimit(10)
+        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
                 .beginTemporaryLimit().setValue(-1).endTemporaryLimit().add())
                 .getMessage().contains("temporary limit value must be >= 0"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.newCurrentLimits().setPermanentLimit(10)
+        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
                 .beginTemporaryLimit().setValue(10).setAcceptableDuration(-1).endTemporaryLimit().add())
                 .getMessage().contains("acceptable duration must be >= 0"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.newCurrentLimits().setPermanentLimit(10)
+        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
                 .beginTemporaryLimit().setValue(10).setAcceptableDuration(20).endTemporaryLimit().add())
                 .getMessage().contains("name is not set"));
 
-        danglingLine1.newCurrentLimits()
+        danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(256)
                 .beginTemporaryLimit()
                 .setName("TL1")

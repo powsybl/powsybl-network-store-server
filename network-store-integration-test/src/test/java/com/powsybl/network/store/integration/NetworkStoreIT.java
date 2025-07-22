@@ -3447,11 +3447,11 @@ class NetworkStoreIT {
 
             assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit().add())
                 .getMessage().contains("name is not set");
-            readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15)
+            readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15)
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit()
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(1).setAcceptableDuration(4).endTemporaryLimit()
                 .add();
-            assertEquals("name#0", readNetwork.getLine("LINE1").getActivePowerLimits1().orElseThrow().getTemporaryLimit(4).getName());
+            assertEquals("name#0", readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().getActivePowerLimits().orElseThrow().getTemporaryLimit(4).getName());
         }
     }
 
