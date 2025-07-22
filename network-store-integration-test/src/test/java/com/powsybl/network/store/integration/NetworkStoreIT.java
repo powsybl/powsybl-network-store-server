@@ -3326,8 +3326,8 @@ class NetworkStoreIT {
 
             DanglingLine danglingLine = readNetwork.getDanglingLine("DL2");
 
-            readNetwork.getThreeWindingsTransformer("TWT1").getLeg1().newActivePowerLimits().setPermanentLimit(10).add();
-            readNetwork.getThreeWindingsTransformer("TWT1").getLeg1().newApparentPowerLimits().setPermanentLimit(20).add();
+            readNetwork.getThreeWindingsTransformer("TWT1").getLeg1().getOrCreateSelectedOperationalLimitsGroup().newActivePowerLimits().setPermanentLimit(10).add();
+            readNetwork.getThreeWindingsTransformer("TWT1").getLeg1().getOrCreateSelectedOperationalLimitsGroup().newApparentPowerLimits().setPermanentLimit(20).add();
 
             assertEquals(10, readNetwork.getThreeWindingsTransformer("TWT1").getLeg1().getActivePowerLimits().orElseThrow().getPermanentLimit(), 0.1);
             assertEquals(20, readNetwork.getThreeWindingsTransformer("TWT1").getLeg1().getApparentPowerLimits().orElseThrow().getPermanentLimit(), 0.1);
@@ -3436,16 +3436,16 @@ class NetworkStoreIT {
 
             assertEquals("networkTestCase", readNetwork.getId());
 
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15).beginTemporaryLimit().endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().endTemporaryLimit().add())
                 .getMessage().contains("temporary limit value is not set");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15).beginTemporaryLimit().setValue(-2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(-2).endTemporaryLimit().add())
                 .getMessage().contains("temporary limit value must be > 0");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15).beginTemporaryLimit().setValue(2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).endTemporaryLimit().add())
                 .getMessage().contains("acceptable duration is not set");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15).beginTemporaryLimit().setValue(2).setAcceptableDuration(-2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).setAcceptableDuration(-2).endTemporaryLimit().add())
                 .getMessage().contains("acceptable duration must be >= 0");
 
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit().add())
                 .getMessage().contains("name is not set");
             readNetwork.getLine("LINE1").newActivePowerLimits1().setPermanentLimit(15)
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit()
@@ -3472,22 +3472,22 @@ class NetworkStoreIT {
 
             assertEquals("networkTestCase", readNetwork.getId());
 
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newApparentPowerLimits1().setPermanentLimit(15).beginTemporaryLimit().endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(15).beginTemporaryLimit().endTemporaryLimit().add())
                 .getMessage().contains("temporary limit value is not set");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newApparentPowerLimits1().setPermanentLimit(15).beginTemporaryLimit().setValue(-2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(-2).endTemporaryLimit().add())
                 .getMessage().contains("temporary limit value must be > 0");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newApparentPowerLimits1().setPermanentLimit(15).beginTemporaryLimit().setValue(2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).endTemporaryLimit().add())
                 .getMessage().contains("acceptable duration is not set");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newApparentPowerLimits1().setPermanentLimit(15).beginTemporaryLimit().setValue(2).setAcceptableDuration(-2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).setAcceptableDuration(-2).endTemporaryLimit().add())
                 .getMessage().contains("acceptable duration must be >= 0");
 
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").newApparentPowerLimits1().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit().add())
+            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit().add())
                 .getMessage().contains("name is not set");
-            readNetwork.getLine("LINE1").newApparentPowerLimits1().setPermanentLimit(15)
+            readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits().setPermanentLimit(15)
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit()
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(1).setAcceptableDuration(4).endTemporaryLimit()
                 .add();
-            assertEquals("name#0", readNetwork.getLine("LINE1").getApparentPowerLimits1().orElseThrow().getTemporaryLimit(4).getName());
+            assertEquals("name#0", readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().getApparentPowerLimits().orElseThrow().getTemporaryLimit(4).getName());
         }
     }
 
@@ -3980,7 +3980,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             var network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             var l = network.getLine("NHV1_NHV2_1");
-            l.newCurrentLimits1()
+            l.getOrCreateSelectedOperationalLimitsGroup1().newCurrentLimits()
                     .setPermanentLimit(1000)
                     .add();
             service.flush(network);
