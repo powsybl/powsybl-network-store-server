@@ -289,23 +289,31 @@ class NetworkStoreValidationTest {
         Network network = service.getNetworkFactory().createNetwork("Validation network", "test");
         Substation s1 = network.newSubstation().setId("S1").setCountry(Country.FR).add();
         VoltageLevel vl1 = s1.newVoltageLevel().setId("VL1").setNominalV(380).setLowVoltageLimit(320).setHighVoltageLimit(420).setTopologyKind(TopologyKind.NODE_BREAKER).add();
-
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().add()).getMessage().contains("Static var compensator id is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setBus("b1").setConnectableBus("B1").add())
+        StaticVarCompensatorAdder adder = vl1.newStaticVarCompensator();
+        assertTrue(assertThrows(PowsyblException.class, adder::add).getMessage().contains("Static var compensator id is not set"));
+        adder.setId("SVC1").setBus("b1").setConnectableBus("B1");
+        assertTrue(assertThrows(PowsyblException.class, adder::add)
                 .getMessage().contains("connection bus is different to connectable bus"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setConnectableBus("B1").add())
+        StaticVarCompensatorAdder adder1 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setConnectableBus("B1");
+        assertTrue(assertThrows(PowsyblException.class, adder1::add)
                 .getMessage().contains("connection node and connection bus are exclusives"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").add())
+        StaticVarCompensatorAdder adder2 = vl1.newStaticVarCompensator().setId("SVC1");
+        assertTrue(assertThrows(PowsyblException.class, adder2::add)
                 .getMessage().contains("connectable bus is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).add())
+        StaticVarCompensatorAdder adder3 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1);
+        assertTrue(assertThrows(PowsyblException.class, adder3::add)
                 .getMessage().contains("bmin is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).add())
+        StaticVarCompensatorAdder adder4 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1);
+        assertTrue(assertThrows(PowsyblException.class, adder4::add)
                 .getMessage().contains("bmax is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setRegulationMode(null).setNode(1).setBmin(1).setBmax(10).add())
+        StaticVarCompensatorAdder adder5 = vl1.newStaticVarCompensator().setId("SVC1").setRegulationMode(null).setNode(1).setBmin(1).setBmax(10);
+        assertTrue(assertThrows(PowsyblException.class, adder5::add)
                 .getMessage().contains("Regulation mode is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE).add())
+        StaticVarCompensatorAdder adder6 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE);
+        assertTrue(assertThrows(PowsyblException.class, adder6::add)
                 .getMessage().matches("(.*)voltage setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).add())
+        StaticVarCompensatorAdder adder7 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
+        assertTrue(assertThrows(PowsyblException.class, adder7::add)
                 .getMessage().matches("(.*)reactive power setpoint(.*)"));
 
         StaticVarCompensator svc = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setReactivePowerSetpoint(10).add();
@@ -322,21 +330,28 @@ class NetworkStoreValidationTest {
         Network network = service.getNetworkFactory().createNetwork("Validation network", "test");
         Substation s1 = network.newSubstation().setId("S1").setCountry(Country.FR).add();
         VoltageLevel vl1 = s1.newVoltageLevel().setId("VL1").setNominalV(380).setLowVoltageLimit(320).setHighVoltageLimit(420).setTopologyKind(TopologyKind.NODE_BREAKER).add();
-
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().add()).getMessage().contains("Dangling line id is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").setBus("b1").setConnectableBus("B1").add())
+        DanglingLineAdder adder = vl1.newDanglingLine();
+        assertTrue(assertThrows(PowsyblException.class, adder::add).getMessage().contains("Dangling line id is not set"));
+        DanglingLineAdder adder1 = vl1.newDanglingLine().setId("DL1").setBus("b1").setConnectableBus("B1");
+        assertTrue(assertThrows(PowsyblException.class, adder1::add)
                 .getMessage().contains("connection bus is different to connectable bus"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").setNode(1).setConnectableBus("B1").add())
+        DanglingLineAdder adder2 = vl1.newDanglingLine().setId("DL1").setNode(1).setConnectableBus("B1");
+        assertTrue(assertThrows(PowsyblException.class, adder2::add)
                 .getMessage().contains("connection node and connection bus are exclusives"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").add())
+        DanglingLineAdder adder3 = vl1.newDanglingLine().setId("DL1");
+        assertTrue(assertThrows(PowsyblException.class, adder3::add)
                 .getMessage().contains("connectable bus is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).add())
+        DanglingLineAdder adder4 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1);
+        assertTrue(assertThrows(PowsyblException.class, adder4::add)
                 .getMessage().contains("r is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).add())
+        DanglingLineAdder adder5 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1);
+        assertTrue(assertThrows(PowsyblException.class, adder5::add)
                 .getMessage().contains("x is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(Double.NaN).add())
+        DanglingLineAdder adder6 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(Double.NaN);
+        assertTrue(assertThrows(PowsyblException.class, adder6::add)
                 .getMessage().contains("g is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(Double.NaN).add())
+        DanglingLineAdder adder7 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(Double.NaN);
+        assertTrue(assertThrows(PowsyblException.class, adder7::add)
                 .getMessage().contains("b is invalid"));
 
         DanglingLine danglingLine1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();

@@ -3433,18 +3433,21 @@ class NetworkStoreIT {
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
 
             assertEquals("networkTestCase", readNetwork.getId());
-
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().endTemporaryLimit().add())
-                .getMessage().contains("temporary limit value is not set");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(-2).endTemporaryLimit().add())
-                .getMessage().contains("temporary limit value must be > 0");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).endTemporaryLimit().add())
-                .getMessage().contains("acceptable duration is not set");
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).setAcceptableDuration(-2).endTemporaryLimit().add())
-                .getMessage().contains("acceptable duration must be >= 0");
-
-            assertThrows(ValidationException.class, () -> readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit().add())
-                .getMessage().contains("name is not set");
+            ActivePowerLimitsAdder adder = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().endTemporaryLimit();
+            assertTrue(assertThrows(ValidationException.class, adder::add)
+                .getMessage().contains("temporary limit value is not set"));
+            ActivePowerLimitsAdder adder1 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(-2).endTemporaryLimit();
+            assertTrue(assertThrows(ValidationException.class, adder1::add)
+                .getMessage().contains("temporary limit value must be > 0"));
+            ActivePowerLimitsAdder adder2 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).endTemporaryLimit();
+            assertTrue(assertThrows(ValidationException.class, adder2::add)
+                .getMessage().contains("acceptable duration is not set"));
+            ActivePowerLimitsAdder adder3 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2).setAcceptableDuration(-2).endTemporaryLimit();
+            assertTrue(assertThrows(ValidationException.class, adder3::add)
+                .getMessage().contains("acceptable duration must be >= 0"));
+            ActivePowerLimitsAdder adder4 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit();
+            assertTrue(assertThrows(ValidationException.class, adder4::add)
+                .getMessage().contains("name is not set"));
             readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15)
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit()
                 .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(1).setAcceptableDuration(4).endTemporaryLimit()
