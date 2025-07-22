@@ -356,40 +356,40 @@ class NetworkStoreValidationTest {
 
         DanglingLine danglingLine1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
 
-        DanglingLineAdder dlAdder = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
-            .newGeneration().setMinP(200).setMaxP(100).add();
+        DanglingLineAdder.GenerationAdder dlAdder = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+            .newGeneration().setMinP(200).setMaxP(100);
         assertTrue(assertThrows(PowsyblException.class, dlAdder::add)
                 .getMessage().contains("invalid active limits"));
-        DanglingLineAdder dlAdder1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
-            .newGeneration().setMinP(100).setMaxP(200).add();
+        DanglingLineAdder.GenerationAdder dlAdder1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+            .newGeneration().setMinP(100).setMaxP(200);
         assertTrue(assertThrows(PowsyblException.class, dlAdder1::add)
                 .getMessage().contains("active power setpoint"));
-        DanglingLineAdder dlAdder2 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
-            .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(true).add();
+        DanglingLineAdder.GenerationAdder dlAdder2 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+            .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(true);
         assertTrue(assertThrows(PowsyblException.class, dlAdder2::add)
                 .getMessage().contains("voltage setpoint"));
-        DanglingLineAdder dlAdder3 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
-            .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300).add();
+        DanglingLineAdder.GenerationAdder dlAdder3 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+            .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300);
         assertTrue(assertThrows(PowsyblException.class, dlAdder3::add)
                 .getMessage().contains("reactive power setpoint"));
         CurrentLimitsAdder currentLimitsAdder = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(-5);
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder::add)
                 .getMessage().contains("permanent limit must be >= 0"));
-        CurrentLimitsAdder currentLimitsAdder1 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
-            .beginTemporaryLimit().endTemporaryLimit();
-        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder1::add)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder1 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+            .beginTemporaryLimit();
+        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder1::endTemporaryLimit)
                 .getMessage().contains("temporary limit value is not set"));
-        CurrentLimitsAdder currentLimitsAdder2 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
-            .beginTemporaryLimit().setValue(-1).endTemporaryLimit();
-        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder2::add)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder2 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+            .beginTemporaryLimit().setValue(-1);
+        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder2::endTemporaryLimit)
                 .getMessage().contains("temporary limit value must be >= 0"));
-        CurrentLimitsAdder currentLimitsAdder3 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
-            .beginTemporaryLimit().setValue(10).setAcceptableDuration(-1).endTemporaryLimit();
-        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder3::add)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder3 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+            .beginTemporaryLimit().setValue(10).setAcceptableDuration(-1);
+        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder3::endTemporaryLimit)
                 .getMessage().contains("acceptable duration must be >= 0"));
-        CurrentLimitsAdder currentLimitsAdder4 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
-            .beginTemporaryLimit().setValue(10).setAcceptableDuration(20).endTemporaryLimit();
-        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder4::add)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder4 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+            .beginTemporaryLimit().setValue(10).setAcceptableDuration(20);
+        assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder4::endTemporaryLimit)
                 .getMessage().contains("name is not set"));
 
         danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
