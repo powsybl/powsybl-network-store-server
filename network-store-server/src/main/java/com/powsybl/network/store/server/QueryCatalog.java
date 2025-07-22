@@ -808,7 +808,7 @@ public final class QueryCatalog {
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
@@ -830,7 +830,7 @@ public final class QueryCatalog {
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
             " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +

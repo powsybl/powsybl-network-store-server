@@ -6,7 +6,7 @@
 
      <changeSet author="lecuyerfra" id="298655622969-1">
         <createTable tableName="operationallimitsgroup">
-            <column name="networkuuid" type="VARCHAR(255)">
+            <column name="networkuuid" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="operationallimitsgroup_pkey"/>
             </column>
             <column name="variantnum" type="INTEGER">
