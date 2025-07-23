@@ -1628,4 +1628,73 @@ class NetworkStoreRepositoryTest {
         assertEquals(calculatedBusAttributesBv, existingAttributes.getCalculatedBusesForBusView());
         assertEquals(calculatedBusAttributesBbv, existingAttributes.getCalculatedBusesForBusBreakerView());
     }
+
+    @Test
+    void testTwtMappings() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+        String twtId = "twt1";
+        Resource<TwoWindingsTransformerAttributes> twt = Resource.twoWindingsTransformerBuilder()
+            .id(twtId)
+            .attributes(TwoWindingsTransformerAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+                .name(twtId)
+                .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                    .solvedTapPosition(1)
+                    .build())
+                .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                    .solvedTapPosition(2)
+                    .loadTapChangingCapabilities(true)
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createTwoWindingsTransformers(NETWORK_UUID, List.of(twt));
+
+        Optional<Resource<TwoWindingsTransformerAttributes>> retrievedTwt = networkStoreRepository.getTwoWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(retrievedTwt.isPresent());
+        assertNotNull(retrievedTwt.get().getAttributes().getRatioTapChangerAttributes());
+        assertEquals(1, retrievedTwt.get().getAttributes().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertNotNull(retrievedTwt.get().getAttributes().getPhaseTapChangerAttributes());
+        assertTrue(retrievedTwt.get().getAttributes().getPhaseTapChangerAttributes().isLoadTapChangingCapabilities());
+        assertEquals(2, retrievedTwt.get().getAttributes().getPhaseTapChangerAttributes().getSolvedTapPosition());
+    }
+
+    @Test
+    void test3wtMappings() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+        String twtId = "twt1";
+        Resource<ThreeWindingsTransformerAttributes> twt = Resource.threeWindingsTransformerBuilder()
+            .id(twtId)
+            .attributes(ThreeWindingsTransformerAttributes.builder()
+                .name(twtId)
+                .leg1(LegAttributes.builder()
+                    .voltageLevelId("vl1")
+                    .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                        .solvedTapPosition(1)
+                        .build())
+                    .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                        .solvedTapPosition(2)
+                        .loadTapChangingCapabilities(true)
+                        .build())
+                    .build())
+                .leg2(LegAttributes.builder()
+                    .voltageLevelId("vl2").build())
+                .leg3(LegAttributes.builder()
+                    .voltageLevelId("vl3").build())
+                .build())
+            .build();
+        networkStoreRepository.createThreeWindingsTransformers(NETWORK_UUID, List.of(twt));
+
+        Optional<Resource<ThreeWindingsTransformerAttributes>> retrievedTwt = networkStoreRepository.getThreeWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(retrievedTwt.isPresent());
+        assertNotNull(retrievedTwt.get().getAttributes().getLeg1().getRatioTapChangerAttributes());
+        assertEquals(1, retrievedTwt.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertNotNull(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes());
+        assertTrue(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().isLoadTapChangingCapabilities());
+        assertEquals(2, retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
+    }
 }

@@ -96,7 +96,7 @@ final class NetworkStorageTestCaseFactory {
                 .setMinQ(200)
                 .setMaxQ(800)
                 .add();
-        danglingLine1.newCurrentLimits()
+        danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(256)
                 .beginTemporaryLimit()
                 .setName("TL1")
@@ -132,7 +132,7 @@ final class NetworkStorageTestCaseFactory {
                 .setVoltageRegulationOn(true)
                 .add()
                 .add();
-        danglingLine2.newCurrentLimits()
+        danglingLine2.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(256)
                 .beginTemporaryLimit()
                 .setName("TL2")
@@ -147,7 +147,7 @@ final class NetworkStorageTestCaseFactory {
                 .setFictitious(true)
                 .endTemporaryLimit()
                 .add();
-        danglingLine2.newActivePowerLimits()
+        danglingLine2.getOrCreateSelectedOperationalLimitsGroup().newActivePowerLimits()
                 .setPermanentLimit(300)
                 .beginTemporaryLimit()
                 .setName("ACL_TL1")
@@ -162,7 +162,7 @@ final class NetworkStorageTestCaseFactory {
                 .setFictitious(true)
                 .endTemporaryLimit()
                 .add();
-        danglingLine2.newApparentPowerLimits()
+        danglingLine2.getOrCreateSelectedOperationalLimitsGroup().newApparentPowerLimits()
                 .setPermanentLimit(400)
                 .beginTemporaryLimit()
                 .setName("APL_TL1")
@@ -230,7 +230,7 @@ final class NetworkStorageTestCaseFactory {
                 .setB2(32)
                 .add();
 
-        l1.newApparentPowerLimits1()
+        l1.getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits()
                 .setPermanentLimit(1000)
                 .beginTemporaryLimit()
                 .setName("APL_TL1")
@@ -246,7 +246,7 @@ final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        l1.newApparentPowerLimits2()
+        l1.getOrCreateSelectedOperationalLimitsGroup2().newApparentPowerLimits()
                 .setPermanentLimit(2000)
                 .beginTemporaryLimit()
                 .setName("APL_TL3")
@@ -262,7 +262,7 @@ final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        l1.newActivePowerLimits1()
+        l1.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits()
                 .setPermanentLimit(3000)
                 .beginTemporaryLimit()
                 .setName("ACL_TL1")
@@ -278,7 +278,7 @@ final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        l1.newActivePowerLimits2()
+        l1.getOrCreateSelectedOperationalLimitsGroup2().newActivePowerLimits()
                 .setPermanentLimit(4000)
                 .beginTemporaryLimit()
                 .setName("ACL_TL3")
@@ -408,6 +408,7 @@ final class NetworkStorageTestCaseFactory {
                 .add();
 
         threeWindingsTransformer.getLeg1()
+                .getOrCreateSelectedOperationalLimitsGroup()
                 .newCurrentLimits()
                 .setPermanentLimit(25)
                 .add();
