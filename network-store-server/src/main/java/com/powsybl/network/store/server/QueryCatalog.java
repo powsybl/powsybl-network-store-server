@@ -72,6 +72,7 @@ public final class QueryCatalog {
     static final String APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "apparent_power_limits_temporary_limits";
     static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
     static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
+    static final String PROPERTIES_COLUMN = "properties";
 
     private QueryCatalog() {
     }
@@ -380,12 +381,14 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
                 CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ") " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN + ") " +
                 "select " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", ?, ?, " +
                 GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
                 CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " + NETWORK_UUID_COLUMN +
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
@@ -792,8 +795,9 @@ public final class QueryCatalog {
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ")" +
-            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            PROPERTIES_COLUMN + ")" +
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildOperationalLimitsGroupQuery(String columnNameForWhereClause) {
@@ -808,7 +812,8 @@ public final class QueryCatalog {
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
@@ -830,7 +835,8 @@ public final class QueryCatalog {
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            PROPERTIES_COLUMN +
             " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +

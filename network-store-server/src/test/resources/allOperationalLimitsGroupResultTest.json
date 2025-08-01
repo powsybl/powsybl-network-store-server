@@ -13,6 +13,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     },
@@ -29,6 +33,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       },
       "selectedside2": {
@@ -43,6 +51,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     }
@@ -61,6 +73,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       },
       "selectedside1": {
@@ -75,6 +91,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     },
@@ -91,6 +111,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     }

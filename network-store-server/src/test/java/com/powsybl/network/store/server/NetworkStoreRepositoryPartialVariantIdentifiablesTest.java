@@ -370,6 +370,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(30.).build())
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
                                 .build()))
                         .build())
                 .build();

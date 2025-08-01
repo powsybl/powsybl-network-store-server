@@ -186,7 +186,7 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
                                                      Map<OwnerInfo, List<PermanentLimitAttributes>> v220PermanentLimits) {
         try (Connection connection = repository.getDataSource().getConnection()) {
             if (!v220PermanentLimits.isEmpty() || !v220TemporaryLimits.isEmpty()) {
-                repository.getLimitsHandler().insertOperationalLimitsGroupAttributes(v220PermanentLimits, v220TemporaryLimits);
+                repository.getLimitsHandler().insertOperationalLimitsGroupAttributes(v220PermanentLimits, v220TemporaryLimits, Map.of());
             }
             if (!v220PermanentLimits.isEmpty()) {
                 // For now, we keep the existing permanentlimits table content
