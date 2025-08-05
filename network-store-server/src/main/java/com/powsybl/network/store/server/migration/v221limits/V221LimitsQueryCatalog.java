@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.network.store.server.migration.v220limits;
+package com.powsybl.network.store.server.migration.v221limits;
 
 import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_ID_COLUMN;
 import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_TYPE_COLUMN;
@@ -15,17 +15,17 @@ import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public final class V220LimitsQueryCatalog {
+public final class V221LimitsQueryCatalog {
     public static final String MINIMAL_VALUE_REQUIREMENT_ERROR = "Function should not be called without at least one value.";
     public static final String TEMPORARY_LIMIT_TABLE = "temporarylimits";
     public static final String PERMANENT_LIMIT_TABLE = "permanentlimits";
 
-    private V220LimitsQueryCatalog() {
+    private V221LimitsQueryCatalog() {
         throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     // Temporary Limits
-    public static String buildGetV220TemporaryLimitQuery(String columnNameForWhereClause) {
+    public static String buildGetV221TemporaryLimitQuery(String columnNameForWhereClause) {
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
@@ -36,7 +36,7 @@ public final class V220LimitsQueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildDeleteV220TemporaryLimitsVariantEquipmentINQuery(int numberOfValues) {
+    public static String buildDeleteV221TemporaryLimitsVariantEquipmentINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
@@ -47,7 +47,7 @@ public final class V220LimitsQueryCatalog {
     }
 
     // Permanent Limits
-    public static String buildGetV220PermanentLimitQuery(String columnNameForWhereClause) {
+    public static String buildGetV221PermanentLimitQuery(String columnNameForWhereClause) {
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
@@ -58,7 +58,7 @@ public final class V220LimitsQueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildDeleteV220PermanentLimitsVariantEquipmentINQuery(int numberOfValues) {
+    public static String buildDeleteV221PermanentLimitsVariantEquipmentINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }

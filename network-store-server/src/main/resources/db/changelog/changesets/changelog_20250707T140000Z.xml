@@ -35,7 +35,4 @@
             <column name="equipmenttype"/>
         </createIndex>
     </changeSet>
-    <changeSet author="lecuyerfra" id="298655622969-2">
-        <customChange class="com.powsybl.network.store.server.migration.v220limits.V220OperationalLimitsGroupMigration"/>
-    </changeSet>
 </databaseChangeLog>

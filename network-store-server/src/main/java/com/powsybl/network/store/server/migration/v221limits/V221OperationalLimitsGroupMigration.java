@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package com.powsybl.network.store.server.migration.v220limits;
+package com.powsybl.network.store.server.migration.v221limits;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -49,9 +49,9 @@ import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_TYPE_COLUM
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
+public class V221OperationalLimitsGroupMigration implements CustomTaskChange {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(V220OperationalLimitsGroupMigration.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(V221OperationalLimitsGroupMigration.class);
 
     private NetworkStoreRepository repository;
 
@@ -73,7 +73,7 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
             while (variants.next()) {
                 UUID networkId = UUID.fromString(variants.getString(1));
                 int variantNum = variants.getInt(2);
-                migrateV220OperationalLimitsGroupQuietly(repository, networkId, variantNum, exceptions);
+                migrateV221OperationalLimitsGroupQuietly(repository, networkId, variantNum, exceptions);
             }
         } catch (Exception e) {
             throw new CustomChangeException("V2.20 limits migration : error when getting the variants list", e);
@@ -85,7 +85,7 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
 
     @Override
     public String getConfirmationMessage() {
-        return "V2.20 limits were successfully migrated";
+        return "V2.21 limits were successfully migrated";
     }
 
     @Override
@@ -103,109 +103,95 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
         return new ValidationErrors();
     }
 
-    public static Map<OwnerInfo, List<TemporaryLimitAttributes>> getV220TemporaryLimits(NetworkStoreRepository repository,
+    public static Map<OwnerInfo, List<TemporaryLimitAttributes>> getV221TemporaryLimits(NetworkStoreRepository repository,
                                                                                         UUID networkUuid,
                                                                                         int variantNum,
                                                                                         String columnNameForWhereClause,
                                                                                         String valueForWhereClause) {
         try (Connection connection = repository.getDataSource().getConnection()) {
-            var preparedStmt = connection.prepareStatement(V220LimitsQueryCatalog.buildGetV220TemporaryLimitQuery(columnNameForWhereClause));
+            var preparedStmt = connection.prepareStatement(V221LimitsQueryCatalog.buildGetV221TemporaryLimitQuery(columnNameForWhereClause));
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
 
-            return innerGetV220TemporaryLimits(preparedStmt);
+            return innerGetV221TemporaryLimits(preparedStmt);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    public static Map<OwnerInfo, List<PermanentLimitAttributes>> getV220PermanentLimits(NetworkStoreRepository repository,
+    public static Map<OwnerInfo, List<PermanentLimitAttributes>> getV221PermanentLimits(NetworkStoreRepository repository,
                                                                                         UUID networkUuid,
                                                                                         int variantNum,
                                                                                         String columnNameForWhereClause,
                                                                                         String valueForWhereClause) {
         try (Connection connection = repository.getDataSource().getConnection()) {
-            var preparedStmt = connection.prepareStatement(V220LimitsQueryCatalog.buildGetV220PermanentLimitQuery(columnNameForWhereClause));
+            var preparedStmt = connection.prepareStatement(V221LimitsQueryCatalog.buildGetV221PermanentLimitQuery(columnNameForWhereClause));
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
 
-            return innerGetV220PermanentLimits(preparedStmt);
+            return innerGetV221PermanentLimits(preparedStmt);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    public static void migrateV220OperationalLimitsGroupQuietly(NetworkStoreRepository repository,
+    public static void migrateV221OperationalLimitsGroupQuietly(NetworkStoreRepository repository,
                                                                 UUID networkId,
                                                                 int variantNum,
                                                                 List<Exception> exceptions) {
         try {
-            migrateV220OperationalLimitsGroup(repository, networkId, variantNum);
+            migrateV221OperationalLimitsGroup(repository, networkId, variantNum);
         } catch (Exception e) {
-            LOGGER.error("V2.20 limits migration : failure for network " + networkId + "/variantNum=" + variantNum, e);
+            LOGGER.error("V2.21 limits migration : failure for network " + networkId + "/variantNum=" + variantNum, e);
             exceptions.add(e);
         }
     }
 
-    public static void migrateV220OperationalLimitsGroup(NetworkStoreRepository repository,
+    public static void migrateV221OperationalLimitsGroup(NetworkStoreRepository repository,
                                                          UUID networkId,
                                                          int variantNum) {
         Stopwatch stopwatch = Stopwatch.createStarted();
 
-        migrateV220OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.LINE.toString());
-        migrateV220OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.TWO_WINDINGS_TRANSFORMER.toString());
-        migrateV220OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
-        migrateV220OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
+        migrateV221OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.LINE.toString());
+        migrateV221OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.TWO_WINDINGS_TRANSFORMER.toString());
+        migrateV221OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
+        migrateV221OperationalLimitsGroup(repository, networkId, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
 
         stopwatch.stop();
         LOGGER.info("The limits of network {}/variantNum={} were migrated in {} ms.", networkId, variantNum, stopwatch.elapsed(TimeUnit.MILLISECONDS));
         LOGGER.info("=============================================================================================================\n\n\n\n");
     }
 
-    public static void migrateV220OperationalLimitsGroup(NetworkStoreRepository repository,
+    public static void migrateV221OperationalLimitsGroup(NetworkStoreRepository repository,
                                                          UUID networkUuid,
                                                          int variantNum,
                                                          String columnNameForWhereClause,
                                                          String valueForWhereClause) {
         Stopwatch stopwatch = Stopwatch.createStarted();
-        Map<OwnerInfo, List<TemporaryLimitAttributes>> v220TemporaryLimits = getV220TemporaryLimits(repository, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        Map<OwnerInfo, List<PermanentLimitAttributes>> v220PermanentLimits = getV220PermanentLimits(repository, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
-        insertNewLimitsAndDeleteV220(repository, networkUuid, variantNum, v220TemporaryLimits, v220PermanentLimits);
+        Map<OwnerInfo, List<TemporaryLimitAttributes>> v221TemporaryLimits = getV221TemporaryLimits(repository, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
+        Map<OwnerInfo, List<PermanentLimitAttributes>> v221PermanentLimits = getV221PermanentLimits(repository, networkUuid, variantNum, columnNameForWhereClause, valueForWhereClause);
+        insertNewLimitsV221(repository, v221TemporaryLimits, v221PermanentLimits);
         stopwatch.stop();
         LOGGER.info("Limits of {}S of network {}/variantNum={} migrated in {} ms.", valueForWhereClause, networkUuid, variantNum, stopwatch.elapsed(TimeUnit.MILLISECONDS));
-        LOGGER.info("       The permanent limits of {} {}S were migrated.", v220PermanentLimits.size(), valueForWhereClause);
-        LOGGER.info("       The temporary limits of {} {}S were migrated.\n", v220TemporaryLimits.size(), valueForWhereClause);
+        LOGGER.info("       The permanent limits of {} {}S were migrated.", v221PermanentLimits.size(), valueForWhereClause);
+        LOGGER.info("       The temporary limits of {} {}S were migrated.\n", v221TemporaryLimits.size(), valueForWhereClause);
     }
 
-    private static void insertNewLimitsAndDeleteV220(NetworkStoreRepository repository,
-                                                     UUID networkUuid,
-                                                     int variantNum,
-                                                     Map<OwnerInfo, List<TemporaryLimitAttributes>> v220TemporaryLimits,
-                                                     Map<OwnerInfo, List<PermanentLimitAttributes>> v220PermanentLimits) {
-        try (Connection connection = repository.getDataSource().getConnection()) {
-            if (!v220PermanentLimits.isEmpty() || !v220TemporaryLimits.isEmpty()) {
-                repository.getLimitsHandler().insertOperationalLimitsGroupAttributes(v220PermanentLimits, v220TemporaryLimits);
-            }
-            if (!v220PermanentLimits.isEmpty()) {
-                // For now, we keep the existing permanentlimits table content
-                //deletev220PermanentLimits(connection, networkUuid, variantNum, v220PermanentLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
-            }
-            if (!v220TemporaryLimits.isEmpty()) {
-                // For now, we keep the existing temporarylimits table content
-                //deletev220TemporaryLimits(connection, networkUuid, variantNum, v220TemporaryLimits.keySet().stream().map(OwnerInfo::getEquipmentId).toList());
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
+    private static void insertNewLimitsV221(NetworkStoreRepository repository,
+                                            Map<OwnerInfo, List<TemporaryLimitAttributes>> v221TemporaryLimits,
+                                            Map<OwnerInfo, List<PermanentLimitAttributes>> v221PermanentLimits) {
+        if (!v221PermanentLimits.isEmpty() || !v221TemporaryLimits.isEmpty()) {
+            repository.getLimitsHandler().insertOperationalLimitsGroupAttributes(v221PermanentLimits, v221TemporaryLimits);
         }
     }
 
-    public static Map<OwnerInfo, List<TemporaryLimitAttributes>> innerGetV220TemporaryLimits(PreparedStatement preparedStmt) throws SQLException {
+    public static Map<OwnerInfo, List<TemporaryLimitAttributes>> innerGetV221TemporaryLimits(PreparedStatement preparedStmt) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<TemporaryLimitAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
-                // In order, from the QueryCatalog.buildGetV220TemporaryLimitQuery SQL query :
+                // In order, from the QueryCatalog.buildGetV221TemporaryLimitQuery SQL query :
                 // equipmentId, equipmentType, networkUuid, variantNum, temporaryLimits
                 OwnerInfo owner = new OwnerInfo(resultSet.getString(1), ResourceType.valueOf(resultSet.getString(2)), resultSet.getObject(3, UUID.class), resultSet.getInt(4));
 
@@ -222,11 +208,11 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
         }
     }
 
-    public static Map<OwnerInfo, List<PermanentLimitAttributes>> innerGetV220PermanentLimits(PreparedStatement preparedStmt) throws SQLException {
+    public static Map<OwnerInfo, List<PermanentLimitAttributes>> innerGetV221PermanentLimits(PreparedStatement preparedStmt) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, List<PermanentLimitAttributes>> map = new HashMap<>();
             while (resultSet.next()) {
-                // In order, from the QueryCatalog.buildGetV220PermanentLimitQuery SQL query :
+                // In order, from the QueryCatalog.buildGetV221PermanentLimitQuery SQL query :
                 // equipmentId, equipmentType, networkUuid, variantNum, permanentLimits
                 OwnerInfo owner = new OwnerInfo(resultSet.getString(1), ResourceType.valueOf(resultSet.getString(2)), resultSet.getObject(3, UUID.class), resultSet.getInt(4));
 
@@ -240,42 +226,6 @@ public class V220OperationalLimitsGroupMigration implements CustomTaskChange {
             return map;
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
-        }
-    }
-
-    public static void deletev220TemporaryLimits(Connection connection,
-                                                 UUID networkUuid,
-                                                 int variantNum,
-                                                 List<String> equipmentIds) {
-        try {
-            try (var preparedStmt = connection.prepareStatement(V220LimitsQueryCatalog.buildDeleteV220TemporaryLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
-                preparedStmt.setObject(1, networkUuid);
-                preparedStmt.setInt(2, variantNum);
-                for (int i = 0; i < equipmentIds.size(); i++) {
-                    preparedStmt.setString(3 + i, equipmentIds.get(i));
-                }
-                preparedStmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-    }
-
-    public static void deletev220PermanentLimits(Connection connection,
-                                                 UUID networkUuid,
-                                                 int variantNum,
-                                                 List<String> equipmentIds) {
-        try {
-            try (var preparedStmt = connection.prepareStatement(V220LimitsQueryCatalog.buildDeleteV220PermanentLimitsVariantEquipmentINQuery(equipmentIds.size()))) {
-                preparedStmt.setObject(1, networkUuid);
-                preparedStmt.setInt(2, variantNum);
-                for (int i = 0; i < equipmentIds.size(); i++) {
-                    preparedStmt.setString(3 + i, equipmentIds.get(i));
-                }
-                preparedStmt.executeUpdate();
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
         }
     }
 }
