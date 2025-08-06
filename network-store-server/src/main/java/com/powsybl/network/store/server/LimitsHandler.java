@@ -214,16 +214,8 @@ public class LimitsHandler {
         insertOperationalLimitsGroupAttributes(permanentLimits, temporaryLimits, properties);
     }
 
-    public void insertTemporaryLimitsAttributes(Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
-        throw new AssertionError("This method should not be called anymore"); // obsolete code called in V211LimitsMigration
-    }
-
-    public static Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> buildOperationalLimitsGroup(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
-                                                                                                                 Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits,
-                                                                                                                 Map<OwnerInfo, List<OperationalLimitsGroupPropertiesAttributes>> properties) {
-        Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result = new HashMap<>();
-
-        // permanent limits
+    private static void buildPermanentLimits(Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result,
+                                             Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
         for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : permanentLimits.entrySet()) {
             for (PermanentLimitAttributes permanentLimitAttributes : entry.getValue()) {
                 OperationalLimitsGroupOwnerInfo owner =
@@ -246,8 +238,10 @@ public class LimitsHandler {
                 }
             }
         }
+    }
 
-        // temporary limits
+    private static void buildTemporaryLimits(Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result,
+                                             Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
         for (Map.Entry<OwnerInfo, List<TemporaryLimitAttributes>> entry : temporaryLimits.entrySet()) {
             for (TemporaryLimitAttributes temporaryLimitAttributes : entry.getValue()) {
                 OperationalLimitsGroupOwnerInfo owner =
@@ -274,7 +268,10 @@ public class LimitsHandler {
                 }
             }
         }
+    }
 
+    private static void buildProperties(Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result,
+                                        Map<OwnerInfo, List<OperationalLimitsGroupPropertiesAttributes>> properties) {
         for (Map.Entry<OwnerInfo, List<OperationalLimitsGroupPropertiesAttributes>> entry : properties.entrySet()) {
             for (OperationalLimitsGroupPropertiesAttributes operationalLimitsGroupPropertiesAttributes : entry.getValue()) {
                 OperationalLimitsGroupOwnerInfo owner =
@@ -291,6 +288,21 @@ public class LimitsHandler {
                 limits.setProperties(operationalLimitsGroupPropertiesAttributes.getProperties());
             }
         }
+    }
+
+    public static Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> buildOperationalLimitsGroup(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits,
+                                                                                                                 Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits,
+                                                                                                                 Map<OwnerInfo, List<OperationalLimitsGroupPropertiesAttributes>> properties) {
+        Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result = new HashMap<>();
+
+        // permanent limits
+        buildPermanentLimits(result, permanentLimits);
+
+        // temporary limits
+        buildTemporaryLimits(result, temporaryLimits);
+
+        // properties
+        buildProperties(result, properties);
 
         return result;
     }
@@ -301,7 +313,7 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
                 Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> operationalLimitsGroup = buildOperationalLimitsGroup(permanentLimits, temporaryLimits, properties);
-                List<Object> values = new ArrayList<>(12);
+                List<Object> values = new ArrayList<>(13);
                 List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> list = new ArrayList<>(operationalLimitsGroup.entrySet());
                 for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> entry : subUnit) {
@@ -330,41 +342,50 @@ public class LimitsHandler {
         }
     }
 
-    public void insertPermanentLimitsAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
-        throw new AssertionError("This method should not be called anymore"); // obsolete code called in V211LimitsMigration
+    private <T extends LimitHolder & IdentifiableAttributes> void insertTemporaryLimitsInEquipments(List<TemporaryLimitAttributes> temporaryLimitAttributes,
+                                                                                                    T equipment) {
+        if (temporaryLimitAttributes != null) {
+            for (TemporaryLimitAttributes temporaryLimit : temporaryLimitAttributes) {
+                insertTemporaryLimitInEquipment(equipment, temporaryLimit);
+            }
+        }
+    }
+
+    private <T extends LimitHolder & IdentifiableAttributes> void insertPermanentLimitsInEquipments(List<PermanentLimitAttributes> permanentLimitAttributes,
+                                                                                                    T equipment) {
+        if (permanentLimitAttributes != null) {
+            for (PermanentLimitAttributes permanentLimit : permanentLimitAttributes) {
+                insertPermanentLimitInEquipment(equipment, permanentLimit);
+            }
+        }
+    }
+
+    private <T extends LimitHolder & IdentifiableAttributes> void insertOperationalLimitsGroupPropertiesInEquipments(List<OperationalLimitsGroupPropertiesAttributes> operationalLimitsGroupPropertiesAttributes,
+                                                                                                                     T equipment) {
+        if (operationalLimitsGroupPropertiesAttributes != null) {
+            for (OperationalLimitsGroupPropertiesAttributes propertiesAttributes : operationalLimitsGroupPropertiesAttributes) {
+                insertOperationalLimitsGroupPropertiesInEquipment(equipment, propertiesAttributes);
+            }
+        }
     }
 
     protected <T extends LimitHolder & IdentifiableAttributes> void insertLimitsInEquipments(UUID networkUuid, List<Resource<T>> equipments, Map<OwnerInfo, LimitsInfos> limitsInfos) {
-        if (!limitsInfos.isEmpty() && !equipments.isEmpty()) {
-            for (Resource<T> equipmentAttributesResource : equipments) {
-                OwnerInfo owner = new OwnerInfo(
-                    equipmentAttributesResource.getId(),
-                    equipmentAttributesResource.getType(),
-                    networkUuid,
-                    equipmentAttributesResource.getVariantNum()
-                );
-                if (limitsInfos.containsKey(owner)) {
-                    T equipment = equipmentAttributesResource.getAttributes();
-                    List<TemporaryLimitAttributes> temporaryLimitAttributes = limitsInfos.get(owner).getTemporaryLimits();
-                    if (temporaryLimitAttributes != null) {
-                        for (TemporaryLimitAttributes temporaryLimit : temporaryLimitAttributes) {
-                            insertTemporaryLimitInEquipment(equipment, temporaryLimit);
-                        }
-                    }
-                    List<PermanentLimitAttributes> permanentLimitAttributes = limitsInfos.get(owner).getPermanentLimits();
-                    if (permanentLimitAttributes != null) {
-                        for (PermanentLimitAttributes permanentLimit : permanentLimitAttributes) {
-                            insertPermanentLimitInEquipment(equipment, permanentLimit);
-                        }
-                    }
+        for (Resource<T> equipmentAttributesResource : equipments) {
+            OwnerInfo owner = new OwnerInfo(
+                equipmentAttributesResource.getId(),
+                equipmentAttributesResource.getType(),
+                networkUuid,
+                equipmentAttributesResource.getVariantNum()
+            );
+            if (limitsInfos.containsKey(owner)) {
+                T equipment = equipmentAttributesResource.getAttributes();
+                List<TemporaryLimitAttributes> temporaryLimitAttributes = limitsInfos.get(owner).getTemporaryLimits();
+                insertTemporaryLimitsInEquipments(temporaryLimitAttributes, equipment);
+                List<PermanentLimitAttributes> permanentLimitAttributes = limitsInfos.get(owner).getPermanentLimits();
+                insertPermanentLimitsInEquipments(permanentLimitAttributes, equipment);
 
-                    List<OperationalLimitsGroupPropertiesAttributes> operationalLimitsGroupPropertiesAttributes = limitsInfos.get(owner).getProperties();
-                    if (operationalLimitsGroupPropertiesAttributes != null) {
-                        for (OperationalLimitsGroupPropertiesAttributes propertiesAttributes : operationalLimitsGroupPropertiesAttributes) {
-                            insertOperationalLimitsGroupPropertiesInEquipment(equipment, propertiesAttributes);
-                        }
-                    }
-                }
+                List<OperationalLimitsGroupPropertiesAttributes> operationalLimitsGroupPropertiesAttributes = limitsInfos.get(owner).getProperties();
+                insertOperationalLimitsGroupPropertiesInEquipments(operationalLimitsGroupPropertiesAttributes, equipment);
             }
         }
     }
