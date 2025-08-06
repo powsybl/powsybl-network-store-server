@@ -7,12 +7,10 @@
 package com.powsybl.network.store.server.json;
 
 import com.powsybl.network.store.model.OperationalLimitsGroupAttributes;
-import com.powsybl.network.store.model.TapChangerStepAttributes;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import lombok.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -30,13 +28,7 @@ public class LimitsGroupAttributesSqlData {
     private String equipmentId;
     private String operationalLimitsGroupId;
     private Integer side;
-    private double currentLimitsPermanentLimit = Double.NaN;
-    private List<TemporaryLimitInfosSqlData> currentLimitsTemporaryLimits = new ArrayList<>();
-    private double apparentPowerLimitsPermanentLimit = Double.NaN;
-    private List<TemporaryLimitInfosSqlData> apparentPowerLimitsTemporaryLimits = new ArrayList<>();
-    private double activePowerLimitsPermanentLimit = Double.NaN;
-    private List<TemporaryLimitInfosSqlData> activePowerLimitsTemporaryLimits = new ArrayList<>();
-    private Map<String, String> properties = new HashMap<>();
+    private OperationalLimitsGroupAttributes operationalLimitsGroupAttributes;
 
     public static List<LimitsGroupAttributesSqlData> of(Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> tapChangerStepAttributes) {
         List<LimitsGroupAttributesSqlData> result = new ArrayList<>();
@@ -60,41 +52,7 @@ public class LimitsGroupAttributesSqlData {
                             .equipmentId(ownerInfo.getEquipmentId())
                             .operationalLimitsGroupId(operationalLimitsGroupId)
                             .side(side)
-                            .currentLimitsPermanentLimit(attributes.getCurrentLimits() != null ?
-                                    attributes.getCurrentLimits().getPermanentLimit() : Double.NaN)
-                            .currentLimitsTemporaryLimits(attributes.getCurrentLimits() != null &&
-                                    attributes.getCurrentLimits().getTemporaryLimits() != null ?
-                                    attributes.getCurrentLimits().getTemporaryLimits().values().stream()
-                                            .map(temp -> new TemporaryLimitInfosSqlData(
-                                                    temp.getName(),
-                                                    temp.getValue(),
-                                                    temp.getAcceptableDuration(),
-                                                    temp.isFictitious()))
-                                            .collect(Collectors.toList()) : new ArrayList<>())
-                            .apparentPowerLimitsPermanentLimit(attributes.getApparentPowerLimits() != null ?
-                                    attributes.getApparentPowerLimits().getPermanentLimit() : Double.NaN)
-                            .apparentPowerLimitsTemporaryLimits(attributes.getApparentPowerLimits() != null &&
-                                    attributes.getApparentPowerLimits().getTemporaryLimits() != null ?
-                                    attributes.getApparentPowerLimits().getTemporaryLimits().values().stream()
-                                            .map(temp -> new TemporaryLimitInfosSqlData(
-                                                    temp.getName(),
-                                                    temp.getValue(),
-                                                    temp.getAcceptableDuration(),
-                                                    temp.isFictitious()))
-                                            .collect(Collectors.toList()) : new ArrayList<>())
-                            .activePowerLimitsPermanentLimit(attributes.getActivePowerLimits() != null ?
-                                    attributes.getActivePowerLimits().getPermanentLimit() : Double.NaN)
-                            .activePowerLimitsTemporaryLimits(attributes.getActivePowerLimits() != null &&
-                                    attributes.getActivePowerLimits().getTemporaryLimits() != null ?
-                                    attributes.getActivePowerLimits().getTemporaryLimits().values().stream()
-                                            .map(temp -> new TemporaryLimitInfosSqlData(
-                                                    temp.getName(),
-                                                    temp.getValue(),
-                                                    temp.getAcceptableDuration(),
-                                                    temp.isFictitious()))
-                                            .collect(Collectors.toList()) : new ArrayList<>())
-                            .properties(attributes.getProperties() != null ?
-                                    new HashMap<>(attributes.getProperties()) : new HashMap<>())
+                            .operationalLimitsGroupAttributes(attributes)
                             .build();
 
                     result.add(sqlData);

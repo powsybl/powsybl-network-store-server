@@ -123,27 +123,21 @@ public class LimitsHandler {
                 LimitsAttributes currentLimits = createLimitsAttributes(
                         operationalLimitsGroupId,
                         resultSet.getDouble(7),
-                        resultSet.getString(8),
-                        LimitType.CURRENT,
-                        side
+                        resultSet.getString(8)
                 );
                 operationalLimitsGroupAttributes.setCurrentLimits(currentLimits);
 
                 LimitsAttributes apparentPowerLimits = createLimitsAttributes(
                         operationalLimitsGroupId,
                         resultSet.getDouble(9),
-                        resultSet.getString(10),
-                        LimitType.APPARENT_POWER,
-                        side
+                        resultSet.getString(10)
                 );
                 operationalLimitsGroupAttributes.setApparentPowerLimits(apparentPowerLimits);
 
                 LimitsAttributes activePowerLimits = createLimitsAttributes(
                         operationalLimitsGroupId,
                         resultSet.getDouble(11),
-                        resultSet.getString(12),
-                        LimitType.ACTIVE_POWER,
-                        side
+                        resultSet.getString(12)
                 );
                 operationalLimitsGroupAttributes.setActivePowerLimits(activePowerLimits);
 
@@ -162,27 +156,13 @@ public class LimitsHandler {
     }
 
     private LimitsAttributes createLimitsAttributes(String operationalLimitsGroupId, double permanentLimit,
-                                                    String temporaryLimitData, LimitType limitType, Integer side)
+                                                    String temporaryLimitData)
             throws JsonProcessingException {
-        LimitsAttributes limits = new LimitsAttributes(operationalLimitsGroupId, permanentLimit, new TreeMap<>());
-
-        if (temporaryLimitData != null && !temporaryLimitData.trim().isEmpty()) {
-            List<TemporaryLimitInfosSqlData> temporaryLimitInfos = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
-            for (TemporaryLimitInfosSqlData sqlData : temporaryLimitInfos) {
-                TemporaryLimitAttributes temporaryLimit = TemporaryLimitAttributes.builder()
-                        .operationalLimitsGroupId(operationalLimitsGroupId)
-                        .limitType(limitType)
-                        .side(side)
-                        .name(sqlData.getName())
-                        .value(sqlData.getValue())
-                        .acceptableDuration(sqlData.getAcceptableDuration())
-                        .fictitious(sqlData.isFictitious())
-                        .build();
-
-                limits.addTemporaryLimit(temporaryLimit);
-            }
+        if (temporaryLimitData == null) {
+            return new LimitsAttributes(operationalLimitsGroupId, permanentLimit, null);
         }
-
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitInfos = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
+        LimitsAttributes limits = new LimitsAttributes(operationalLimitsGroupId, permanentLimit, temporaryLimitInfos);
         return limits;
     }
 
@@ -213,7 +193,7 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
                 List<LimitsGroupAttributesSqlData> operationalLimitsGroup = LimitsGroupAttributesSqlData.of(operationalLimitsGroups);
-                List<Object> values = new ArrayList<>(12);
+                List<Object> values = new ArrayList<>(13);
                 for (List<LimitsGroupAttributesSqlData> subUnit : Lists.partition(operationalLimitsGroup, BATCH_SIZE)) {
                     for (LimitsGroupAttributesSqlData entry : subUnit) {
                         values.clear();
@@ -223,13 +203,10 @@ public class LimitsHandler {
                         values.add(entry.getEquipmentId());
                         values.add(entry.getOperationalLimitsGroupId());
                         values.add(entry.getSide());
-                        values.add(entry.getCurrentLimitsPermanentLimit());
-                        values.add(entry.getCurrentLimitsTemporaryLimits());
-                        values.add(entry.getApparentPowerLimitsPermanentLimit());
-                        values.add(entry.getApparentPowerLimitsTemporaryLimits());
-                        values.add(entry.getActivePowerLimitsPermanentLimit());
-                        values.add(entry.getActivePowerLimitsTemporaryLimits());
-                        values.add(entry.getProperties());
+                        addLimitsToValues(values, entry.getOperationalLimitsGroupAttributes().getCurrentLimits());
+                        addLimitsToValues(values, entry.getOperationalLimitsGroupAttributes().getApparentPowerLimits());
+                        addLimitsToValues(values, entry.getOperationalLimitsGroupAttributes().getActivePowerLimits());
+                        values.add(entry.getOperationalLimitsGroupAttributes().getProperties());
                         bindValues(preparedStmt, values, mapper);
                         preparedStmt.addBatch();
                     }
@@ -238,6 +215,16 @@ public class LimitsHandler {
             }
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
+        }
+    }
+
+    private void addLimitsToValues(List<Object> values, LimitsAttributes limits) {
+        if (limits != null) {
+            values.add(limits.getPermanentLimit());
+            values.add(limits.getTemporaryLimits());
+        } else {
+            values.add(null);
+            values.add(null);
         }
     }
 
@@ -341,7 +328,9 @@ public class LimitsHandler {
         return result;
     }
 
-    public <T extends IdentifiableAttributes> void updateOperationalLimitsGroup(UUID networkUuid, List<Resource<T>> resources, Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> limitsInfos) {
+    public <T extends IdentifiableAttributes & LimitHolder> void updateOperationalLimitsGroup(UUID networkUuid, List<Resource<T>> resources) {
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> limitsInfos = getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        //delete only selected not for all resources
         deleteOperationalLimitsGroup(networkUuid, resources);
         insertOperationalLimitsGroupAttributes(limitsInfos);
     }
@@ -378,6 +367,16 @@ public class LimitsHandler {
         return Optional.ofNullable(operationalLimitsGroupMap.get(branchId))
             .map(sideMap -> sideMap.get(side))
             .map(groupMap -> groupMap.get(groupId));
+    }
+
+    public Optional<OperationalLimitsGroupAttributes> getOperationalLimitsGroup(UUID networkId, int variantNum,
+                                                                                String branchId, ResourceType type,
+                                                                                String operationalLimitsGroupName,
+                                                                                int side) {
+        OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
+        Map<Integer, Map<String, OperationalLimitsGroupAttributes>> limitsInfos = getOperationalLimitsGroup(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
+        //FIXME to simplify
+        return getElementFromOperationalLimitsGroupMap(Map.of(branchId, limitsInfos), branchId, side, operationalLimitsGroupName);
     }
 
     public List<OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesForBranchSide(
