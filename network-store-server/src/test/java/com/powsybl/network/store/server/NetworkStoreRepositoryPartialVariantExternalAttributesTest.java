@@ -280,10 +280,10 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         assertEquals(2.0, tapChangerSteps.get(1).getRho());
 
         // Operational limits
-        LimitsInfos limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine);
+        LimitsInfos limits = networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine);
         verifyOperationalLimitsGroup(limits);
 
-        limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, List.of(lineId)).get(ownerInfoLine);
+        limits = networkStoreRepository.getLimitsHandler().getOperationalLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, List.of(lineId)).get(ownerInfoLine);
         verifyOperationalLimitsGroup(limits);
 
         // Reactive Capability Curve Points
@@ -454,8 +454,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         List<Runnable> getExternalAttributesRunnables = List.of(
             () -> networkStoreRepository.getTapChangerSteps(NETWORK_UUID, 0, EQUIPMENT_ID_COLUMN, "unknownId"),
             () -> networkStoreRepository.getTapChangerStepsWithInClause(NETWORK_UUID, 0, EQUIPMENT_ID_COLUMN, List.of("unknownId")),
-            () -> networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(NETWORK_UUID, 0, EQUIPMENT_ID_COLUMN, "unknownId"),
-            () -> networkStoreRepository.getLimitsHandler().getOperationaLimitsGroupWithInClause(NETWORK_UUID, 0, EQUIPMENT_ID_COLUMN, List.of("unknownId")),
+            () -> networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(NETWORK_UUID, 0, EQUIPMENT_ID_COLUMN, "unknownId"),
+            () -> networkStoreRepository.getLimitsHandler().getOperationalLimitsGroupWithInClause(NETWORK_UUID, 0, EQUIPMENT_ID_COLUMN, List.of("unknownId")),
             () -> networkStoreRepository.getRegulatingPoints(NETWORK_UUID, 0, ResourceType.LINE),
             () -> networkStoreRepository.getRegulatingPointsWithInClause(NETWORK_UUID, 0, REGULATING_EQUIPMENT_ID, List.of("unknownId"), ResourceType.LINE),
             () -> networkStoreRepository.getRegulatingEquipments(NETWORK_UUID, 0, ResourceType.LINE),
@@ -625,10 +625,10 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         assertEquals(3.0, tapChangerSteps.get(0).getRho());
 
         // Temporary Limits
-        LimitsInfos limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine);
+        LimitsInfos limits = networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine);
         verifyUpdatedOperationalLimitsGroup(limits);
 
-        limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, List.of(lineId)).get(ownerInfoLine);
+        limits = networkStoreRepository.getLimitsHandler().getOperationalLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, List.of(lineId)).get(ownerInfoLine);
         verifyUpdatedOperationalLimitsGroup(limits);
 
         // Reactive Capability Curve Points
@@ -715,13 +715,13 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         OwnerInfo ownerInfoTwoWT = new OwnerInfo(twoWTId, ResourceType.TWO_WINDINGS_TRANSFORMER, NETWORK_UUID, 1);
         OwnerInfo ownerInfoArea = new OwnerInfo(areaId, null, NETWORK_UUID, 1);
         assertNull(networkStoreRepository.getTapChangerSteps(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, twoWTId).get(ownerInfoTwoWT));
-        assertNull(networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
+        assertNull(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
         assertNull(networkStoreRepository.getReactiveCapabilityCurvePoints(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, genId).get(ownerInfoGen));
         assertNull(networkStoreRepository.getAreaBoundaries(NETWORK_UUID, 1, AREA_ID_COLUMN, genId).get(ownerInfoArea));
         // Set again a tombstone to verify that it does not throw
         updateExternalAttributesWithTombstone(1, lineId, genId, twoWTId, areaId);
         assertNull(networkStoreRepository.getTapChangerSteps(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, twoWTId).get(ownerInfoTwoWT));
-        assertNull(networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
+        assertNull(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
         assertNull(networkStoreRepository.getReactiveCapabilityCurvePoints(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, genId).get(ownerInfoGen));
         assertNull(networkStoreRepository.getAreaBoundaries(NETWORK_UUID, 1, AREA_ID_COLUMN, genId).get(ownerInfoArea));
         // Recreate the external attributes and verify that the tombstone is ignored
@@ -730,7 +730,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         // Set again a tombstone after recreating the external attributes
         updateExternalAttributesWithTombstone(1, lineId, genId, twoWTId, areaId);
         assertNull(networkStoreRepository.getTapChangerSteps(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, twoWTId).get(ownerInfoTwoWT));
-        assertNull(networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
+        assertNull(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
         assertNull(networkStoreRepository.getReactiveCapabilityCurvePoints(NETWORK_UUID, 1, EQUIPMENT_ID_COLUMN, genId).get(ownerInfoGen));
         assertNull(networkStoreRepository.getAreaBoundaries(NETWORK_UUID, 1, AREA_ID_COLUMN, genId).get(ownerInfoArea));
     }
@@ -824,7 +824,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         assertNull(networkStoreRepository.getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, twoWTId).get(ownerInfoTwoWT));
 
         // Operational limits
-        assertNull(networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
+        assertNull(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine));
 
         // Reactive Capability Curve Points
         assertNull(networkStoreRepository.getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, generatorId).get(ownerInfoGen));

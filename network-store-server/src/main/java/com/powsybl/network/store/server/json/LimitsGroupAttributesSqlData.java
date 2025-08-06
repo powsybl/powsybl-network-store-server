@@ -6,24 +6,30 @@
  */
 package com.powsybl.network.store.server.json;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import com.powsybl.network.store.model.OperationalLimitsGroupAttributes;
+import com.powsybl.network.store.model.TapChangerStepAttributes;
+import com.powsybl.network.store.server.dto.OwnerInfo;
+import lombok.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @ToString
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Getter
 @Setter
 public class LimitsGroupAttributesSqlData {
+    private UUID networkUuid;
+    private String equipmentType;
+    private Integer variantNum;
+    private String equipmentId;
+    private String operationalLimitsGroupId;
+    private Integer side;
     private double currentLimitsPermanentLimit = Double.NaN;
     private List<TemporaryLimitInfosSqlData> currentLimitsTemporaryLimits = new ArrayList<>();
     private double apparentPowerLimitsPermanentLimit = Double.NaN;
@@ -31,4 +37,71 @@ public class LimitsGroupAttributesSqlData {
     private double activePowerLimitsPermanentLimit = Double.NaN;
     private List<TemporaryLimitInfosSqlData> activePowerLimitsTemporaryLimits = new ArrayList<>();
     private Map<String, String> properties = new HashMap<>();
+
+    public static List<LimitsGroupAttributesSqlData> of(Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> tapChangerStepAttributes) {
+        List<LimitsGroupAttributesSqlData> result = new ArrayList<>();
+
+        for (Map.Entry<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> ownerEntry : tapChangerStepAttributes.entrySet()) {
+            OwnerInfo ownerInfo = ownerEntry.getKey();
+            Map<Integer, Map<String, OperationalLimitsGroupAttributes>> sideMap = ownerEntry.getValue();
+
+            for (Map.Entry<Integer, Map<String, OperationalLimitsGroupAttributes>> stepEntry : sideMap.entrySet()) {
+                Integer side = stepEntry.getKey();
+                Map<String, OperationalLimitsGroupAttributes> groupMap = stepEntry.getValue();
+
+                for (Map.Entry<String, OperationalLimitsGroupAttributes> groupEntry : groupMap.entrySet()) {
+                    String operationalLimitsGroupId = groupEntry.getKey();
+                    OperationalLimitsGroupAttributes attributes = groupEntry.getValue();
+
+                    LimitsGroupAttributesSqlData sqlData = LimitsGroupAttributesSqlData.builder()
+                            .networkUuid(ownerInfo.getNetworkUuid())
+                            .variantNum(ownerInfo.getVariantNum())
+                            .equipmentType(ownerInfo.getEquipmentType().toString())
+                            .equipmentId(ownerInfo.getEquipmentId())
+                            .operationalLimitsGroupId(operationalLimitsGroupId)
+                            .side(side)
+                            .currentLimitsPermanentLimit(attributes.getCurrentLimits() != null ?
+                                    attributes.getCurrentLimits().getPermanentLimit() : Double.NaN)
+                            .currentLimitsTemporaryLimits(attributes.getCurrentLimits() != null &&
+                                    attributes.getCurrentLimits().getTemporaryLimits() != null ?
+                                    attributes.getCurrentLimits().getTemporaryLimits().values().stream()
+                                            .map(temp -> new TemporaryLimitInfosSqlData(
+                                                    temp.getName(),
+                                                    temp.getValue(),
+                                                    temp.getAcceptableDuration(),
+                                                    temp.isFictitious()))
+                                            .collect(Collectors.toList()) : new ArrayList<>())
+                            .apparentPowerLimitsPermanentLimit(attributes.getApparentPowerLimits() != null ?
+                                    attributes.getApparentPowerLimits().getPermanentLimit() : Double.NaN)
+                            .apparentPowerLimitsTemporaryLimits(attributes.getApparentPowerLimits() != null &&
+                                    attributes.getApparentPowerLimits().getTemporaryLimits() != null ?
+                                    attributes.getApparentPowerLimits().getTemporaryLimits().values().stream()
+                                            .map(temp -> new TemporaryLimitInfosSqlData(
+                                                    temp.getName(),
+                                                    temp.getValue(),
+                                                    temp.getAcceptableDuration(),
+                                                    temp.isFictitious()))
+                                            .collect(Collectors.toList()) : new ArrayList<>())
+                            .activePowerLimitsPermanentLimit(attributes.getActivePowerLimits() != null ?
+                                    attributes.getActivePowerLimits().getPermanentLimit() : Double.NaN)
+                            .activePowerLimitsTemporaryLimits(attributes.getActivePowerLimits() != null &&
+                                    attributes.getActivePowerLimits().getTemporaryLimits() != null ?
+                                    attributes.getActivePowerLimits().getTemporaryLimits().values().stream()
+                                            .map(temp -> new TemporaryLimitInfosSqlData(
+                                                    temp.getName(),
+                                                    temp.getValue(),
+                                                    temp.getAcceptableDuration(),
+                                                    temp.isFictitious()))
+                                            .collect(Collectors.toList()) : new ArrayList<>())
+                            .properties(attributes.getProperties() != null ?
+                                    new HashMap<>(attributes.getProperties()) : new HashMap<>())
+                            .build();
+
+                    result.add(sqlData);
+                }
+            }
+        }
+
+        return result;
+    }
 }
