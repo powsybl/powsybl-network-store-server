@@ -10,13 +10,11 @@ import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_ID_COLUMN;
 import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_TYPE_COLUMN;
 import static com.powsybl.network.store.server.QueryCatalog.NETWORK_UUID_COLUMN;
 import static com.powsybl.network.store.server.QueryCatalog.VARIANT_NUM_COLUMN;
-import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 public final class V221LimitsQueryCatalog {
-    public static final String MINIMAL_VALUE_REQUIREMENT_ERROR = "Function should not be called without at least one value.";
     public static final String TEMPORARY_LIMIT_TABLE = "temporarylimits";
     public static final String PERMANENT_LIMIT_TABLE = "permanentlimits";
 
@@ -36,16 +34,6 @@ public final class V221LimitsQueryCatalog {
                 columnNameForWhereClause + " = ?";
     }
 
-    public static String buildDeleteV221TemporaryLimitsVariantEquipmentINQuery(int numberOfValues) {
-        if (numberOfValues < 1) {
-            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
-        }
-        return "delete from " + TEMPORARY_LIMIT_TABLE + " where " +
-            NETWORK_UUID_COLUMN + " = ? and " +
-            VARIANT_NUM_COLUMN + " = ? and " +
-            EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
-    }
-
     // Permanent Limits
     public static String buildGetV221PermanentLimitQuery(String columnNameForWhereClause) {
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
@@ -56,15 +44,5 @@ public final class V221LimitsQueryCatalog {
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 columnNameForWhereClause + " = ?";
-    }
-
-    public static String buildDeleteV221PermanentLimitsVariantEquipmentINQuery(int numberOfValues) {
-        if (numberOfValues < 1) {
-            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
-        }
-        return "delete from " + PERMANENT_LIMIT_TABLE + " where " +
-            NETWORK_UUID_COLUMN + " = ? and " +
-            VARIANT_NUM_COLUMN + " = ? and " +
-            EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 }
