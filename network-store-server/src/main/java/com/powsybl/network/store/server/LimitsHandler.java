@@ -199,10 +199,6 @@ public class LimitsHandler {
         insertOperationalLimitsGroupAttributes(permanentLimits, temporaryLimits);
     }
 
-    public void insertTemporaryLimitsAttributes(Map<OwnerInfo, List<TemporaryLimitAttributes>> temporaryLimits) {
-        throw new AssertionError("This method should not be called anymore"); // obsolete code called in V211LimitsMigration
-    }
-
     private static void buildPermanentLimits(Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result,
                                              Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
         for (Map.Entry<OwnerInfo, List<PermanentLimitAttributes>> entry : permanentLimits.entrySet()) {
@@ -303,10 +299,6 @@ public class LimitsHandler {
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
-    }
-
-    public void insertPermanentLimitsAttributes(Map<OwnerInfo, List<PermanentLimitAttributes>> permanentLimits) {
-        throw new AssertionError("This method should not be called anymore"); // obsolete code called in V211LimitsMigration
     }
 
     private <T extends LimitHolder & IdentifiableAttributes> void insertTemporaryLimitsInEquipments(List<TemporaryLimitAttributes> temporaryLimitAttributes,
