@@ -1729,4 +1729,13 @@ class NetworkStoreControllerIT {
             .andExpect(content().contentType(APPLICATION_JSON))
             .andExpect(content().json(resultString));
     }
+
+    @Test
+    void getOperationalLimitsGroupAttributesNotFoundTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/line1/types/LINE/operationalLimitsGroup/notFound/side/1"))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json("{}"));
+    }
 }
