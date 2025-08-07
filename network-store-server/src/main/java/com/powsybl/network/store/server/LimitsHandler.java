@@ -421,7 +421,13 @@ public class LimitsHandler {
             return Collections.emptyMap();
         }
 
-        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildSelectedOperationalLimitsGroupQuery(selectedOperationalLimitsGroups.size()))) {
+        int conditionCount = selectedOperationalLimitsGroups.stream()
+                .mapToInt(identifiers ->
+                        (identifiers.operationalLimitsGroupId1() != null ? 1 : 0) +
+                        (identifiers.operationalLimitsGroupId2() != null ? 1 : 0))
+                .sum();
+
+        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildSelectedOperationalLimitsGroupQuery(conditionCount))) {
             preparedStmt.setObject(1, networkId);
             preparedStmt.setInt(2, variantNum);
 
