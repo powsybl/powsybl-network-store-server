@@ -1202,22 +1202,6 @@ public class NetworkStoreRepository {
         return identifiableIds;
     }
 
-    public Set<String> getTombstonedIdentifiableIds(Connection connection, UUID networkUuid, int variantNum) {
-        Set<String> tombstonedIdentifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedIdentifiablesIdsQuery())) {
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            try (var resultSet = preparedStmt.executeQuery()) {
-                while (resultSet.next()) {
-                    tombstonedIdentifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
-                }
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-        return tombstonedIdentifiableIds;
-    }
-
     private boolean isTombstonedIdentifiable(Connection connection, UUID networkUuid, int variantNum, String equipmentId) {
         try (var preparedStmt = connection.prepareStatement(buildIsTombstonedIdentifiableQuery())) {
             preparedStmt.setObject(1, networkUuid);

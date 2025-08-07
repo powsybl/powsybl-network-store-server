@@ -1350,7 +1350,6 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                 .currentLimits(LimitsAttributes.builder()
                         .permanentLimit(3)
                         .temporaryLimits(null)
-                        .operationalLimitsGroupId(operationLimitGroupId1)
                         .build())
                 .build();
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
@@ -1695,7 +1694,6 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                 .currentLimits(LimitsAttributes.builder()
                         .permanentLimit(permLimitValue)
                         .temporaryLimits(temporaryLimits)
-                        .operationalLimitsGroupId(operationLimitGroupId)
                         .build())
                 .properties(Map.of("prop1", "value1", "prop2", "value2"))
                 .build();

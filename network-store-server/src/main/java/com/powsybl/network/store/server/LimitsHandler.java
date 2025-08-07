@@ -33,6 +33,9 @@ import static com.powsybl.network.store.server.Utils.*;
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
  */
+//FIXME: how to deal with existing DB data [] and 0.0 ?
+// fix tests
+// Temporary limits treemap => to list...
 @Component
 public class LimitsHandler {
     private final DataSource dataSource;
@@ -119,21 +122,18 @@ public class LimitsHandler {
                 String operationalLimitsGroupId = resultSet.getString(6);
                 operationalLimitsGroupAttributes.setId(operationalLimitsGroupId);
                 LimitsAttributes currentLimits = createLimitsAttributes(
-                        operationalLimitsGroupId,
                         resultSet.getObject(7, Double.class),
                         resultSet.getString(8)
                 );
                 operationalLimitsGroupAttributes.setCurrentLimits(currentLimits);
 
                 LimitsAttributes apparentPowerLimits = createLimitsAttributes(
-                        operationalLimitsGroupId,
                         resultSet.getObject(9, Double.class),
                         resultSet.getString(10)
                 );
                 operationalLimitsGroupAttributes.setApparentPowerLimits(apparentPowerLimits);
 
                 LimitsAttributes activePowerLimits = createLimitsAttributes(
-                        operationalLimitsGroupId,
                         resultSet.getObject(11, Double.class),
                         resultSet.getString(12)
                 );
@@ -156,19 +156,27 @@ public class LimitsHandler {
         }
     }
 
-    private LimitsAttributes createLimitsAttributes(String operationalLimitsGroupId, Double permanentLimitData,
+    //FIXME: write it better
+    private LimitsAttributes createLimitsAttributes(Double permanentLimitData,
                                                     String temporaryLimitData)
             throws JsonProcessingException {
-        double permanentLimit = permanentLimitData != null ? permanentLimitData : Double.NaN;
-        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimit = !StringUtils.isEmpty(temporaryLimitData)
-                ? mapper.readValue(temporaryLimitData, new TypeReference<>() { })
-                : null;
-
-        if (Double.isNaN(permanentLimit) && temporaryLimit == null) {
+        if (permanentLimitData == null && temporaryLimitData == null) {
             return null;
         }
 
-        return new LimitsAttributes(operationalLimitsGroupId, permanentLimit, temporaryLimit);
+        double permanentLimit = permanentLimitData == null ? Double.NaN : permanentLimitData;
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimit = new TreeMap<>();
+        if (!StringUtils.isEmpty(temporaryLimitData)) {
+            List<TemporaryLimitAttributes> tempLimitList = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
+            if (tempLimitList != null) {
+                for (TemporaryLimitAttributes limitInfo : tempLimitList) {
+                    int duration = limitInfo.getAcceptableDuration();
+                    temporaryLimit.put(duration, limitInfo);
+                }
+            }
+        }
+
+        return new LimitsAttributes(permanentLimit, temporaryLimit);
     }
 
     protected <T extends LimitHolder & IdentifiableAttributes> Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
@@ -203,10 +211,13 @@ public class LimitsHandler {
                         values.add(entry.getEquipmentId());
                         values.add(entry.getOperationalLimitsGroupId());
                         values.add(entry.getSide());
-                        addLimitsToValues(values, entry.getOperationalLimitsGroupAttributes().getCurrentLimits());
-                        addLimitsToValues(values, entry.getOperationalLimitsGroupAttributes().getApparentPowerLimits());
-                        addLimitsToValues(values, entry.getOperationalLimitsGroupAttributes().getActivePowerLimits());
-                        values.add(entry.getOperationalLimitsGroupAttributes().getProperties());
+                        values.add(entry.getCurrentLimitsPermanentLimit());
+                        values.add(entry.getCurrentLimitsTemporaryLimits());
+                        values.add(entry.getApparentPowerLimitsPermanentLimit());
+                        values.add(entry.getApparentPowerLimitsTemporaryLimits());
+                        values.add(entry.getActivePowerLimitsPermanentLimit());
+                        values.add(entry.getActivePowerLimitsTemporaryLimits());
+                        values.add(entry.getProperties());
                         bindValues(preparedStmt, values, mapper);
                         preparedStmt.addBatch();
                     }
@@ -215,16 +226,6 @@ public class LimitsHandler {
             }
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
-        }
-    }
-
-    private void addLimitsToValues(List<Object> values, LimitsAttributes limits) {
-        if (limits != null) {
-            values.add(limits.getPermanentLimit());
-            values.add(limits.getTemporaryLimits());
-        } else {
-            values.add(null);
-            values.add(null);
         }
     }
 
@@ -326,22 +327,6 @@ public class LimitsHandler {
             }
             preparedStmt.executeUpdate();
         }
-    }
-
-    public Set<String> getTombstonedIdentifiableIds(Connection connection, UUID networkUuid, int variantNum) {
-        Set<String> tombstonedIdentifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedIdentifiablesIdsQuery())) {
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            try (var resultSet = preparedStmt.executeQuery()) {
-                while (resultSet.next()) {
-                    tombstonedIdentifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
-                }
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-        return tombstonedIdentifiableIds;
     }
 
     private Map<Integer, Map<String, OperationalLimitsGroupAttributes>> getAllOperationalLimitsGroup(LimitHolder equipment) {

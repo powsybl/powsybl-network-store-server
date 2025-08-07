@@ -7,6 +7,7 @@
 package com.powsybl.network.store.server.json;
 
 import com.powsybl.network.store.model.OperationalLimitsGroupAttributes;
+import com.powsybl.network.store.model.TemporaryLimitAttributes;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import lombok.*;
 
@@ -28,8 +29,15 @@ public class LimitsGroupAttributesSqlData {
     private String equipmentId;
     private String operationalLimitsGroupId;
     private Integer side;
-    private OperationalLimitsGroupAttributes operationalLimitsGroupAttributes;
+    private Double currentLimitsPermanentLimit;
+    private List<TemporaryLimitAttributes> currentLimitsTemporaryLimits;
+    private Double apparentPowerLimitsPermanentLimit;
+    private List<TemporaryLimitAttributes> apparentPowerLimitsTemporaryLimits;
+    private Double activePowerLimitsPermanentLimit;
+    private List<TemporaryLimitAttributes> activePowerLimitsTemporaryLimits;
+    private Map<String, String> properties;
 
+    //Maybe ouput a Map<OwnerInfo, List<LimitsGroupAttributesSqlData>>> ?
     public static List<LimitsGroupAttributesSqlData> of(Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> tapChangerStepAttributes) {
         List<LimitsGroupAttributesSqlData> result = new ArrayList<>();
 
@@ -52,7 +60,37 @@ public class LimitsGroupAttributesSqlData {
                             .equipmentId(ownerInfo.getEquipmentId())
                             .operationalLimitsGroupId(operationalLimitsGroupId)
                             .side(side)
-                            .operationalLimitsGroupAttributes(attributes)
+                            .currentLimitsPermanentLimit(attributes.getCurrentLimits() != null ? attributes.getCurrentLimits().getPermanentLimit() : null)
+                            .currentLimitsTemporaryLimits(attributes.getCurrentLimits() != null && attributes.getCurrentLimits().getTemporaryLimits() != null ?
+                                    attributes.getCurrentLimits().getTemporaryLimits().values().stream()
+                                            .map(temp -> TemporaryLimitAttributes.builder()
+                                                    .acceptableDuration(temp.getAcceptableDuration())
+                                                    .name(temp.getName())
+                                                    .value(temp.getValue())
+                                                    .fictitious(temp.isFictitious())
+                                                    .build())
+                                            .collect(ArrayList::new, ArrayList::add, ArrayList::addAll) : null)
+                            .apparentPowerLimitsPermanentLimit(attributes.getApparentPowerLimits() != null ? attributes.getApparentPowerLimits().getPermanentLimit() : null)
+                            .apparentPowerLimitsTemporaryLimits(attributes.getApparentPowerLimits() != null && attributes.getApparentPowerLimits().getTemporaryLimits() != null ?
+                                    attributes.getApparentPowerLimits().getTemporaryLimits().values().stream()
+                                            .map(temp -> TemporaryLimitAttributes.builder()
+                                                    .acceptableDuration(temp.getAcceptableDuration())
+                                                    .name(temp.getName())
+                                                    .value(temp.getValue())
+                                                    .fictitious(temp.isFictitious())
+                                                    .build())
+                                            .collect(ArrayList::new, ArrayList::add, ArrayList::addAll) : null)
+                            .activePowerLimitsPermanentLimit(attributes.getActivePowerLimits() != null ? attributes.getActivePowerLimits().getPermanentLimit() : null)
+                            .activePowerLimitsTemporaryLimits(attributes.getActivePowerLimits() != null && attributes.getActivePowerLimits().getTemporaryLimits() != null ?
+                                    attributes.getActivePowerLimits().getTemporaryLimits().values().stream()
+                                            .map(temp -> TemporaryLimitAttributes.builder()
+                                                    .acceptableDuration(temp.getAcceptableDuration())
+                                                    .name(temp.getName())
+                                                    .value(temp.getValue())
+                                                    .fictitious(temp.isFictitious())
+                                                    .build())
+                                            .collect(ArrayList::new, ArrayList::add, ArrayList::addAll) : null)
+                            .properties(attributes.getProperties())
                             .build();
 
                     result.add(sqlData);
