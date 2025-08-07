@@ -163,11 +163,15 @@ public class LimitsHandler {
     private LimitsAttributes createLimitsAttributes(String operationalLimitsGroupId, double permanentLimit,
                                                     String temporaryLimitData)
             throws JsonProcessingException {
-        if (temporaryLimitData == null) {
-            return new LimitsAttributes(operationalLimitsGroupId, permanentLimit, null);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimit = !StringUtils.isEmpty(temporaryLimitData)
+                ? mapper.readValue(temporaryLimitData, new TypeReference<>() { })
+                : null;
+
+        if (Double.isNaN(permanentLimit) && temporaryLimit == null) {
+            return null;
         }
-        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitInfos = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
-        return new LimitsAttributes(operationalLimitsGroupId, permanentLimit, temporaryLimitInfos);
+
+        return new LimitsAttributes(operationalLimitsGroupId, permanentLimit, temporaryLimit);
     }
 
     protected <T extends LimitHolder & IdentifiableAttributes> Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
@@ -466,10 +470,10 @@ public class LimitsHandler {
             String selectedOperationalLimitsGroupId2 = selectedOperationalLimitsGroupIdentifiers.operationalLimitsGroupId2();
             if (selectedOperationalLimitsGroupId1 != null || selectedOperationalLimitsGroupId2 != null) {
                 String equipmentId = owner.getEquipmentId();
-                Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
+                /*Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupAttributesMap = convertLimitInfosToOperationalLimitsGroupMap(
                     equipmentId, limitsInfos.get(owner));
                 addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId1, operationalLimitsGroupAttributesMap, 1, equipmentId, selectedOperationalLimitsGroupAttributes);
-                addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId2, operationalLimitsGroupAttributesMap, 2, equipmentId, selectedOperationalLimitsGroupAttributes);
+                addSelectedOperationalLimitsGroupOnSide(selectedOperationalLimitsGroupId2, operationalLimitsGroupAttributesMap, 2, equipmentId, selectedOperationalLimitsGroupAttributes);*/
             }
         });
         return selectedOperationalLimitsGroupAttributes;
