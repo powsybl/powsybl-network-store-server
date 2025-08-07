@@ -1687,6 +1687,7 @@ class NetworkStoreControllerIT {
                 .temporaryLimits(temporaryLimits)
                 .operationalLimitsGroupId(operationalLimitsGroupId)
                 .build())
+            .properties(Map.of("prop1", "value1", "prop2", "value2"))
             .build();
     }
 

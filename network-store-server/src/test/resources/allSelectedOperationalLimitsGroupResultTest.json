@@ -13,6 +13,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     },
@@ -29,6 +33,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     }
@@ -47,6 +55,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     },
@@ -63,6 +75,10 @@
               "fictitious": false
             }
           }
+        },
+        "properties": {
+          "prop2": "value2",
+          "prop1": "value1"
         }
       }
     }

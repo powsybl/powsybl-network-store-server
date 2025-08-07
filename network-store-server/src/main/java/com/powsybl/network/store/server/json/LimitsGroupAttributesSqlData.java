@@ -12,7 +12,9 @@ import lombok.Setter;
 import lombok.ToString;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -28,4 +30,5 @@ public class LimitsGroupAttributesSqlData {
     private List<TemporaryLimitInfosSqlData> apparentPowerLimitsTemporaryLimits = new ArrayList<>();
     private double activePowerLimitsPermanentLimit = Double.NaN;
     private List<TemporaryLimitInfosSqlData> activePowerLimitsTemporaryLimits = new ArrayList<>();
+    private Map<String, String> properties = new HashMap<>();
 }

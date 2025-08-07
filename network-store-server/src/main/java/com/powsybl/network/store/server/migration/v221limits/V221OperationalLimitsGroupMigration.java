@@ -183,7 +183,7 @@ public class V221OperationalLimitsGroupMigration implements CustomTaskChange {
                                             Map<OwnerInfo, List<TemporaryLimitAttributes>> v221TemporaryLimits,
                                             Map<OwnerInfo, List<PermanentLimitAttributes>> v221PermanentLimits) {
         if (!v221PermanentLimits.isEmpty() || !v221TemporaryLimits.isEmpty()) {
-            repository.getLimitsHandler().insertOperationalLimitsGroupAttributes(v221PermanentLimits, v221TemporaryLimits);
+            repository.getLimitsHandler().insertOperationalLimitsGroupAttributes(v221PermanentLimits, v221TemporaryLimits, Map.of());
         }
     }
 
