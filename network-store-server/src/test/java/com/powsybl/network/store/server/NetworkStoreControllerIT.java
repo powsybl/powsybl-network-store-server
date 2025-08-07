@@ -1732,7 +1732,21 @@ class NetworkStoreControllerIT {
 
     @Test
     void getOperationalLimitsGroupAttributesNotFoundTest() throws Exception {
-        setupOperationalLimitsGroupAttributesTest();
+        // Create network
+        Resource<NetworkAttributes> n1 = Resource.networkBuilder()
+            .id("n1")
+            .variantNum(0)
+            .attributes(NetworkAttributes.builder()
+                .uuid(NETWORK_UUID)
+                .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
+                .build())
+            .build();
+
+        mvc.perform(post("/" + VERSION + "/networks")
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Collections.singleton(n1))))
+            .andExpect(status().isCreated());
         mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/line1/types/LINE/operationalLimitsGroup/notFound/side/1"))
             .andExpect(status().isNotFound())
             .andExpect(content().contentType(APPLICATION_JSON))
