@@ -211,4 +211,47 @@ public final class PartialVariantUtils {
         // Retrieve identifiable from the full variant
         return fetchIdentifiableInVariant.apply(fullVariantNum);
     }
+
+    public static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroup(
+            int variantNum,
+            int fullVariantNum,
+            Supplier<Set<String>> fetchTombstonedIdentifiableIds,
+            IntFunction<Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>>> fetchOperationalLimitsGroupsInVariant) {
+
+        if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+            // If the variant is full, retrieve operational limits group directly
+            return fetchOperationalLimitsGroupsInVariant.apply(variantNum);
+        }
+
+        // Retrieve operational limits group from the full variant first
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups =
+                fetchOperationalLimitsGroupsInVariant.apply(fullVariantNum);
+
+        // Remove operational limits groups associated to tombstoned resources and tombstoned operational limits group ids
+        Set<String> tombstonedIds = fetchTombstonedIdentifiableIds.get();
+        operationalLimitsGroups.keySet().removeIf(ownerInfo ->
+                tombstonedIds.contains(ownerInfo.getEquipmentId())
+        );
+
+        // Retrieve operational limits group in partial variant
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> partialVariantOperationalLimitsGroups =
+                fetchOperationalLimitsGroupsInVariant.apply(variantNum);
+
+        // Deep merge operational limits groups from partial variant into full variant results
+        partialVariantOperationalLimitsGroups.forEach((ownerInfo, sideMap) -> {
+            operationalLimitsGroups.merge(ownerInfo, sideMap, (fullVariantSideMap, partialVariantSideMap) -> {
+                partialVariantSideMap.forEach((side, groupMap) -> {
+                    fullVariantSideMap.merge(side, groupMap, (fullVariantGroupMap, partialVariantGroupMap) -> {
+                        // Merge the operational limits groups maps - partial variant groups will override full variant groups with same key
+                        Map<String, OperationalLimitsGroupAttributes> mergedGroupMap = new HashMap<>(fullVariantGroupMap);
+                        mergedGroupMap.putAll(partialVariantGroupMap);
+                        return mergedGroupMap;
+                    });
+                });
+                return fullVariantSideMap;
+            });
+        });
+
+        return operationalLimitsGroups;
+    }
 }
