@@ -19,7 +19,7 @@ import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.model.utils.VariantUtils;
-import com.powsybl.network.store.server.dto.LimitsInfos;
+import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
@@ -656,8 +656,8 @@ public class NetworkStoreRepository {
 
     private <T extends IdentifiableAttributes> Resource<T> completeThreeWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<ThreeWindingsTransformerAttributes> threeWindingsTransformerResource = (Resource<ThreeWindingsTransformerAttributes>) resource;
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        limitsHandler.insertLimitsInEquipments(networkUuid, List.of(threeWindingsTransformerResource), limitsInfos);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, List.of(threeWindingsTransformerResource), operationalLimitsGroups);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertTapChangerStepsInEquipments(networkUuid, List.of(threeWindingsTransformerResource), tapChangerSteps);
@@ -674,8 +674,8 @@ public class NetworkStoreRepository {
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeDanglingLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        limitsHandler.insertLimitsInEquipments(networkUuid, List.of((Resource<DanglingLineAttributes>) resource), limitsInfos);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, List.of((Resource<DanglingLineAttributes>) resource), operationalLimitsGroups);
         return resource;
     }
 
@@ -1203,22 +1203,6 @@ public class NetworkStoreRepository {
         return identifiableIds;
     }
 
-    public Set<String> getTombstonedIdentifiableIds(Connection connection, UUID networkUuid, int variantNum) {
-        Set<String> tombstonedIdentifiableIds = new HashSet<>();
-        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedIdentifiablesIdsQuery())) {
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            try (var resultSet = preparedStmt.executeQuery()) {
-                while (resultSet.next()) {
-                    tombstonedIdentifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
-                }
-            }
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
-        return tombstonedIdentifiableIds;
-    }
-
     private boolean isTombstonedIdentifiable(Connection connection, UUID networkUuid, int variantNum, String equipmentId) {
         try (var preparedStmt = connection.prepareStatement(buildIsTombstonedIdentifiableQuery())) {
             preparedStmt.setObject(1, networkUuid);
@@ -1645,8 +1629,8 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
 
         // Now that twowindingstransformers are created, we will insert in the database the corresponding operational limits groups.
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
         insertRegulatingPoints(getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
 
         // Now that twowindingstransformers are created, we will insert in the database the corresponding tap Changer steps.
@@ -1685,7 +1669,7 @@ public class NetworkStoreRepository {
     public void updateTwoWindingsTransformers(UUID networkUuid, List<Resource<TwoWindingsTransformerAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
 
-        limitsHandler.updateOperationalLimitsGroupWithLazyLoading(networkUuid, resources);
+        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources);
         updateTapChangerSteps(networkUuid, resources);
         updateRegulatingPoints(networkUuid, resources, ResourceType.TWO_WINDINGS_TRANSFORMER, getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
     }
@@ -1754,9 +1738,9 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getThreeWindingsTransformerMappings());
         insertRegulatingPoints(getRegulatingPointFromThreeWindingTransformers(networkUuid, resources));
 
-        // Now that threewindingstransformers are created, we will insert in the database the corresponding operatiobal limits groups.
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
+        // Now that threewindingstransformers are created, we will insert in the database the corresponding operational limits groups.
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
 
         // Now that threewindingstransformers are created, we will insert in the database the corresponding tap Changer steps.
         insertTapChangerSteps(getTapChangerStepsFromEquipment(networkUuid, resources));
@@ -1769,8 +1753,8 @@ public class NetworkStoreRepository {
     public List<Resource<ThreeWindingsTransformerAttributes>> getThreeWindingsTransformers(UUID networkUuid, int variantNum) {
         List<Resource<ThreeWindingsTransformerAttributes>> threeWindingsTransformers = getIdentifiables(networkUuid, variantNum, mappings.getThreeWindingsTransformerMappings());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
-        limitsHandler.insertLimitsInEquipments(networkUuid, threeWindingsTransformers, limitsInfos);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, threeWindingsTransformers, operationalLimitsGroups);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
         insertTapChangerStepsInEquipments(networkUuid, threeWindingsTransformers, tapChangerSteps);
@@ -1784,8 +1768,8 @@ public class NetworkStoreRepository {
 
         List<String> equipmentsIds = threeWindingsTransformers.stream().map(Resource::getId).collect(Collectors.toList());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
-        limitsHandler.insertLimitsInEquipments(networkUuid, threeWindingsTransformers, limitsInfos);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, threeWindingsTransformers, operationalLimitsGroups);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerStepsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
         insertTapChangerStepsInEquipments(networkUuid, threeWindingsTransformers, tapChangerSteps);
@@ -1796,8 +1780,7 @@ public class NetworkStoreRepository {
     public void updateThreeWindingsTransformers(UUID networkUuid, List<Resource<ThreeWindingsTransformerAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getThreeWindingsTransformerMappings());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources, limitsInfos);
+        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources);
         updateTapChangerSteps(networkUuid, resources);
         updateRegulatingPoints(networkUuid, resources, ResourceType.THREE_WINDINGS_TRANSFORMER, getRegulatingPointFromThreeWindingTransformers(networkUuid, resources));
     }
@@ -1844,8 +1827,8 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getLineMappings());
 
         // Now that lines are created, we will insert in the database the corresponding operational limits groups.
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
     }
 
     public Optional<Resource<LineAttributes>> getLine(UUID networkUuid, int variantNum, String lineId) {
@@ -1873,7 +1856,7 @@ public class NetworkStoreRepository {
     public void updateLines(UUID networkUuid, List<Resource<LineAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
 
-        limitsHandler.updateOperationalLimitsGroupWithLazyLoading(networkUuid, resources);
+        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources);
     }
 
     private <T extends IdentifiableAttributes, U> Set<RegulatingOwnerInfo> getRegulatingPointsToTombstoneFromEquipment(UUID networkUuid, Map<RegulatingOwnerInfo, U> externalAttributesToInsert, List<Resource<T>> resources) {
@@ -1923,8 +1906,8 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings());
 
         // Now that the dangling lines are created, we will insert in the database the corresponding operational limits groups.
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.insertOperationalLimitsGroup(limitsInfos);
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
     }
 
     public Optional<Resource<DanglingLineAttributes>> getDanglingLine(UUID networkUuid, int variantNum, String danglingLineId) {
@@ -1934,8 +1917,8 @@ public class NetworkStoreRepository {
     public List<Resource<DanglingLineAttributes>> getDanglingLines(UUID networkUuid, int variantNum) {
         List<Resource<DanglingLineAttributes>> danglingLines = getIdentifiables(networkUuid, variantNum, mappings.getDanglingLineMappings());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
-        limitsHandler.insertLimitsInEquipments(networkUuid, danglingLines, limitsInfos);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, danglingLines, operationalLimitsGroups);
         setRegulatingEquipments(danglingLines, networkUuid, variantNum, ResourceType.DANGLING_LINE);
 
         return danglingLines;
@@ -1946,8 +1929,8 @@ public class NetworkStoreRepository {
 
         List<String> equipmentsIds = danglingLines.stream().map(Resource::getId).collect(Collectors.toList());
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
-        limitsHandler.insertLimitsInEquipments(networkUuid, danglingLines, limitsInfos);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, danglingLines, operationalLimitsGroups);
 
         setRegulatingEquipmentsWithIds(danglingLines, networkUuid, variantNum, ResourceType.DANGLING_LINE, equipmentsIds);
         return danglingLines;
@@ -1961,8 +1944,7 @@ public class NetworkStoreRepository {
     public void updateDanglingLines(UUID networkUuid, List<Resource<DanglingLineAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings(), VOLTAGE_LEVEL_ID_COLUMN);
 
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getLimitsInfosFromEquipments(networkUuid, resources);
-        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources, limitsInfos);
+        limitsHandler.updateOperationalLimitsGroup(networkUuid, resources);
     }
 
     public void updateDanglingLinesSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -3550,22 +3532,18 @@ public class NetworkStoreRepository {
 
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
-        Map<OwnerInfo, LimitsInfos> limitsInfos = limitsHandler.getOperationaLimitsGroup(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map = new HashMap<>();
-        limitsInfos.forEach((owner, limitsInfo) ->
-            map.putAll(limitsHandler.convertLimitInfosToOperationalLimitsGroupMap(owner.getEquipmentId(), limitsInfo)));
-        return map;
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        return operationalLimitsGroups.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().getEquipmentId(),
+                        Map.Entry::getValue
+                ));
     }
 
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
-        try (var connection = dataSource.getConnection()) {
-            int fullVariantNum = getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).getFullVariantNum();
-            return limitsHandler.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type, fullVariantNum,
-                getTombstonedIdentifiableIds(connection, networkId, variantNum));
-        } catch (SQLException e) {
-            throw new UncheckedSqlException(e);
-        }
+        return limitsHandler.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type);
+
     }
 
     public List<OperationalLimitsGroupAttributes> getOperationalLimitsGroupAttributesForBranchSide(
