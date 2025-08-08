@@ -407,7 +407,7 @@ public class LimitsHandler {
                         (identifiers.operationalLimitsGroupId2() != null ? 1 : 0))
                 .sum();
 
-        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildSelectedOperationalLimitsGroupQuery(conditionCount))) {
+        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildSelectedOperationalLimitsGroupINQuery(conditionCount))) {
             preparedStmt.setObject(1, networkId);
             preparedStmt.setInt(2, variantNum);
 

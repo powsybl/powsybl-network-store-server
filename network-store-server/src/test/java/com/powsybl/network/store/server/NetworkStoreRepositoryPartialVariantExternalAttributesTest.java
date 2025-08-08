@@ -652,7 +652,6 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
         verifyExternalAttributes(lineId, genId, twoWTId, areaId, 1, NETWORK_UUID);
         updateExternalAttributesWithTombstone(1, lineId, genId, twoWTId, areaId);
-        OwnerInfo ownerInfoLine = new OwnerInfo(lineId, ResourceType.LINE, NETWORK_UUID, 1);
         OwnerInfo ownerInfoGen = new OwnerInfo(genId, ResourceType.GENERATOR, NETWORK_UUID, 1);
         OwnerInfo ownerInfoTwoWT = new OwnerInfo(twoWTId, ResourceType.TWO_WINDINGS_TRANSFORMER, NETWORK_UUID, 1);
         OwnerInfo ownerInfoArea = new OwnerInfo(areaId, null, NETWORK_UUID, 1);

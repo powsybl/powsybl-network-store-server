@@ -852,7 +852,7 @@ public final class QueryCatalog {
             columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
-    public static String buildSelectedOperationalLimitsGroupQuery(int numberOfValues) {
+    public static String buildSelectedOperationalLimitsGroupINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
