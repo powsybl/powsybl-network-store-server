@@ -200,24 +200,25 @@ public class LimitsHandler {
     public void insertOperationalLimitsGroupAttributes(Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
-                List<LimitsGroupAttributesSqlData> operationalLimitsGroup = LimitsGroupAttributesSqlData.of(operationalLimitsGroups);
+                Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> operationalLimitsGroup = LimitsGroupAttributesSqlData.of(operationalLimitsGroups);
                 List<Object> values = new ArrayList<>(13);
-                for (List<LimitsGroupAttributesSqlData> subUnit : Lists.partition(operationalLimitsGroup, BATCH_SIZE)) {
-                    for (LimitsGroupAttributesSqlData entry : subUnit) {
+                List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> list = new ArrayList<>(operationalLimitsGroup.entrySet());
+                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> entry : subUnit) {
                         values.clear();
-                        values.add(entry.getNetworkUuid());
-                        values.add(entry.getVariantNum());
-                        values.add(entry.getEquipmentType());
-                        values.add(entry.getEquipmentId());
-                        values.add(entry.getOperationalLimitsGroupId());
-                        values.add(entry.getSide());
-                        values.add(entry.getCurrentLimitsPermanentLimit());
-                        values.add(entry.getCurrentLimitsTemporaryLimits());
-                        values.add(entry.getApparentPowerLimitsPermanentLimit());
-                        values.add(entry.getApparentPowerLimitsTemporaryLimits());
-                        values.add(entry.getActivePowerLimitsPermanentLimit());
-                        values.add(entry.getActivePowerLimitsTemporaryLimits());
-                        values.add(entry.getProperties());
+                        values.add(entry.getKey().getNetworkUuid());
+                        values.add(entry.getKey().getVariantNum());
+                        values.add(entry.getKey().getEquipmentType().toString());
+                        values.add(entry.getKey().getEquipmentId());
+                        values.add(entry.getKey().getOperationalLimitsGroupId());
+                        values.add(entry.getKey().getSide());
+                        values.add(entry.getValue().getCurrentLimitsPermanentLimit());
+                        values.add(entry.getValue().getCurrentLimitsTemporaryLimits());
+                        values.add(entry.getValue().getApparentPowerLimitsPermanentLimit());
+                        values.add(entry.getValue().getApparentPowerLimitsTemporaryLimits());
+                        values.add(entry.getValue().getActivePowerLimitsPermanentLimit());
+                        values.add(entry.getValue().getActivePowerLimitsTemporaryLimits());
+                        values.add(entry.getValue().getProperties());
                         bindValues(preparedStmt, values, mapper);
                         preparedStmt.addBatch();
                     }
