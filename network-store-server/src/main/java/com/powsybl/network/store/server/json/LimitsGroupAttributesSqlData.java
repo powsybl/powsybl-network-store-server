@@ -33,40 +33,15 @@ public class LimitsGroupAttributesSqlData {
     private List<TemporaryLimitAttributes> activePowerLimitsTemporaryLimits;
     private Map<String, String> properties;
 
-    public static Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> of(Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups) {
-        Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> result = new HashMap<>();
-
-        for (Map.Entry<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> ownerEntry : operationalLimitsGroups.entrySet()) {
-            OwnerInfo ownerInfo = ownerEntry.getKey();
-            Map<Integer, Map<String, OperationalLimitsGroupAttributes>> sideMap = ownerEntry.getValue();
-
-            for (Map.Entry<Integer, Map<String, OperationalLimitsGroupAttributes>> sideEntry : sideMap.entrySet()) {
-                Integer side = sideEntry.getKey();
-                Map<String, OperationalLimitsGroupAttributes> groupMap = sideEntry.getValue();
-
-                for (Map.Entry<String, OperationalLimitsGroupAttributes> groupEntry : groupMap.entrySet()) {
-                    String operationalLimitsGroupId = groupEntry.getKey();
-                    OperationalLimitsGroupAttributes attributes = groupEntry.getValue();
-
-                    LimitsGroupAttributesSqlData sqlData = createLimitsGroupSqlData(attributes);
-                    OperationalLimitsGroupOwnerInfo ownerInfoKey = createOperationalLimitsGroupOwnerInfo(ownerInfo, operationalLimitsGroupId, side);
-
-                    result.put(ownerInfoKey, sqlData);
-                }
-            }
-        }
-        return result;
-    }
-
-    private static LimitsGroupAttributesSqlData createLimitsGroupSqlData(OperationalLimitsGroupAttributes attributes) {
+    public static LimitsGroupAttributesSqlData of(OperationalLimitsGroupAttributes operationalLimitsGroup) {
         return LimitsGroupAttributesSqlData.builder()
-                .currentLimitsPermanentLimit(extractPermanentLimit(attributes.getCurrentLimits()))
-                .currentLimitsTemporaryLimits(convertToTemporaryLimitAttributes(attributes.getCurrentLimits()))
-                .apparentPowerLimitsPermanentLimit(extractPermanentLimit(attributes.getApparentPowerLimits()))
-                .apparentPowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(attributes.getApparentPowerLimits()))
-                .activePowerLimitsPermanentLimit(extractPermanentLimit(attributes.getActivePowerLimits()))
-                .activePowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(attributes.getActivePowerLimits()))
-                .properties(attributes.getProperties())
+                .currentLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getCurrentLimits()))
+                .currentLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getCurrentLimits()))
+                .apparentPowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getApparentPowerLimits()))
+                .apparentPowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getApparentPowerLimits()))
+                .activePowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getActivePowerLimits()))
+                .activePowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getActivePowerLimits()))
+                .properties(operationalLimitsGroup.getProperties())
                 .build();
     }
 
@@ -87,16 +62,5 @@ public class LimitsGroupAttributesSqlData {
                         .fictitious(temporaryLimit.isFictitious())
                         .build())
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
-    }
-
-    private static OperationalLimitsGroupOwnerInfo createOperationalLimitsGroupOwnerInfo(OwnerInfo ownerInfo, String operationalLimitsGroupId, Integer side) {
-        return new OperationalLimitsGroupOwnerInfo(
-                ownerInfo.getEquipmentId(),
-                ownerInfo.getEquipmentType(),
-                ownerInfo.getNetworkUuid(),
-                ownerInfo.getVariantNum(),
-                operationalLimitsGroupId,
-                side
-        );
     }
 }

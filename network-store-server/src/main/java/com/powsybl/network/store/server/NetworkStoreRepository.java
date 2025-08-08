@@ -19,6 +19,7 @@ import com.powsybl.iidm.network.ReactiveLimitsKind;
 import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.model.utils.VariantUtils;
+import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.JsonApiErrorResponseException;
@@ -1628,7 +1629,7 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
 
         // Now that twowindingstransformers are created, we will insert in the database the corresponding operational limits groups.
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
         limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
         insertRegulatingPoints(getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
 
@@ -1737,8 +1738,8 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getThreeWindingsTransformerMappings());
         insertRegulatingPoints(getRegulatingPointFromThreeWindingTransformers(networkUuid, resources));
 
-        // Now that threewindingstransformers are created, we will insert in the database the corresponding operatiobal limits groups.
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        // Now that threewindingstransformers are created, we will insert in the database the corresponding operational limits groups.
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
         limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
 
         // Now that threewindingstransformers are created, we will insert in the database the corresponding tap Changer steps.
@@ -1826,7 +1827,7 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getLineMappings());
 
         // Now that lines are created, we will insert in the database the corresponding operational limits groups.
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
         limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
     }
 
@@ -1905,7 +1906,7 @@ public class NetworkStoreRepository {
         createIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings());
 
         // Now that the dangling lines are created, we will insert in the database the corresponding operational limits groups.
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupFromEquipments(networkUuid, resources);
         limitsHandler.insertOperationalLimitsGroupAttributes(operationalLimitsGroups);
     }
 
