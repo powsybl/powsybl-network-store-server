@@ -857,9 +857,6 @@ public final class QueryCatalog {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
 
-        String conditionsClause = String.join(" or ",
-                Collections.nCopies(numberOfValues, "(" + EQUIPMENT_ID_COLUMN + " = ? and " + GROUP_ID_COLUMN + " = ? and " + SIDE_COLUMN + " = ?)"));
-
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
@@ -874,6 +871,8 @@ public final class QueryCatalog {
                 ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 PROPERTIES_COLUMN +
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE +
-                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? and (" + conditionsClause + ")";
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? " +
+                " and (" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                " in (values " + String.join(",", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
     }
 }
