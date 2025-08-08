@@ -35,7 +35,8 @@ import static com.powsybl.network.store.server.Utils.*;
  */
 //FIXME: how to deal with existing DB data [] and 0.0 ?
 // fix tests
-// Temporary limits treemap => to list...
+// Temporary limits treemap => to list..
+//Remove tombsonted from DB
 @Component
 public class LimitsHandler {
     private final DataSource dataSource;
@@ -50,29 +51,49 @@ public class LimitsHandler {
 
     public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroup(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
-            return PartialVariantUtils.getOperationalLimitsGroup(
-                variantNum,
-                getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
-                () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
-                variant -> getOperationalLimitsGroupForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum));
+            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> result = PartialVariantUtils.getExternalAttributes(
+                    variantNum,
+                    getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
+                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    Set::of,
+                variant -> getOperationalLimitsGroupForVariant(connection, networkUuid, variant, columnNameForWhereClause, valueForWhereClause, variantNum),
+                    OperationalLimitsGroupOwnerInfo::getEquipmentId);
+            return convertOperationalLimitsGroupMap(result);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
+    }
+
+    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupMap(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map) {
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> result = new HashMap<>();
+
+        map.forEach((ownerInfo, attributes) -> {
+            OwnerInfo owner = new OwnerInfo(ownerInfo.getEquipmentId(), ownerInfo.getEquipmentType(),
+                    ownerInfo.getNetworkUuid(), ownerInfo.getVariantNum());
+            result.computeIfAbsent(owner, k -> new HashMap<>())
+                    .computeIfAbsent(ownerInfo.getSide(), k -> new HashMap<>())
+                    .put(ownerInfo.getOperationalLimitsGroupId(), attributes);
+        });
+
+        return result;
     }
 
     public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
         try (var connection = dataSource.getConnection()) {
-            return PartialVariantUtils.getOperationalLimitsGroup(
+            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> result = PartialVariantUtils.getExternalAttributes(
                 variantNum,
                 getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
-                variant -> getOperationalLimitsGroupWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum));
+                Set::of,
+                variant -> getOperationalLimitsGroupWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
+                OperationalLimitsGroupOwnerInfo::getEquipmentId);
+            return convertOperationalLimitsGroupMap(result);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(buildOperationalLimitsGroupQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
@@ -84,7 +105,7 @@ public class LimitsHandler {
         }
     }
 
-    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -101,11 +122,11 @@ public class LimitsHandler {
         }
     }
 
-    private Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> innerGetOperationalLimitsGroup(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
+    private Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> innerGetOperationalLimitsGroup(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
-            Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map = new HashMap<>();
+            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map = new HashMap<>();
             while (resultSet.next()) {
-                OwnerInfo owner = new OwnerInfo();
+                OperationalLimitsGroupOwnerInfo owner = new OperationalLimitsGroupOwnerInfo();
                 // In order, from the QueryCatalog.buildOperationalLimitsGroupQuery SQL query :
                 // equipmentId, equipmentType, networkUuid, variantNum, side, operationallimitgroupid,
                 // current_limits_permanent_limit, current_limits_temporary_limits,
@@ -115,11 +136,11 @@ public class LimitsHandler {
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
                 owner.setVariantNum(variantNumOverride);
+                owner.setSide(resultSet.getInt(5));
+                String operationalLimitsGroupId = resultSet.getString(6);
+                owner.setOperationalLimitsGroupId(operationalLimitsGroupId);
 
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
-
-                Integer side = resultSet.getInt(5);
-                String operationalLimitsGroupId = resultSet.getString(6);
                 operationalLimitsGroupAttributes.setId(operationalLimitsGroupId);
                 LimitsAttributes currentLimits = createLimitsAttributes(
                         resultSet.getObject(7, Double.class),
@@ -146,9 +167,7 @@ public class LimitsHandler {
                     operationalLimitsGroupAttributes.setProperties(properties);
                 }
 
-                Map<String, OperationalLimitsGroupAttributes> innerMap = map.computeIfAbsent(owner, k -> new HashMap<>())
-                        .computeIfAbsent(side, k -> new HashMap<>());
-                innerMap.put(operationalLimitsGroupId, operationalLimitsGroupAttributes);
+                map.put(owner, operationalLimitsGroupAttributes);
             }
             return map;
         } catch (JsonProcessingException e) {
@@ -387,17 +406,20 @@ public class LimitsHandler {
         }
 
         try (var connection = dataSource.getConnection()) {
-            return PartialVariantUtils.getOperationalLimitsGroup(
+            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> result = PartialVariantUtils.getExternalAttributes(
                     variantNum,
                     getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).getFullVariantNum(),
                     () -> getTombstonedIdentifiableIds(connection, networkId, variantNum),
-                    variant -> getSelectedOperationalLimitsGroupsForVariant(connection, networkId, variant, selectedOperationalLimitsGroups, variantNum));
+                    Set::of,
+                    variant -> getSelectedOperationalLimitsGroupsForVariant(connection, networkId, variant, selectedOperationalLimitsGroups, variantNum),
+                    OperationalLimitsGroupOwnerInfo::getEquipmentId);
+            return convertOperationalLimitsGroupMap(result);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    private Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getSelectedOperationalLimitsGroupsForVariant(Connection connection, UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups, int variantNumOverride) {
+    private Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getSelectedOperationalLimitsGroupsForVariant(Connection connection, UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups, int variantNumOverride) {
         if (selectedOperationalLimitsGroups.isEmpty()) {
             return Collections.emptyMap();
         }

@@ -656,8 +656,8 @@ public class NetworkStoreRepository {
 
     private <T extends IdentifiableAttributes> Resource<T> completeThreeWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<ThreeWindingsTransformerAttributes> threeWindingsTransformerResource = (Resource<ThreeWindingsTransformerAttributes>) resource;
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationaLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, List.of(threeWindingsTransformerResource), operationaLimitsGroups);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        limitsHandler.insertOperationalLimitsGroupInEquipments(networkUuid, List.of(threeWindingsTransformerResource), operationalLimitsGroups);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         insertTapChangerStepsInEquipments(networkUuid, List.of(threeWindingsTransformerResource), tapChangerSteps);
