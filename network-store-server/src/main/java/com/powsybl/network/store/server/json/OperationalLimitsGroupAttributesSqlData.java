@@ -9,8 +9,6 @@ package com.powsybl.network.store.server.json;
 import com.powsybl.network.store.model.LimitsAttributes;
 import com.powsybl.network.store.model.OperationalLimitsGroupAttributes;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
-import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
-import com.powsybl.network.store.server.dto.OwnerInfo;
 import lombok.*;
 
 import java.util.*;
@@ -24,7 +22,7 @@ import java.util.*;
 @Builder
 @Getter
 @Setter
-public class LimitsGroupAttributesSqlData {
+public class OperationalLimitsGroupAttributesSqlData {
     private Double currentLimitsPermanentLimit;
     private List<TemporaryLimitAttributes> currentLimitsTemporaryLimits;
     private Double apparentPowerLimitsPermanentLimit;
@@ -33,8 +31,8 @@ public class LimitsGroupAttributesSqlData {
     private List<TemporaryLimitAttributes> activePowerLimitsTemporaryLimits;
     private Map<String, String> properties;
 
-    public static LimitsGroupAttributesSqlData of(OperationalLimitsGroupAttributes operationalLimitsGroup) {
-        return LimitsGroupAttributesSqlData.builder()
+    public static OperationalLimitsGroupAttributesSqlData of(OperationalLimitsGroupAttributes operationalLimitsGroup) {
+        return OperationalLimitsGroupAttributesSqlData.builder()
                 .currentLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getCurrentLimits()))
                 .currentLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getCurrentLimits()))
                 .apparentPowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getApparentPowerLimits()))

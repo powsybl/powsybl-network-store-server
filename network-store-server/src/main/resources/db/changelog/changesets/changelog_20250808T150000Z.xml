@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="bouhoursant" id="29865562296b-1">
+        <delete tableName="tombstonedexternalattributes">
+            <where>type = 'OPERATIONAL_LIMIT_GROUP'</where>
+        </delete>
+    </changeSet>
+    <changeSet author="bouhoursant" id="29865562296b-2">
+        <!-- Temporary limits -->
+        <sql>
+            UPDATE operationallimitgroup
+            SET current_limits_temporary_limits = NULL
+            WHERE current_limits_temporary_limits = '[]'
+        </sql>
+        <sql>
+            UPDATE operationallimitgroup
+            SET apparent_power_limits_temporary_limits = NULL
+            WHERE apparent_power_limits_temporary_limits = '[]'
+        </sql>
+        <sql>
+            UPDATE operationallimitgroup
+            SET active_power_limits_temporary_limits = NULL
+            WHERE active_power_limits_temporary_limits = '[]'
+        </sql>
+        <!-- Permanent limits -->
+        <sql>
+            UPDATE operationallimitgroup
+            SET current_limits_permanent_limit = NULL
+            WHERE current_limits_permanent_limit = 'NaN'
+        </sql>
+        <sql>
+            UPDATE operationallimitgroup
+            SET apparent_power_limits_permanent_limit = NULL
+            WHERE apparent_power_limits_permanent_limit = 'NaN'
+        </sql>
+        <sql>
+            UPDATE operationallimitgroup
+            SET active_power_limits_permanent_limit = NULL
+            WHERE active_power_limits_permanent_limit = 'NaN'
+        </sql>
+    </changeSet>
+</databaseChangeLog>

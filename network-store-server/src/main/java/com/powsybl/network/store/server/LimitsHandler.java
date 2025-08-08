@@ -14,7 +14,7 @@ import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
-import com.powsybl.network.store.server.json.LimitsGroupAttributesSqlData;
+import com.powsybl.network.store.server.json.OperationalLimitsGroupAttributesSqlData;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 
@@ -33,10 +33,6 @@ import static com.powsybl.network.store.server.Utils.*;
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
  */
-//FIXME: how to deal with existing DB data [] and 0.0 ?
-// fix tests
-// Temporary limits treemap => to list..
-//Remove tombsonted from DB
 @Component
 public class LimitsHandler {
     private final DataSource dataSource;
@@ -184,10 +180,11 @@ public class LimitsHandler {
         }
 
         double permanentLimit = permanentLimitData == null ? Double.NaN : permanentLimitData;
-        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimit = new TreeMap<>();
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimit = null;
         if (!StringUtils.isEmpty(temporaryLimitData)) {
             List<TemporaryLimitAttributes> tempLimitList = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
             if (tempLimitList != null) {
+                temporaryLimit = new TreeMap<>();
                 for (TemporaryLimitAttributes limitInfo : tempLimitList) {
                     int duration = limitInfo.getAcceptableDuration();
                     temporaryLimit.put(duration, limitInfo);
@@ -235,15 +232,15 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
                 List<Object> values = new ArrayList<>(13);
-                Map<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> limitsGroupAttributesSqlData = operationalLimitsGroups.entrySet()
+                Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData> limitsGroupAttributesSqlData = operationalLimitsGroups.entrySet()
                         .stream()
                         .collect(Collectors.toMap(
                                 Map.Entry::getKey,
-                                entry -> LimitsGroupAttributesSqlData.of(entry.getValue())
+                                entry -> OperationalLimitsGroupAttributesSqlData.of(entry.getValue())
                         ));
-                List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> list = new ArrayList<>(limitsGroupAttributesSqlData.entrySet());
-                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
-                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, LimitsGroupAttributesSqlData> entry : subUnit) {
+                List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData>> list = new ArrayList<>(limitsGroupAttributesSqlData.entrySet());
+                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData> entry : subUnit) {
                         values.clear();
                         values.add(entry.getKey().getNetworkUuid());
                         values.add(entry.getKey().getVariantNum());
@@ -375,12 +372,12 @@ public class LimitsHandler {
     public List<OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesForBranchSide(
         UUID networkId, int variantNum, ResourceType type, String branchId, int side) {
         OwnerInfo ownerInfo = new OwnerInfo(branchId, type, networkId, variantNum);
-        Map<Integer, Map<String, OperationalLimitsGroupAttributes>> limitsInfos = getOperationalLimitsGroup(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
-        if (limitsInfos == null) {
+        Map<Integer, Map<String, OperationalLimitsGroupAttributes>> operationalLimitsGroups = getOperationalLimitsGroup(networkId, variantNum, EQUIPMENT_ID_COLUMN, branchId).get(ownerInfo);
+        if (operationalLimitsGroups == null) {
             return Collections.emptyList();
         }
 
-        Map<String, OperationalLimitsGroupAttributes> sideAttributes = limitsInfos.get(side);
+        Map<String, OperationalLimitsGroupAttributes> sideAttributes = operationalLimitsGroups.get(side);
         if (sideAttributes == null) {
             return Collections.emptyList();
         }

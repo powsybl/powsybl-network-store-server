@@ -6,7 +6,6 @@
  */
 package com.powsybl.network.store.server;
 
-import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
@@ -67,11 +66,11 @@ class NetworkStoreRepositoryTest {
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
                         .name("idLineA")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
+                        .operationalLimitsGroups1(new HashMap<>(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
                                 .properties(Map.of("prop1", "value1", "prop2", "value2"))
-                                .build()))
+                                .build())))
                         .build())
                 .build();
 
@@ -81,11 +80,11 @@ class NetworkStoreRepositoryTest {
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
                         .name("idLineB")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
+                        .operationalLimitsGroups1(new HashMap<>(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
                                 .properties(Map.of("prop1", "value1", "prop2", "value2"))
-                            .build()))
+                            .build())))
                         .build())
                 .build();
 
@@ -93,90 +92,80 @@ class NetworkStoreRepositoryTest {
         assertEquals(resLineB.getId(), infoLineB.getEquipmentId());
         assertNotEquals(resLineA.getId(), infoLineX.getEquipmentId());
 
-        TemporaryLimitAttributes templimitAOkSide1a = TemporaryLimitAttributes.builder()
-                .acceptableDuration(100)
-                .build();
-
-        TemporaryLimitAttributes templimitAOkSide2a = TemporaryLimitAttributes.builder()
-                .acceptableDuration(100)
-                .build();
-
-        TemporaryLimitAttributes templimitAOkSide2b = TemporaryLimitAttributes.builder()
-                .acceptableDuration(200)
-                .build();
-
-        // If there are multiple instance of a limit on the same side with the same acceptable duration, only one is kept.
-        TemporaryLimitAttributes templimitAOkSide2bSameAcceptableDuration = TemporaryLimitAttributes.builder()
-                .acceptableDuration(200)
-                .build();
-
-        TemporaryLimitAttributes templimitWrongEquipmentId = TemporaryLimitAttributes.builder()
-                .acceptableDuration(100)
-                .build();
-
-        TemporaryLimitAttributes templimitBOkSide1a = TemporaryLimitAttributes.builder()
-                .acceptableDuration(100)
-                .build();
-
-        TemporaryLimitAttributes templimitBOkSide1b = TemporaryLimitAttributes.builder()
-                .acceptableDuration(200)
-                .build();
-
-        TemporaryLimitAttributes templimitBOkSide1c = TemporaryLimitAttributes.builder()
-                .acceptableDuration(300)
-                .build();
-
         List<Resource<LineAttributes>> lines = new ArrayList<>();
         lines.add(resLineA);
         lines.add(resLineB);
 
-        List<TemporaryLimitAttributes> temporaryLimitsA = new ArrayList<>();
-        temporaryLimitsA.add(templimitAOkSide1a);
-        temporaryLimitsA.add(templimitAOkSide2a);
-        temporaryLimitsA.add(templimitAOkSide2b);
-        temporaryLimitsA.add(templimitAOkSide2bSameAcceptableDuration);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsA1 = new TreeMap<>();
+        temporaryLimitsA1.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
 
-        List<TemporaryLimitAttributes> temporaryLimitsB = new ArrayList<>();
-        temporaryLimitsB.add(templimitBOkSide1a);
-        temporaryLimitsB.add(templimitBOkSide1b);
-        temporaryLimitsB.add(templimitBOkSide1c);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsA2 = new TreeMap<>();
+        temporaryLimitsA2.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
+        temporaryLimitsA2.put(200, TemporaryLimitAttributes.builder()
+                .acceptableDuration(200)
+                .build());
 
-        List<TemporaryLimitAttributes> temporaryLimitsX = new ArrayList<>();
-        temporaryLimitsX.add(templimitWrongEquipmentId);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsB1 = new TreeMap<>();
+        temporaryLimitsB1.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
+        temporaryLimitsB1.put(200, TemporaryLimitAttributes.builder()
+                .acceptableDuration(200)
+                .build());
+        temporaryLimitsB1.put(300, TemporaryLimitAttributes.builder()
+                .acceptableDuration(300)
+                .build());
 
-       /* OperationalLimitsGroupPropertiesAttributes propertiesAttributesA = OperationalLimitsGroupPropertiesAttributes.builder()
-                .side(1)
-                .operationalLimitsGroupId("group1")
-                .properties(Map.of("prop1", "value1", "prop2", "value2"))
-                .build();
-        List<OperationalLimitsGroupPropertiesAttributes> propertiesAttributes = new ArrayList<>();
-        propertiesAttributes.add(propertiesAttributesA);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsX1 = new TreeMap<>();
+        temporaryLimitsX1.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
 
-        Map<OwnerInfo, LimitsInfos> map = new HashMap<>();
-        LimitsInfos limitsInfosA = new LimitsInfos();
-        limitsInfosA.setTemporaryLimits(temporaryLimitsA);
-        limitsInfosA.setProperties(propertiesAttributes);
-        map.put(infoLineA, limitsInfosA);
-        LimitsInfos limitsInfosB = new LimitsInfos();
-        limitsInfosB.setTemporaryLimits(temporaryLimitsB);
-        map.put(infoLineB, limitsInfosB);
-        LimitsInfos limitsInfosX = new LimitsInfos();
-        limitsInfosX.setTemporaryLimits(temporaryLimitsX);
-        map.put(infoLineX, limitsInfosX);
-*/
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map = new HashMap<>();
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesA1 = new OperationalLimitsGroupAttributes();
+        LimitsAttributes.builder().temporaryLimits(temporaryLimitsA1).build();
+        operationalLimitsGroupAttributesA1.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsA1).build());
+        operationalLimitsGroupAttributesA1.setProperties(Map.of("prop1", "value1", "prop2", "value2"));
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesA2 = new OperationalLimitsGroupAttributes();
+        operationalLimitsGroupAttributesA2.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsA2).build());
+        operationalLimitsGroupAttributesA2.setProperties(Map.of("prop1", "value1", "prop2", "value2"));
+        map.put(infoLineA, Map.of(
+                        1, Map.of("group1", operationalLimitsGroupAttributesA1),
+                        2, Map.of("group1", operationalLimitsGroupAttributesA2)
+                )
+        );
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesB1 = new OperationalLimitsGroupAttributes();
+        operationalLimitsGroupAttributesB1.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsB1).build());
+        operationalLimitsGroupAttributesB1.setProperties(Map.of("prop1", "value1", "prop2", "value2"));
+        map.put(infoLineB, Map.of(
+                        1, Map.of("group1", operationalLimitsGroupAttributesB1)
+                )
+        );
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesX1 = new OperationalLimitsGroupAttributes();
+        operationalLimitsGroupAttributesX1.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsX1).build());
+        map.put(infoLineX, Map.of(
+                        1, Map.of("group1", operationalLimitsGroupAttributesX1)
+                )
+        );
+
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1"));
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
 
-        //networkStoreRepository.getLimitsHandler().insertLimitsInEquipments(NETWORK_UUID, lines, new HashMap<>());
+        networkStoreRepository.getLimitsHandler().insertOperationalLimitsGroupInEquipments(NETWORK_UUID, lines, new HashMap<>());
 
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1"));
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
 
-    //    networkStoreRepository.getLimitsHandler().insertLimitsInEquipments(NETWORK_UUID, lines, map);
+        networkStoreRepository.getLimitsHandler().insertOperationalLimitsGroupInEquipments(NETWORK_UUID, lines, map);
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1").getCurrentLimits().getTemporaryLimits());
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties());

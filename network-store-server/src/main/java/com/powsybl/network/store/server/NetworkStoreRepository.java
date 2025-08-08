@@ -3532,8 +3532,8 @@ public class NetworkStoreRepository {
 
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> limitsInfos = limitsHandler.getOperationalLimitsGroup(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
-        return limitsInfos.entrySet().stream()
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroup(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        return operationalLimitsGroups.entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey().getEquipmentId(),
                         Map.Entry::getValue
