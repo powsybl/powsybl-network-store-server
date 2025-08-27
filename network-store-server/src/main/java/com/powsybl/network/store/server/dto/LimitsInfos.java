@@ -31,25 +31,19 @@ import lombok.Setter;
 public class LimitsInfos {
 
     @Schema(description = "List of permanent limits")
-    private List<PermanentLimitAttributes> permanentLimits;
+    private List<PermanentLimitAttributes> permanentLimits = new ArrayList<>();
 
     @Schema(description = "List of temporary limits")
-    private List<TemporaryLimitAttributes> temporaryLimits;
+    private List<TemporaryLimitAttributes> temporaryLimits = new ArrayList<>();
 
     @Schema(description = "Properties")
     private List<OperationalLimitsGroupPropertiesAttributes> properties;
 
     public void addPermanentLimit(PermanentLimitAttributes permanentLimit) {
-        if (permanentLimits == null) {
-            permanentLimits = new ArrayList<>();
-        }
         permanentLimits.add(permanentLimit);
     }
 
     public void addTemporaryLimit(TemporaryLimitAttributes temporaryLimit) {
-        if (temporaryLimits == null) {
-            temporaryLimits = new ArrayList<>();
-        }
         temporaryLimits.add(temporaryLimit);
     }
 
