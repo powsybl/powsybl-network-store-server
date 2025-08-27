@@ -59,6 +59,6 @@ public class OperationalLimitsGroupAttributesSqlData {
                         .value(temporaryLimit.getValue())
                         .fictitious(temporaryLimit.isFictitious())
                         .build())
-                .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
+                .toList();
     }
 }
