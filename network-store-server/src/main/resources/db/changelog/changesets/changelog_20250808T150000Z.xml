@@ -8,38 +8,4 @@
             <where>type = 'OPERATIONAL_LIMIT_GROUP'</where>
         </delete>
     </changeSet>
-    <changeSet author="bouhoursant" id="29865562296b-2">
-        <!-- Temporary limits -->
-        <sql>
-            UPDATE operationallimitsgroup
-            SET current_limits_temporary_limits = NULL
-            WHERE current_limits_temporary_limits = '[]'
-        </sql>
-        <sql>
-            UPDATE operationallimitsgroup
-            SET apparent_power_limits_temporary_limits = NULL
-            WHERE apparent_power_limits_temporary_limits = '[]'
-        </sql>
-        <sql>
-            UPDATE operationallimitsgroup
-            SET active_power_limits_temporary_limits = NULL
-            WHERE active_power_limits_temporary_limits = '[]'
-        </sql>
-        <!-- Permanent limits -->
-        <sql>
-            UPDATE operationallimitsgroup
-            SET current_limits_permanent_limit = NULL
-            WHERE current_limits_permanent_limit = 'NaN'
-        </sql>
-        <sql>
-            UPDATE operationallimitsgroup
-            SET apparent_power_limits_permanent_limit = NULL
-            WHERE apparent_power_limits_permanent_limit = 'NaN'
-        </sql>
-        <sql>
-            UPDATE operationallimitsgroup
-            SET active_power_limits_permanent_limit = NULL
-            WHERE active_power_limits_permanent_limit = 'NaN'
-        </sql>
-    </changeSet>
 </databaseChangeLog>
