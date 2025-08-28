@@ -151,7 +151,7 @@ public class LimitsHandler {
                 operationalLimitsGroupAttributes.setApparentPowerLimits(apparentPowerLimits);
 
                 LimitsAttributes activePowerLimits = createLimitsAttributes(
-                        resultSet.getObject(11, Double.class),
+                        resultSet.getDouble(11),
                         resultSet.getString(12)
                 );
                 operationalLimitsGroupAttributes.setActivePowerLimits(activePowerLimits);
@@ -226,15 +226,9 @@ public class LimitsHandler {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
                 List<Object> values = new ArrayList<>(13);
-                Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData> operationalLimitsGroupAttributesSqlData = operationalLimitsGroups.entrySet()
-                        .stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                entry -> OperationalLimitsGroupAttributesSqlData.of(entry.getValue())
-                        ));
-                List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData>> list = new ArrayList<>(operationalLimitsGroupAttributesSqlData.entrySet());
-                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData>> subUnit : Lists.partition(list, BATCH_SIZE)) {
-                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributesSqlData> entry : subUnit) {
+                List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> list = new ArrayList<>(operationalLimitsGroups.entrySet());
+                for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> subUnit : Lists.partition(list, BATCH_SIZE)) {
+                    for (Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> entry : subUnit) {
                         values.clear();
                         values.add(entry.getKey().getNetworkUuid());
                         values.add(entry.getKey().getVariantNum());
@@ -242,13 +236,14 @@ public class LimitsHandler {
                         values.add(entry.getKey().getEquipmentId());
                         values.add(entry.getKey().getOperationalLimitsGroupId());
                         values.add(entry.getKey().getSide());
-                        values.add(entry.getValue().getCurrentLimitsPermanentLimit());
-                        values.add(entry.getValue().getCurrentLimitsTemporaryLimits());
-                        values.add(entry.getValue().getApparentPowerLimitsPermanentLimit());
-                        values.add(entry.getValue().getApparentPowerLimitsTemporaryLimits());
-                        values.add(entry.getValue().getActivePowerLimitsPermanentLimit());
-                        values.add(entry.getValue().getActivePowerLimitsTemporaryLimits());
-                        values.add(entry.getValue().getProperties());
+                        OperationalLimitsGroupAttributesSqlData operationalLimitsGroupSqlData = OperationalLimitsGroupAttributesSqlData.of(entry.getValue());
+                        values.add(operationalLimitsGroupSqlData.getCurrentLimitsPermanentLimit());
+                        values.add(operationalLimitsGroupSqlData.getCurrentLimitsTemporaryLimits());
+                        values.add(operationalLimitsGroupSqlData.getApparentPowerLimitsPermanentLimit());
+                        values.add(operationalLimitsGroupSqlData.getApparentPowerLimitsTemporaryLimits());
+                        values.add(operationalLimitsGroupSqlData.getActivePowerLimitsPermanentLimit());
+                        values.add(operationalLimitsGroupSqlData.getActivePowerLimitsTemporaryLimits());
+                        values.add(operationalLimitsGroupSqlData.getProperties());
                         bindValues(preparedStmt, values, mapper);
                         preparedStmt.addBatch();
                     }
