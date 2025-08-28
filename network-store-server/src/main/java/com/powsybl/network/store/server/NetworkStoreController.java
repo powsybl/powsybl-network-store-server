@@ -1582,7 +1582,7 @@ public class NetworkStoreController {
                                                                                                                 @Parameter(description = "Branch id", required = true) @PathVariable("branchId") String branchId,
                                                                                                                 @Parameter(description = "Operational Limits Group id", required = true) @PathVariable("operationalLimitsGroupId") String operationalLimitsGroupId,
                                                                                                                 @Parameter(description = "Branch side", required = true) @PathVariable("side") int side) {
-        return getOperationalLimitsGroupAttributes(() -> repository.getOperationalLimitsGroup(networkId, variantNum, branchId, type, operationalLimitsGroupId, side));
+        return getOperationalLimitsGroupAttributes(() -> repository.getOperationalLimitsGroupAttributes(networkId, variantNum, branchId, type, operationalLimitsGroupId, side));
     }
 
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup")

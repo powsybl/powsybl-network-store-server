@@ -117,10 +117,6 @@ databaseChangeLog:
       relativeToChangelogFile: true
 
   - include:
-      file: changesets/changelog_20250130T150000Z.xml
-      relativeToChangelogFile: true
-
-  - include:
       file: changesets/changelog_20250415T064500Z.xml
       relativeToChangelogFile: true
 # Deletion of V2.14 tap changer steps. To be added before tag v2.17.0 is deployed
@@ -140,3 +136,6 @@ databaseChangeLog:
       file: changesets/changelog_20250730T150000Z.xml
       relativeToChangelogFile: true
 
+  - include:
+      file: changesets/changelog_20250808T150000Z.xml
+      relativeToChangelogFile: true

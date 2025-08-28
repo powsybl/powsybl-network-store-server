@@ -3,9 +3,9 @@
                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-
-    <changeSet id="2986875648969-2" author="lesoteti">
-        <customChange class="com.powsybl.network.store.server.migration.v214tapchangersteps.V214TapChangerStepsMigration"/>
+    <changeSet author="bouhoursant" id="29865562296b-1">
+        <delete tableName="tombstonedexternalattributes">
+            <where>type = 'OPERATIONAL_LIMIT_GROUP'</where>
+        </delete>
     </changeSet>
-
 </databaseChangeLog>
