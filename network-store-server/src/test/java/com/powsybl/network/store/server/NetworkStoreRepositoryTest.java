@@ -10,6 +10,7 @@ import com.powsybl.iidm.network.LimitType;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.LimitsInfos;
+import com.powsybl.network.store.server.dto.OperationalLimitsGroupPropertiesAttributes;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +72,7 @@ class NetworkStoreRepositoryTest {
                         .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
                                 .build()))
                         .build())
                 .build();
@@ -84,7 +86,8 @@ class NetworkStoreRepositoryTest {
                         .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
-                                .build()))
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
+                            .build()))
                         .build())
                 .build();
 
@@ -167,9 +170,18 @@ class NetworkStoreRepositoryTest {
         List<TemporaryLimitAttributes> temporaryLimitsX = new ArrayList<>();
         temporaryLimitsX.add(templimitWrongEquipmentId);
 
+        OperationalLimitsGroupPropertiesAttributes propertiesAttributesA = OperationalLimitsGroupPropertiesAttributes.builder()
+                .side(1)
+                .operationalLimitsGroupId("group1")
+                .properties(Map.of("prop1", "value1", "prop2", "value2"))
+                .build();
+        List<OperationalLimitsGroupPropertiesAttributes> propertiesAttributes = new ArrayList<>();
+        propertiesAttributes.add(propertiesAttributesA);
+
         Map<OwnerInfo, LimitsInfos> map = new HashMap<>();
         LimitsInfos limitsInfosA = new LimitsInfos();
         limitsInfosA.setTemporaryLimits(temporaryLimitsA);
+        limitsInfosA.setProperties(propertiesAttributes);
         map.put(infoLineA, limitsInfosA);
         LimitsInfos limitsInfosB = new LimitsInfos();
         limitsInfosB.setTemporaryLimits(temporaryLimitsB);
@@ -193,11 +205,15 @@ class NetworkStoreRepositoryTest {
         networkStoreRepository.getLimitsHandler().insertLimitsInEquipments(NETWORK_UUID, lines, map);
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1").getCurrentLimits().getTemporaryLimits());
+        assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties());
         assertEquals(1, resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits().size());
         assertEquals(2, resLineA.getAttributes().getOperationalLimitsGroup2("group1").getCurrentLimits().getTemporaryLimits().size());
+        assertEquals(2, resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties().size());
+        assertEquals(Map.of("prop1", "value1", "prop2", "value2"), resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties());
         assertNotNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
         assertEquals(3, resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits().size());
+        assertEquals(2, resLineB.getAttributes().getOperationalLimitsGroup1("group1").getProperties().size());
     }
 
     @Test

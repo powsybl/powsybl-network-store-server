@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.OperatingStatus;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.LimitsInfos;
+import com.powsybl.network.store.server.dto.OperationalLimitsGroupPropertiesAttributes;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.PermanentLimitAttributes;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
@@ -131,9 +132,23 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             .value(2.6)
             .build();
         List<PermanentLimitAttributes> permanentLimitAttributes = List.of(permlimitA1, permlimitA2);
+        // properties
+        OperationalLimitsGroupPropertiesAttributes propertiesAttributesA1 = OperationalLimitsGroupPropertiesAttributes.builder()
+            .side(1)
+            .operationalLimitsGroupId("group1")
+            .properties(Map.of("prop1", "value1", "prop2", "value2"))
+            .build();
+        OperationalLimitsGroupPropertiesAttributes propertiesAttributesA2 = OperationalLimitsGroupPropertiesAttributes.builder()
+            .side(2)
+            .operationalLimitsGroupId("group1")
+            .properties(Map.of("prop3", "value3", "prop4", "value4"))
+            .build();
+        List<OperationalLimitsGroupPropertiesAttributes> propertiesAttributes = List.of(propertiesAttributesA1, propertiesAttributesA2);
+
         LimitsInfos limitsInfos = new LimitsInfos();
         limitsInfos.setTemporaryLimits(temporaryLimitAttributes);
         limitsInfos.setPermanentLimits(permanentLimitAttributes);
+        limitsInfos.setProperties(propertiesAttributes);
         networkStoreRepository.getLimitsHandler().insertOperationalLimitsGroup(Map.of(ownerInfoLine, limitsInfos));
         // Reactive capability curve points
         ReactiveCapabilityCurvePointAttributes curvePointA = ReactiveCapabilityCurvePointAttributes.builder()
@@ -222,6 +237,31 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
     }
 
+    private void verifyOperationalLimitsGroup(LimitsInfos limits) {
+        assertEquals(2, limits.getTemporaryLimits().size());
+        assertEquals(100, limits.getTemporaryLimits().get(0).getAcceptableDuration());
+        assertEquals(200, limits.getTemporaryLimits().get(1).getAcceptableDuration());
+        assertEquals(2, limits.getPermanentLimits().size());
+        Optional<PermanentLimitAttributes> permanentLimitAttributesOnSide1 = limits.getPermanentLimits().stream()
+            .filter(limit -> limit.getSide() == 1).findFirst();
+        Optional<PermanentLimitAttributes> permanentLimitAttributesOnSide2 = limits.getPermanentLimits().stream()
+            .filter(limit -> limit.getSide() == 2).findFirst();
+        assertTrue(permanentLimitAttributesOnSide1.isPresent());
+        assertTrue(permanentLimitAttributesOnSide2.isPresent());
+        assertEquals(2.5, permanentLimitAttributesOnSide1.get().getValue());
+        assertEquals(2.6, permanentLimitAttributesOnSide2.get().getValue());
+
+        assertEquals(2, limits.getProperties().size());
+        Optional<OperationalLimitsGroupPropertiesAttributes> propertiesAttributesOnSide1 = limits.getProperties().stream()
+            .filter(property -> property.getSide() == 1).findFirst();
+        Optional<OperationalLimitsGroupPropertiesAttributes> propertiesAttributesOnSide2 = limits.getProperties().stream()
+            .filter(property -> property.getSide() == 2).findFirst();
+        assertTrue(propertiesAttributesOnSide1.isPresent());
+        assertTrue(propertiesAttributesOnSide2.isPresent());
+        assertEquals(Map.of("prop1", "value1", "prop2", "value2"), propertiesAttributesOnSide1.get().getProperties());
+        assertEquals(Map.of("prop3", "value3", "prop4", "value4"), propertiesAttributesOnSide2.get().getProperties());
+    }
+
     private void verifyExternalAttributes(String lineId, String generatorId, String twoWTId, String areaId, int variantNum, UUID networkUuid) {
         OwnerInfo ownerInfoLine = new OwnerInfo(lineId, ResourceType.LINE, networkUuid, variantNum);
         OwnerInfo ownerInfoGen = new OwnerInfo(generatorId, ResourceType.GENERATOR, networkUuid, variantNum);
@@ -241,32 +281,10 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
         // Operational limits
         LimitsInfos limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine);
-        assertEquals(2, limits.getTemporaryLimits().size());
-        assertEquals(100, limits.getTemporaryLimits().get(0).getAcceptableDuration());
-        assertEquals(200, limits.getTemporaryLimits().get(1).getAcceptableDuration());
-        assertEquals(2, limits.getPermanentLimits().size());
-        Optional<PermanentLimitAttributes> permanentLimitAttributesOnSide1 = limits.getPermanentLimits().stream()
-            .filter(limit -> limit.getSide() == 1).findFirst();
-        Optional<PermanentLimitAttributes> permanentLimitAttributesOnSide2 = limits.getPermanentLimits().stream()
-            .filter(limit -> limit.getSide() == 2).findFirst();
-        assertTrue(permanentLimitAttributesOnSide1.isPresent());
-        assertTrue(permanentLimitAttributesOnSide2.isPresent());
-        assertEquals(2.5, permanentLimitAttributesOnSide1.get().getValue());
-        assertEquals(2.6, permanentLimitAttributesOnSide2.get().getValue());
+        verifyOperationalLimitsGroup(limits);
 
         limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, List.of(lineId)).get(ownerInfoLine);
-        assertEquals(2, limits.getTemporaryLimits().size());
-        assertEquals(100, limits.getTemporaryLimits().get(0).getAcceptableDuration());
-        assertEquals(200, limits.getTemporaryLimits().get(1).getAcceptableDuration());
-        assertEquals(2, limits.getPermanentLimits().size());
-        permanentLimitAttributesOnSide1 = limits.getPermanentLimits().stream()
-            .filter(limit -> limit.getSide() == 1).findFirst();
-        permanentLimitAttributesOnSide2 = limits.getPermanentLimits().stream()
-            .filter(limit -> limit.getSide() == 2).findFirst();
-        assertTrue(permanentLimitAttributesOnSide1.isPresent());
-        assertTrue(permanentLimitAttributesOnSide2.isPresent());
-        assertEquals(2.5, permanentLimitAttributesOnSide1.get().getValue());
-        assertEquals(2.6, permanentLimitAttributesOnSide2.get().getValue());
+        verifyOperationalLimitsGroup(limits);
 
         // Reactive Capability Curve Points
         List<ReactiveCapabilityCurvePointAttributes> curvePoints = networkStoreRepository.getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, generatorId).get(ownerInfoGen);
@@ -542,9 +560,24 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             .value(2.8)
             .build();
         List<PermanentLimitAttributes> permanentLimitAttributes = List.of(permlimitA1);
+        // properties
+        OperationalLimitsGroupPropertiesAttributes propertiesAttributesA1 = OperationalLimitsGroupPropertiesAttributes.builder()
+            .side(1)
+            .operationalLimitsGroupId("group1")
+            .properties(Map.of("new_prop1", "new_value1", "new_prop2", "new_value2"))
+            .build();
+        OperationalLimitsGroupPropertiesAttributes propertiesAttributesA2 = OperationalLimitsGroupPropertiesAttributes.builder()
+            .side(2)
+            .operationalLimitsGroupId("group1")
+            .properties(Map.of("new_prop3", "new_value3", "new_prop4", "new_value4"))
+            .build();
+        List<OperationalLimitsGroupPropertiesAttributes> propertiesAttributes = List.of(propertiesAttributesA1, propertiesAttributesA2);
+
         LimitsInfos limitsInfos = new LimitsInfos();
         limitsInfos.setTemporaryLimits(temporaryLimitAttributes);
         limitsInfos.setPermanentLimits(permanentLimitAttributes);
+        limitsInfos.setProperties(propertiesAttributes);
+
         networkStoreRepository.getLimitsHandler().insertOperationalLimitsGroup(Map.of(ownerInfoLine, limitsInfos));
         // Reactive capability curve points
         ReactiveCapabilityCurvePointAttributes curvePointA = ReactiveCapabilityCurvePointAttributes.builder()
@@ -557,6 +590,23 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         Map<String, ExtensionAttributes> extensionAttributes = Map.of("activePowerControl", ActivePowerControlAttributes.builder().droop(6.5).participate(true).participationFactor(1.5).build(),
             "operatingStatus", OperatingStatusAttributes.builder().operatingStatus("test123").build());
         insertExtensions(Map.of(ownerInfoLine, extensionAttributes));
+    }
+
+    private void verifyUpdatedOperationalLimitsGroup(LimitsInfos limits) {
+        assertEquals(1, limits.getTemporaryLimits().size());
+        assertEquals(101, limits.getTemporaryLimits().get(0).getAcceptableDuration());
+        assertEquals(1, limits.getPermanentLimits().size());
+        assertEquals(2.8, limits.getPermanentLimits().get(0).getValue());
+
+        assertEquals(2, limits.getProperties().size());
+        Optional<OperationalLimitsGroupPropertiesAttributes> propertiesAttributesOnSide1 = limits.getProperties().stream()
+            .filter(property -> property.getSide() == 1).findFirst();
+        Optional<OperationalLimitsGroupPropertiesAttributes> propertiesAttributesOnSide2 = limits.getProperties().stream()
+            .filter(property -> property.getSide() == 2).findFirst();
+        assertTrue(propertiesAttributesOnSide1.isPresent());
+        assertTrue(propertiesAttributesOnSide2.isPresent());
+        assertEquals(Map.of("new_prop1", "new_value1", "new_prop2", "new_value2"), propertiesAttributesOnSide1.get().getProperties());
+        assertEquals(Map.of("new_prop3", "new_value3", "new_prop4", "new_value4"), propertiesAttributesOnSide2.get().getProperties());
     }
 
     private void verifyUpdatedExternalAttributes(String lineId, String generatorId, String twoWTId, String loadId, int variantNum, UUID networkUuid) {
@@ -576,16 +626,10 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
         // Temporary Limits
         LimitsInfos limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroup(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId).get(ownerInfoLine);
-        assertEquals(1, limits.getTemporaryLimits().size());
-        assertEquals(101, limits.getTemporaryLimits().get(0).getAcceptableDuration());
-        assertEquals(1, limits.getPermanentLimits().size());
-        assertEquals(2.8, limits.getPermanentLimits().get(0).getValue());
+        verifyUpdatedOperationalLimitsGroup(limits);
 
         limits = networkStoreRepository.getLimitsHandler().getOperationaLimitsGroupWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, List.of(lineId)).get(ownerInfoLine);
-        assertEquals(1, limits.getTemporaryLimits().size());
-        assertEquals(101, limits.getTemporaryLimits().get(0).getAcceptableDuration());
-        assertEquals(1, limits.getPermanentLimits().size());
-        assertEquals(2.8, limits.getPermanentLimits().get(0).getValue());
+        verifyUpdatedOperationalLimitsGroup(limits);
 
         // Reactive Capability Curve Points
         List<ReactiveCapabilityCurvePointAttributes> curvePoints = networkStoreRepository.getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, generatorId).get(ownerInfoGen);
@@ -1672,6 +1716,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .temporaryLimits(temporaryLimits)
                         .operationalLimitsGroupId(operationLimitGroupId)
                         .build())
+                .properties(Map.of("prop1", "value1", "prop2", "value2"))
                 .build();
     }
 }

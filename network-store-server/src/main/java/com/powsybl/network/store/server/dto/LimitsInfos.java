@@ -36,11 +36,21 @@ public class LimitsInfos {
     @Schema(description = "List of temporary limits")
     private List<TemporaryLimitAttributes> temporaryLimits = new ArrayList<>();
 
+    @Schema(description = "Properties")
+    private List<OperationalLimitsGroupPropertiesAttributes> properties;
+
     public void addPermanentLimit(PermanentLimitAttributes permanentLimit) {
         permanentLimits.add(permanentLimit);
     }
 
     public void addTemporaryLimit(TemporaryLimitAttributes temporaryLimit) {
         temporaryLimits.add(temporaryLimit);
+    }
+
+    public void addProperties(OperationalLimitsGroupPropertiesAttributes operationalLimitsGroupProperties) {
+        if (properties == null) {
+            properties = new ArrayList<>();
+        }
+        properties.add(operationalLimitsGroupProperties);
     }
 }
