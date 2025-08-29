@@ -36,4 +36,11 @@ public class LimitsInfos {
     @Schema(description = "List of temporary limits")
     private List<TemporaryLimitAttributes> temporaryLimits = new ArrayList<>();
 
+    public void addPermanentLimit(PermanentLimitAttributes permanentLimit) {
+        permanentLimits.add(permanentLimit);
+    }
+
+    public void addTemporaryLimit(TemporaryLimitAttributes temporaryLimit) {
+        temporaryLimits.add(temporaryLimit);
+    }
 }
