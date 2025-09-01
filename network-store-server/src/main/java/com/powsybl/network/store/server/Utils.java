@@ -25,6 +25,9 @@ import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
 
+import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_ID_COLUMN;
+import static com.powsybl.network.store.server.QueryCatalog.buildGetTombstonedIdentifiablesIdsQuery;
+
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
@@ -144,5 +147,21 @@ public final class Utils {
             }
             return Optional.empty();
         }
+    }
+
+    public static Set<String> getTombstonedIdentifiableIds(Connection connection, UUID networkUuid, int variantNum) {
+        Set<String> tombstonedIdentifiableIds = new HashSet<>();
+        try (var preparedStmt = connection.prepareStatement(buildGetTombstonedIdentifiablesIdsQuery())) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            try (var resultSet = preparedStmt.executeQuery()) {
+                while (resultSet.next()) {
+                    tombstonedIdentifiableIds.add(resultSet.getString(EQUIPMENT_ID_COLUMN));
+                }
+            }
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+        return tombstonedIdentifiableIds;
     }
 }

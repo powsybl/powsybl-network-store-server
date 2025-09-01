@@ -1,19 +1,5 @@
 [
   {
-    "id": "selectedside1",
-    "currentLimits": {
-      "permanentLimit": 1.0,
-      "temporaryLimits": {
-        "10": {
-          "name": "temporarylimit1",
-          "value": 12.0,
-          "acceptableDuration": 10,
-          "fictitious": false
-        }
-      }
-    }
-  },
-  {
     "id": "otherside1line1",
     "currentLimits": {
       "permanentLimit": 1.0,
@@ -25,6 +11,28 @@
           "fictitious": false
         }
       }
+    },
+    "properties": {
+      "prop2": "value2",
+      "prop1": "value1"
+    }
+  },
+  {
+    "id": "selectedside1",
+    "currentLimits": {
+      "permanentLimit": 1.0,
+      "temporaryLimits": {
+        "10": {
+          "name": "temporarylimit1",
+          "value": 12.0,
+          "acceptableDuration": 10,
+          "fictitious": false
+        }
+      }
+    },
+    "properties": {
+      "prop2": "value2",
+      "prop1": "value1"
     }
   }
 ]

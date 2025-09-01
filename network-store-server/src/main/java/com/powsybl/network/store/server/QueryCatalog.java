@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.powsybl.network.store.model.Resource;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -46,10 +47,6 @@ public final class QueryCatalog {
     public static final String TAPCHANGER_STEPS_COLUMN = "tapchangersteps";
     public static final String TAP_CHANGER_TYPE = "tapchangertype";
     public static final String ALPHA_COLUMN = "alpha";
-    static final String TEMPORARY_LIMITS_TABLE = "temporarylimits";
-    static final String TEMPORARY_LIMITS_COLUMN = "temporarylimits";
-    static final String PERMANENT_LIMITS_TABLE = "permanentlimits";
-    static final String PERMANENT_LIMITS_COLUMN = "permanentlimits";
     public static final String TAP_CHANGER_STEP_TABLE = "tapchangersteps";
     public static final String AREA_BOUNDARY_TABLE = "areaboundary";
     public static final String REACTIVE_CAPABILITY_CURVE_POINT_TABLE = "reactiveCapabilityCurvePoint";
@@ -72,6 +69,7 @@ public final class QueryCatalog {
     static final String APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "apparent_power_limits_temporary_limits";
     static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
     static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
+    static final String PROPERTIES_COLUMN = "properties";
 
     private QueryCatalog() {
     }
@@ -380,12 +378,14 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
                 CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ") " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN + ") " +
                 "select " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", ?, ?, " +
                 GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
                 CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " + NETWORK_UUID_COLUMN +
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
@@ -449,6 +449,21 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildDeleteOperationalLimitsGroupByGroupIdAndSideAndIdentifiableIdINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " t " +
+                "where t." + NETWORK_UUID_COLUMN + " = ? " +
+                " and t." + VARIANT_NUM_COLUMN + " = ? " +
+                " and exists (select 1 from (values " +
+                String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) +
+                ") v(" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                "where (t." + EQUIPMENT_ID_COLUMN + ", t." + GROUP_ID_COLUMN + ", t." + SIDE_COLUMN + ") = " +
+                "      (v." + EQUIPMENT_ID_COLUMN + ", v." + GROUP_ID_COLUMN + ", v." + SIDE_COLUMN + "))";
     }
 
     // Reactive Capability Curve Point
@@ -792,8 +807,9 @@ public final class QueryCatalog {
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ")" +
-            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            PROPERTIES_COLUMN + ")" +
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildOperationalLimitsGroupQuery(String columnNameForWhereClause) {
@@ -808,7 +824,8 @@ public final class QueryCatalog {
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
@@ -830,10 +847,35 @@ public final class QueryCatalog {
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            PROPERTIES_COLUMN +
             " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildSelectedOperationalLimitsGroupINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+
+        return "select " + EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                SIDE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
+                " from " + OPERATIONAL_LIMITS_GROUP_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? " +
+                " and (" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                " in (values " + String.join(",", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
     }
 }
