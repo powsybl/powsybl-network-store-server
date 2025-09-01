@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.powsybl.network.store.model.Resource;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -450,6 +451,21 @@ public final class QueryCatalog {
             EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
+    public static String buildDeleteOperationalLimitsGroupByGroupIdAndSideAndIdentifiableIdINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " t " +
+                "where t." + NETWORK_UUID_COLUMN + " = ? " +
+                " and t." + VARIANT_NUM_COLUMN + " = ? " +
+                " and exists (select 1 from (values " +
+                String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) +
+                ") v(" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                "where (t." + EQUIPMENT_ID_COLUMN + ", t." + GROUP_ID_COLUMN + ", t." + SIDE_COLUMN + ") = " +
+                "      (v." + EQUIPMENT_ID_COLUMN + ", v." + GROUP_ID_COLUMN + ", v." + SIDE_COLUMN + "))";
+    }
+
     // Reactive Capability Curve Point
     public static String buildCloneReactiveCapabilityCurvePointsQuery() {
         return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
@@ -837,5 +853,29 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildSelectedOperationalLimitsGroupINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+
+        return "select " + EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                SIDE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
+                " from " + OPERATIONAL_LIMITS_GROUP_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? " +
+                " and (" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                " in (values " + String.join(",", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
     }
 }

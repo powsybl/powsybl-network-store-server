@@ -868,7 +868,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
     private Set<String> getTombstonedIdentifiableIds(UUID networkUuid, int variantNum) {
         try (var connection = dataSource.getConnection()) {
-            return networkStoreRepository.getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
+            return Utils.getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
