@@ -456,11 +456,14 @@ public final class QueryCatalog {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
 
-        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                "(" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
-                "in (" + String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " t " +
+                "where t." + NETWORK_UUID_COLUMN + " = ? " +
+                " and t." + VARIANT_NUM_COLUMN + " = ? " +
+                " and exists (select 1 from (values " +
+                String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) +
+                ") v(" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                "where (t." + EQUIPMENT_ID_COLUMN + ", t." + GROUP_ID_COLUMN + ", t." + SIDE_COLUMN + ") = " +
+                "      (v." + EQUIPMENT_ID_COLUMN + ", v." + GROUP_ID_COLUMN + ", v." + SIDE_COLUMN + "))";
     }
 
     // Reactive Capability Curve Point

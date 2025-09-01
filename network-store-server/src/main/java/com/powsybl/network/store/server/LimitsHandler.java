@@ -311,16 +311,19 @@ public class LimitsHandler {
 
     private void deleteOperationalLimitsGroupsForVariant(Connection connection, UUID networkUuid, int variantNum,
                                                          Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupsToDelete) throws SQLException {
-        try (var preparedStmt = connection.prepareStatement(buildDeleteOperationalLimitsGroupByGroupIdAndSideAndIdentifiableIdINQuery(operationalLimitsGroupsToDelete.size()))) {
-            preparedStmt.setObject(1, networkUuid);
-            preparedStmt.setInt(2, variantNum);
-            int paramIndex = 3;
-            for (OperationalLimitsGroupOwnerInfo group : operationalLimitsGroupsToDelete) {
-                preparedStmt.setString(paramIndex++, group.getEquipmentId());
-                preparedStmt.setString(paramIndex++, group.getOperationalLimitsGroupId());
-                preparedStmt.setInt(paramIndex++, group.getSide());
+        List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupsToDeleteList = new ArrayList<>(operationalLimitsGroupsToDelete);
+        for (List<OperationalLimitsGroupOwnerInfo> subUnit : Lists.partition(operationalLimitsGroupsToDeleteList, BATCH_SIZE)) {
+            try (var preparedStmt = connection.prepareStatement(buildDeleteOperationalLimitsGroupByGroupIdAndSideAndIdentifiableIdINQuery(subUnit.size()))) {
+                preparedStmt.setObject(1, networkUuid);
+                preparedStmt.setInt(2, variantNum);
+                int paramIndex = 3;
+                for (OperationalLimitsGroupOwnerInfo group : subUnit) {
+                    preparedStmt.setString(paramIndex++, group.getEquipmentId());
+                    preparedStmt.setString(paramIndex++, group.getOperationalLimitsGroupId());
+                    preparedStmt.setInt(paramIndex++, group.getSide());
+                }
+                preparedStmt.executeUpdate();
             }
-            preparedStmt.executeUpdate();
         }
     }
 
