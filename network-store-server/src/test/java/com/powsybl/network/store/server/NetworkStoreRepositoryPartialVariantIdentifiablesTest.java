@@ -370,6 +370,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(30.).build())
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
                                 .build()))
                         .build())
                 .build();
@@ -867,7 +868,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
     private Set<String> getTombstonedIdentifiableIds(UUID networkUuid, int variantNum) {
         try (var connection = dataSource.getConnection()) {
-            return networkStoreRepository.getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
+            return Utils.getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
