@@ -1156,8 +1156,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId1 = "olg1";
         String operationLimitGroupId2 = "olg2";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
@@ -1197,12 +1197,12 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId1 = "olg1";
         String operationLimitGroupId2 = "olg2";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 5, 255, 458);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1241,15 +1241,15 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId1 = "olg1";
         String operationLimitGroupId2 = "olg2";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1bis = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 2, 13, 458);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2bis = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 5, 51, 459);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1bis = buildOperationalLimitsGroup(operationLimitGroupId1, 2, 13, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2bis = buildOperationalLimitsGroup(operationLimitGroupId2, 5, 51, 459);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1bis, operationLimitGroupId2, operationalLimitsGroupAttributes2bis), operationLimitGroupId1, lineId1);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 460);
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId1, 5, 255, 460);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1261,7 +1261,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId1, newOperationalLimitsGroupAttributes))
                         .build())
                 .build();
-        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes2Bis = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 7, 300, 441);
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes2Bis = buildOperationalLimitsGroup(operationLimitGroupId2, 7, 300, 441);
         Resource<LineAttributes> updatedLine1 = Resource.lineBuilder()
                 .id(lineId1)
                 .variantNum(1)
@@ -1286,8 +1286,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId1 = "olg1";
         String operationLimitGroupId2 = "olg2";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
@@ -1335,12 +1335,12 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId1 = "olg1";
         String operationLimitGroupId2 = "olg2";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 5, 255, 458);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1355,7 +1355,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2Updated = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 6, 123, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2Updated = buildOperationalLimitsGroup(operationLimitGroupId2, 6, 123, 456);
         Resource<LineAttributes> updatedLineTwice = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(2)
@@ -1389,12 +1389,12 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId1 = "olg1";
         String operationLimitGroupId2 = "olg2";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 5, 255, 458);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1409,7 +1409,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
-        operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 9, 145, 456);
+        operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 9, 145, 456);
         Resource<LineAttributes> updatedLineTwice = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1441,15 +1441,15 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId3 = "olg3";
         String operationLimitGroupId4 = "olg4";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes3 = buildOperationalLimitsGroup(operationLimitGroupId3, 2, 6, 15, 458);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes4 = buildOperationalLimitsGroup(operationLimitGroupId4, 2, 5, 52, 459);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes3 = buildOperationalLimitsGroup(operationLimitGroupId3, 6, 15, 458);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes4 = buildOperationalLimitsGroup(operationLimitGroupId4, 5, 52, 459);
         createLineWithOperationalLimitGroupsTwoSides(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), Map.of(operationLimitGroupId3, operationalLimitsGroupAttributes3, operationLimitGroupId4, operationalLimitsGroupAttributes4), operationLimitGroupId1, operationLimitGroupId3, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 5, 255, 451);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes3Updated = buildOperationalLimitsGroup(operationLimitGroupId3, 2, 8, 300, 452);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1Updated = buildOperationalLimitsGroup(operationLimitGroupId1, 5, 255, 451);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes3Updated = buildOperationalLimitsGroup(operationLimitGroupId3, 8, 300, 452);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1466,8 +1466,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2Updated = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 6, 123, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes4Updated = buildOperationalLimitsGroup(operationLimitGroupId4, 2, 15, 456, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2Updated = buildOperationalLimitsGroup(operationLimitGroupId2, 6, 123, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes4Updated = buildOperationalLimitsGroup(operationLimitGroupId4, 15, 456, 457);
         Resource<LineAttributes> updatedLineTwice = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(2)
@@ -1510,12 +1510,12 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         String operationLimitGroupId2 = "olg2";
         String operationLimitGroupId3 = "olg3";
         createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId3, 1, 5, 255, 458);
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId3, 5, 255, 458);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1555,12 +1555,12 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .build())
                 .build();
         networkStoreRepository.createLines(NETWORK_UUID, List.of(line));
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 1, 3, 12, 456);
-        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 1, 4, 50, 457);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes1 = buildOperationalLimitsGroup(operationLimitGroupId1, 3, 12, 456);
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributes2 = buildOperationalLimitsGroup(operationLimitGroupId2, 4, 50, 457);
         createLineWithOperationalLimitGroups(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1, operationLimitGroupId2, operationalLimitsGroupAttributes2), operationLimitGroupId1, lineId);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
 
-        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId3, 1, 5, 255, 458);
+        OperationalLimitsGroupAttributes newOperationalLimitsGroupAttributes = buildOperationalLimitsGroup(operationLimitGroupId3, 5, 255, 458);
         Resource<LineAttributes> updatedLine = Resource.lineBuilder()
                 .id(lineId)
                 .variantNum(1)
@@ -1619,7 +1619,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.createLines(NETWORK_UUID, List.of(line));
     }
 
-    private static OperationalLimitsGroupAttributes buildOperationalLimitsGroup(String operationLimitGroupId, int side, int permLimitValue, int tempLimitValue1, int tempLimitValue2) {
+    private static OperationalLimitsGroupAttributes buildOperationalLimitsGroup(String operationLimitGroupId, int permLimitValue, int tempLimitValue1, int tempLimitValue2) {
         TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = new TreeMap<>(Map.of(
                 10,
                 TemporaryLimitAttributes.builder()
