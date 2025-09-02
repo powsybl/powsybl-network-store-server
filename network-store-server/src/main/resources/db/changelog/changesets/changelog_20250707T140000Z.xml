@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+     <changeSet author="lecuyerfra" id="298655622969-1">
+        <createTable tableName="operationallimitsgroup">
+            <column name="networkuuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="operationallimitsgroup_pkey"/>
+            </column>
+            <column name="variantnum" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="operationallimitsgroup_pkey"/>
+            </column>
+            <column name="equipmenttype" type="VARCHAR(255)" />
+            <column name="equipmentid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="operationallimitsgroup_pkey"/>
+            </column>
+            <column name="operationallimitgroupid" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="operationallimitsgroup_pkey"/>
+            </column>
+            <column name="side" type="INTEGER">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="operationallimitsgroup_pkey"/>
+            </column>
+            <column name="current_limits_permanent_limit" type="FLOAT8"/>
+            <column name="current_limits_temporary_limits" type="TEXT"/>
+            <column name="apparent_power_limits_permanent_limit" type="FLOAT8"/>
+            <column name="apparent_power_limits_temporary_limits" type="TEXT"/>
+            <column name="active_power_limits_permanent_limit" type="FLOAT8"/>
+            <column name="active_power_limits_temporary_limits" type="TEXT"/>
+        </createTable>
+        <createIndex indexName="operationallimitsgroup_networkuuid_variantnum_equipmenttype_idx" tableName="operationallimitsgroup">
+            <column name="networkuuid"/>
+            <column name="variantnum"/>
+            <column name="equipmenttype"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

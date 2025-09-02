@@ -10,9 +10,9 @@ package com.powsybl.network.store.server;
  * @author Antoine Bouhours <antoine.bouhours at rte-france.com>
  */
 public enum ExternalAttributesType {
-    TEMPORARY_LIMIT,
-    PERMANENT_LIMIT,
     REACTIVE_CAPABILITY_CURVE_POINT,
     REGULATING_POINT,
-    TAP_CHANGER_STEP
+    TAP_CHANGER_STEP,
+    AREA_BOUNDARIES,
+    OPERATIONAL_LIMIT_GROUP
 }

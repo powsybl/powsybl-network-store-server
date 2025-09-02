@@ -8,6 +8,7 @@ package com.powsybl.network.store.server;
 
 import com.powsybl.iidm.network.*;
 import com.powsybl.network.store.model.*;
+import lombok.Getter;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -23,6 +24,7 @@ import static com.powsybl.network.store.server.QueryCatalog.*;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
+@Getter
 public class Mappings {
 
     private static final Supplier<IdentifiableAttributes> THREE_WINDINGS_TRANSFORMER_ATTRIBUTES_SUPPLIER = () -> {
@@ -53,10 +55,11 @@ public class Mappings {
     static final String LINE_TABLE = "line";
     static final String TIE_LINE_TABLE = "tieLine";
     static final String GROUND_TABLE = "ground";
+    static final String AREA_TABLE = "area";
 
     static final List<String> ELEMENT_TABLES = List.of(SUBSTATION_TABLE, VOLTAGE_LEVEL_TABLE, BUSBAR_SECTION_TABLE, CONFIGURED_BUS_TABLE, SWITCH_TABLE, GENERATOR_TABLE, BATTERY_TABLE, LOAD_TABLE, SHUNT_COMPENSATOR_TABLE,
             STATIC_VAR_COMPENSATOR_TABLE, VSC_CONVERTER_STATION_TABLE, LCC_CONVERTER_STATION_TABLE, TWO_WINDINGS_TRANSFORMER_TABLE,
-            THREE_WINDINGS_TRANSFORMER_TABLE, LINE_TABLE, HVDC_LINE_TABLE, DANGLING_LINE_TABLE, TIE_LINE_TABLE, GROUND_TABLE);
+            THREE_WINDINGS_TRANSFORMER_TABLE, LINE_TABLE, HVDC_LINE_TABLE, DANGLING_LINE_TABLE, TIE_LINE_TABLE, GROUND_TABLE, AREA_TABLE);
 
     private final TableMapping lineMappings = new TableMapping(LINE_TABLE, ResourceType.LINE, Resource::lineBuilder, LineAttributes::new, Set.of(VOLTAGE_LEVEL_ID_1_COLUMN, VOLTAGE_LEVEL_ID_2_COLUMN));
     private final TableMapping loadMappings = new TableMapping(LOAD_TABLE, ResourceType.LOAD, Resource::loadBuilder, LoadAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
@@ -78,6 +81,7 @@ public class Mappings {
     private final TableMapping threeWindingsTransformerMappings = new TableMapping(THREE_WINDINGS_TRANSFORMER_TABLE, ResourceType.THREE_WINDINGS_TRANSFORMER, Resource::threeWindingsTransformerBuilder, THREE_WINDINGS_TRANSFORMER_ATTRIBUTES_SUPPLIER, Set.of(VOLTAGE_LEVEL_ID_1_COLUMN, VOLTAGE_LEVEL_ID_2_COLUMN, VOLTAGE_LEVEL_ID_3_COLUMN));
     private final TableMapping tieLineMappings = new TableMapping(TIE_LINE_TABLE, ResourceType.TIE_LINE, Resource::tieLineBuilder, TieLineAttributes::new, Collections.emptySet());
     private final TableMapping groundMappings = new TableMapping(GROUND_TABLE, ResourceType.GROUND, Resource::groundBuilder, GroundAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
+    private final TableMapping areaMappings = new TableMapping(AREA_TABLE, ResourceType.AREA, Resource::areaBuilder, AreaAttributes::new, Collections.emptySet());
 
     private final List<TableMapping> all = List.of(lineMappings,
                                                    loadMappings,
@@ -99,9 +103,11 @@ public class Mappings {
                                                    twoWindingsTransformerMappings,
                                                    threeWindingsTransformerMappings,
                                                    tieLineMappings,
-                                                   groundMappings);
+                                                   groundMappings,
+                                                   areaMappings);
 
     private final Map<String, TableMapping> mappingByTable = new LinkedHashMap<>();
+    private final Map<ResourceType, TableMapping> mappingByType = new LinkedHashMap<>();
 
     private static final String VOLTAGE_LEVEL_ID = "voltageLevelId";
     private static final String VOLTAGE_LEVEL_ID_1 = "voltageLevelId1";
@@ -142,8 +148,13 @@ public class Mappings {
         return tableMapping;
     }
 
-    public TableMapping getLineMappings() {
-        return lineMappings;
+    public TableMapping getTableMapping(ResourceType type) {
+        Objects.requireNonNull(type);
+        TableMapping tableMapping = mappingByType.get(type);
+        if (tableMapping == null) {
+            throw new IllegalArgumentException("Unknown type: " + type);
+        }
+        return tableMapping;
     }
 
     private void createLineMappings() {
@@ -177,10 +188,6 @@ public class Mappings {
         lineMappings.addColumnMapping(SELECTED_OPERATIONAL_LIMITS_GROUP_ID2_COLUMN, new ColumnMapping<>(String.class, LineAttributes::getSelectedOperationalLimitsGroupId2, LineAttributes::setSelectedOperationalLimitsGroupId2));
     }
 
-    public TableMapping getLoadMappings() {
-        return loadMappings;
-    }
-
     private void createLoadMappings() {
         loadMappings.addColumnMapping("name", new ColumnMapping<>(String.class, LoadAttributes::getName, LoadAttributes::setName));
         loadMappings.addColumnMapping(VOLTAGE_LEVEL_ID, new ColumnMapping<>(String.class, LoadAttributes::getVoltageLevelId, LoadAttributes::setVoltageLevelId));
@@ -198,10 +205,6 @@ public class Mappings {
         loadMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, LoadAttributes::getAliasesWithoutType, LoadAttributes::setAliasesWithoutType));
         loadMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, LoadAttributes::getPosition, LoadAttributes::setPosition));
         loadMappings.addColumnMapping("loadDetail", new ColumnMapping<>(LoadDetailAttributes.class, LoadAttributes::getLoadDetail, LoadAttributes::setLoadDetail));
-    }
-
-    public TableMapping getGeneratorMappings() {
-        return generatorMappings;
     }
 
     private void createGeneratorMappings() {
@@ -243,12 +246,8 @@ public class Mappings {
         generatorMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, GeneratorAttributes::getAliasByType, GeneratorAttributes::setAliasByType));
         generatorMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, GeneratorAttributes::getAliasesWithoutType, GeneratorAttributes::setAliasesWithoutType));
         generatorMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, GeneratorAttributes::getPosition, GeneratorAttributes::setPosition));
-        generatorMappings.addColumnMapping("generatorShortCircuit", new ColumnMapping<>(GeneratorShortCircuitAttributes.class, GeneratorAttributes::getGeneratorShortCircuitAttributes, GeneratorAttributes::setGeneratorShortCircuitAttributes));
+        generatorMappings.addColumnMapping("generatorShortCircuit", new ColumnMapping<>(ShortCircuitAttributes.class, GeneratorAttributes::getGeneratorShortCircuitAttributes, GeneratorAttributes::setGeneratorShortCircuitAttributes));
         generatorMappings.addColumnMapping("condenser", new ColumnMapping<>(Boolean.class, GeneratorAttributes::isCondenser, GeneratorAttributes::setCondenser));
-    }
-
-    public TableMapping getSwitchMappings() {
-        return switchMappings;
     }
 
     private void createSwitchMappings() {
@@ -267,10 +266,6 @@ public class Mappings {
         switchMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, SwitchAttributes::getAliasesWithoutType, SwitchAttributes::setAliasesWithoutType));
     }
 
-    public TableMapping getSubstationMappings() {
-        return substationMappings;
-    }
-
     private void createSubstationMappings() {
         substationMappings.addColumnMapping("name", new ColumnMapping<>(String.class, SubstationAttributes::getName, SubstationAttributes::setName));
         substationMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, SubstationAttributes::isFictitious, SubstationAttributes::setFictitious));
@@ -281,10 +276,6 @@ public class Mappings {
         substationMappings.addColumnMapping("tso", new ColumnMapping<>(String.class, SubstationAttributes::getTso, SubstationAttributes::setTso));
         substationMappings.addColumnMapping("geographicalTags", new ColumnMapping<>(Set.class, SubstationAttributes::getGeographicalTags, SubstationAttributes::setGeographicalTags));
         substationMappings.addColumnMapping("entsoeArea", new ColumnMapping<>(EntsoeAreaAttributes.class, SubstationAttributes::getEntsoeArea, SubstationAttributes::setEntsoeArea));
-    }
-
-    public TableMapping getNetworkMappings() {
-        return networkMappings;
     }
 
     private void createNetworkMappings() {
@@ -304,12 +295,7 @@ public class Mappings {
         networkMappings.addColumnMapping("connectedComponentsValid", new ColumnMapping<>(Boolean.class, NetworkAttributes::isConnectedComponentsValid, NetworkAttributes::setConnectedComponentsValid));
         networkMappings.addColumnMapping("synchronousComponentsValid", new ColumnMapping<>(Boolean.class, NetworkAttributes::isSynchronousComponentsValid, NetworkAttributes::setSynchronousComponentsValid));
         networkMappings.addColumnMapping("cimCharacteristics", new ColumnMapping<>(CimCharacteristicsAttributes.class, NetworkAttributes::getCimCharacteristics, NetworkAttributes::setCimCharacteristics));
-        networkMappings.addColumnMapping("cgmesControlAreas", new ColumnMapping<>(CgmesControlAreasAttributes.class, NetworkAttributes::getCgmesControlAreas, NetworkAttributes::setCgmesControlAreas));
         networkMappings.addColumnMapping("baseVoltageMapping", new ColumnMapping<>(BaseVoltageMappingAttributes.class, NetworkAttributes::getBaseVoltageMapping, NetworkAttributes::setBaseVoltageMapping));
-    }
-
-    public TableMapping getVoltageLevelMappings() {
-        return voltageLevelMappings;
     }
 
     private void createVoltageLevelMappings() {
@@ -335,10 +321,6 @@ public class Mappings {
         voltageLevelMappings.addColumnMapping("identifiableShortCircuit", new ColumnMapping<>(IdentifiableShortCircuitAttributes.class, VoltageLevelAttributes::getIdentifiableShortCircuitAttributes, VoltageLevelAttributes::setIdentifiableShortCircuitAttributes));
         voltageLevelMappings.addColumnMapping("nodeToFictitiousP0", new ColumnMapping<>(null, VoltageLevelAttributes::getNodeToFictitiousP0, VoltageLevelAttributes::setNodeToFictitiousP0, Integer.class, Double.class));
         voltageLevelMappings.addColumnMapping("nodeToFictitiousQ0", new ColumnMapping<>(null, VoltageLevelAttributes::getNodeToFictitiousQ0, VoltageLevelAttributes::setNodeToFictitiousQ0, Integer.class, Double.class));
-    }
-
-    public TableMapping getBatteryMappings() {
-        return batteryMappings;
     }
 
     private void createBatteryMappings() {
@@ -374,10 +356,7 @@ public class Mappings {
         batteryMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, BatteryAttributes::getAliasByType, BatteryAttributes::setAliasByType));
         batteryMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, BatteryAttributes::getAliasesWithoutType, BatteryAttributes::setAliasesWithoutType));
         batteryMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, BatteryAttributes::getPosition, BatteryAttributes::setPosition));
-    }
-
-    public TableMapping getBusbarSectionMappings() {
-        return busbarSectionMappings;
+        batteryMappings.addColumnMapping("batteryShortCircuit", new ColumnMapping<>(ShortCircuitAttributes.class, BatteryAttributes::getBatteryShortCircuitAttributes, BatteryAttributes::setBatteryShortCircuitAttributes));
     }
 
     private void createBusbarSectionMappings() {
@@ -391,10 +370,6 @@ public class Mappings {
         busbarSectionMappings.addColumnMapping(POSITION, new ColumnMapping<>(BusbarSectionPositionAttributes.class, BusbarSectionAttributes::getPosition, BusbarSectionAttributes::setPosition));
     }
 
-    public TableMapping getConfiguredBusMappings() {
-        return configuredBusMappings;
-    }
-
     private void createConfiguredBusMappings() {
         configuredBusMappings.addColumnMapping("name", new ColumnMapping<>(String.class, ConfiguredBusAttributes::getName, ConfiguredBusAttributes::setName));
         configuredBusMappings.addColumnMapping(VOLTAGE_LEVEL_ID, new ColumnMapping<>(String.class, ConfiguredBusAttributes::getVoltageLevelId, ConfiguredBusAttributes::setVoltageLevelId));
@@ -406,10 +381,6 @@ public class Mappings {
         configuredBusMappings.addColumnMapping("angle", new ColumnMapping<>(Double.class, ConfiguredBusAttributes::getAngle, ConfiguredBusAttributes::setAngle));
         configuredBusMappings.addColumnMapping("fictitiousp0", new ColumnMapping<>(Double.class, ConfiguredBusAttributes::getFictitiousP0, ConfiguredBusAttributes::setFictitiousP0));
         configuredBusMappings.addColumnMapping("fictitiousq0", new ColumnMapping<>(Double.class, ConfiguredBusAttributes::getFictitiousQ0, ConfiguredBusAttributes::setFictitiousQ0));
-    }
-
-    public TableMapping getDanglingLineMappings() {
-        return danglingLineMappings;
     }
 
     private void createDanglingLineMappings() {
@@ -447,8 +418,15 @@ public class Mappings {
         tieLineMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, TieLineAttributes::getAliasesWithoutType, TieLineAttributes::setAliasesWithoutType));
     }
 
-    public TableMapping getGroundMappings() {
-        return groundMappings;
+    private void createAreaMappings() {
+        areaMappings.addColumnMapping("name", new ColumnMapping<>(String.class, AreaAttributes::getName, AreaAttributes::setName));
+        areaMappings.addColumnMapping("areaType", new ColumnMapping<>(String.class, AreaAttributes::getAreaType, AreaAttributes::setAreaType));
+        areaMappings.addColumnMapping("voltageLevelIds", new ColumnMapping<>(Set.class, AreaAttributes::getVoltageLevelIds, AreaAttributes::setVoltageLevelIds));
+        areaMappings.addColumnMapping("interchangeTarget", new ColumnMapping<>(Double.class, AreaAttributes::getInterchangeTarget, AreaAttributes::setInterchangeTarget));
+        areaMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, AreaAttributes::isFictitious, AreaAttributes::setFictitious));
+        areaMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, AreaAttributes::getProperties, AreaAttributes::setProperties));
+        areaMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, AreaAttributes::getAliasByType, AreaAttributes::setAliasByType));
+        areaMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, AreaAttributes::getAliasesWithoutType, AreaAttributes::setAliasesWithoutType));
     }
 
     private void createGroundMappings() {
@@ -464,14 +442,6 @@ public class Mappings {
         groundMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, GroundAttributes::getAliasByType, GroundAttributes::setAliasByType));
         groundMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, GroundAttributes::getAliasesWithoutType, GroundAttributes::setAliasesWithoutType));
         groundMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, GroundAttributes::getPosition, GroundAttributes::setPosition));
-    }
-
-    public TableMapping getTieLineMappings() {
-        return tieLineMappings;
-    }
-
-    public TableMapping getShuntCompensatorMappings() {
-        return shuntCompensatorMappings;
     }
 
     private void createShuntCompensatorMappings() {
@@ -504,10 +474,7 @@ public class Mappings {
         shuntCompensatorMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, ShuntCompensatorAttributes::getAliasByType, ShuntCompensatorAttributes::setAliasByType));
         shuntCompensatorMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, ShuntCompensatorAttributes::getAliasesWithoutType, ShuntCompensatorAttributes::setAliasesWithoutType));
         shuntCompensatorMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, ShuntCompensatorAttributes::getPosition, ShuntCompensatorAttributes::setPosition));
-    }
-
-    public TableMapping getVscConverterStationMappings() {
-        return vscConverterStationMappings;
+        shuntCompensatorMappings.addColumnMapping("solvedSectionCount", new ColumnMapping<>(Integer.class, ShuntCompensatorAttributes::getSolvedSectionCount, ShuntCompensatorAttributes::setSolvedSectionCount));
     }
 
     private void createVscConverterStationMappings() {
@@ -544,10 +511,6 @@ public class Mappings {
         vscConverterStationMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, VscConverterStationAttributes::getPosition, VscConverterStationAttributes::setPosition));
     }
 
-    public TableMapping getLccConverterStationMappings() {
-        return lccConverterStationMappings;
-    }
-
     private void createLccConverterStationMappings() {
         lccConverterStationMappings.addColumnMapping("name", new ColumnMapping<>(String.class, LccConverterStationAttributes::getName, LccConverterStationAttributes::setName));
         lccConverterStationMappings.addColumnMapping(VOLTAGE_LEVEL_ID, new ColumnMapping<>(String.class, LccConverterStationAttributes::getVoltageLevelId, LccConverterStationAttributes::setVoltageLevelId));
@@ -563,10 +526,6 @@ public class Mappings {
         lccConverterStationMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, LccConverterStationAttributes::getAliasByType, LccConverterStationAttributes::setAliasByType));
         lccConverterStationMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, LccConverterStationAttributes::getAliasesWithoutType, LccConverterStationAttributes::setAliasesWithoutType));
         lccConverterStationMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, LccConverterStationAttributes::getPosition, LccConverterStationAttributes::setPosition));
-    }
-
-    public TableMapping getStaticVarCompensatorMappings() {
-        return staticVarCompensatorMappings;
     }
 
     private void createStaticVarCompensatorMappings() {
@@ -590,10 +549,6 @@ public class Mappings {
         staticVarCompensatorMappings.addColumnMapping("standbyAutomaton", new ColumnMapping<>(StandbyAutomatonAttributes.class, StaticVarCompensatorAttributes::getStandbyAutomaton, StaticVarCompensatorAttributes::setStandbyAutomaton));
     }
 
-    public TableMapping getHvdcLineMappings() {
-        return hvdcLineMappings;
-    }
-
     private void createHvdcLineMappings() {
         hvdcLineMappings.addColumnMapping("name", new ColumnMapping<>(String.class, HvdcLineAttributes::getName, HvdcLineAttributes::setName));
         hvdcLineMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, HvdcLineAttributes::isFictitious, HvdcLineAttributes::setFictitious));
@@ -609,10 +564,6 @@ public class Mappings {
         hvdcLineMappings.addColumnMapping("converterStationId2", new ColumnMapping<>(String.class, HvdcLineAttributes::getConverterStationId2, HvdcLineAttributes::setConverterStationId2));
         hvdcLineMappings.addColumnMapping("hvdcAngleDroopActivePowerControl", new ColumnMapping<>(HvdcAngleDroopActivePowerControlAttributes.class, HvdcLineAttributes::getHvdcAngleDroopActivePowerControl, HvdcLineAttributes::setHvdcAngleDroopActivePowerControl));
         hvdcLineMappings.addColumnMapping("hvdcOperatorActivePowerRange", new ColumnMapping<>(HvdcOperatorActivePowerRangeAttributes.class, HvdcLineAttributes::getHvdcOperatorActivePowerRange, HvdcLineAttributes::setHvdcOperatorActivePowerRange));
-    }
-
-    public TableMapping getTwoWindingsTransformerMappings() {
-        return twoWindingsTransformerMappings;
     }
 
     private void createTwoWindingsTransformerMappings() {
@@ -648,6 +599,22 @@ public class Mappings {
         twoWindingsTransformerMappings.addColumnMapping("phaseAngleClock", new ColumnMapping<>(TwoWindingsTransformerPhaseAngleClockAttributes.class, TwoWindingsTransformerAttributes::getPhaseAngleClockAttributes, TwoWindingsTransformerAttributes::setPhaseAngleClockAttributes));
 
         // phaseTapChanger
+        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities", new ColumnMapping<>(Boolean.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
+            (TwoWindingsTransformerAttributes attributes, Boolean value) -> {
+                if (attributes.getPhaseTapChangerAttributes() == null) {
+                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                attributes.getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
+            }));
+        twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
+            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
+                if (attributes.getPhaseTapChangerAttributes() == null) {
+                    attributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                attributes.getPhaseTapChangerAttributes().setSolvedTapPosition(value);
+            }));
         twoWindingsTransformerMappings.addColumnMapping("phaseTapChangerLowTapPosition", new ColumnMapping<>(Integer.class,
             (TwoWindingsTransformerAttributes attributes) -> attributes.getPhaseTapChangerAttributes() != null ? attributes.getPhaseTapChangerAttributes().getLowTapPosition() : null,
             (TwoWindingsTransformerAttributes attributes, Integer value) -> {
@@ -681,6 +648,14 @@ public class Mappings {
                 attributes.getPhaseTapChangerAttributes().setRegulationValue(value);
             }));
         // ratioTapChanger
+        twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition", new ColumnMapping<>(Integer.class,
+            (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getSolvedTapPosition() : null,
+            (TwoWindingsTransformerAttributes attributes, Integer value) -> {
+                if (attributes.getRatioTapChangerAttributes() == null) {
+                    attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+                }
+                attributes.getRatioTapChangerAttributes().setSolvedTapPosition(value);
+            }));
         twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerLowTapPosition", new ColumnMapping<>(Integer.class,
             (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getLowTapPosition() : null,
             (TwoWindingsTransformerAttributes attributes, Integer value) -> {
@@ -721,10 +696,6 @@ public class Mappings {
                 }
                 attributes.getRatioTapChangerAttributes().setRegulationValue(value);
             }));
-    }
-
-    public TableMapping getThreeWindingsTransformerMappings() {
-        return threeWindingsTransformerMappings;
     }
 
     private void createThreeWindingsTransformerMappings() {
@@ -781,6 +752,22 @@ public class Mappings {
                 (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getSelectedOperationalLimitsGroupId(),
                 (ThreeWindingsTransformerAttributes attributes, String selectedOperationalLimitsGroupId) -> attributes.getLeg(i).setSelectedOperationalLimitsGroupId(selectedOperationalLimitsGroupId)));
             // PhaseTapChanger
+            threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerLoadTapChangingCapabilities" + i, new ColumnMapping<>(Boolean.class,
+                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().isLoadTapChangingCapabilities() : null,
+                (ThreeWindingsTransformerAttributes attributes, Boolean value) -> {
+                    if (attributes.getLeg(i).getPhaseTapChangerAttributes() == null) {
+                        attributes.getLeg(i).setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                    }
+                    attributes.getLeg(i).getPhaseTapChangerAttributes().setLoadTapChangingCapabilities(value);
+                }));
+            threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerSolvedTapPosition" + i, new ColumnMapping<>(Integer.class,
+                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().getSolvedTapPosition() : null,
+                (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
+                    if (attributes.getLeg(i).getPhaseTapChangerAttributes() == null) {
+                        attributes.getLeg(i).setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                    }
+                    attributes.getLeg(i).getPhaseTapChangerAttributes().setSolvedTapPosition(value);
+                }));
             threeWindingsTransformerMappings.addColumnMapping("phaseTapChangerLowTapPosition" + i, new ColumnMapping<>(Integer.class,
                 (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getPhaseTapChangerAttributes() != null ? attributes.getLeg(i).getPhaseTapChangerAttributes().getLowTapPosition() : null,
                 (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
@@ -814,6 +801,14 @@ public class Mappings {
                     attributes.getLeg(i).getPhaseTapChangerAttributes().setRegulationValue(value);
                 }));
             // RatioTapChanger
+            threeWindingsTransformerMappings.addColumnMapping("ratioTapChangerSolvedTapPosition" + i, new ColumnMapping<>(Integer.class,
+                (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getRatioTapChangerAttributes() != null ? attributes.getLeg(i).getRatioTapChangerAttributes().getSolvedTapPosition() : null,
+                (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
+                    if (attributes.getLeg(i).getRatioTapChangerAttributes() == null) {
+                        attributes.getLeg(i).setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+                    }
+                    attributes.getLeg(i).getRatioTapChangerAttributes().setSolvedTapPosition(value);
+                }));
             threeWindingsTransformerMappings.addColumnMapping("ratioTapChangerLowTapPosition" + i, new ColumnMapping<>(Integer.class,
                 (ThreeWindingsTransformerAttributes attributes) -> attributes.getLeg(i).getRatioTapChangerAttributes() != null ? attributes.getLeg(i).getRatioTapChangerAttributes().getLowTapPosition() : null,
                 (ThreeWindingsTransformerAttributes attributes, Integer value) -> {
@@ -878,8 +873,10 @@ public class Mappings {
         createThreeWindingsTransformerMappings();
         createTieLineMappings();
         createGroundMappings();
+        createAreaMappings();
         for (TableMapping tableMapping : all) {
             mappingByTable.put(tableMapping.getTable().toLowerCase(), tableMapping);
+            mappingByType.put(tableMapping.getResourceType(), tableMapping);
         }
     }
 }

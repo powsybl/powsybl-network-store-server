@@ -2,10 +2,16 @@ spring:
   application:
     name: network-store-server
   datasource:
-    # By default powsybl-commons-ws sets this to 1, reset it to the default 10
-    # for network-store because it is critical
+    # Network-store is critical in our system, raise some default limits
     hikari:
+      # By default powsybl-commons-ws sets this to 1, reset it to hikari's default
       minimum-idle: 10
+      # By default hikari sets this to 10, set it to 20 as we have observed the pool
+      # grow a little bit over 10 under load (ALL_COLLECTION_NEEDED_FOR_BUS_VIEW and updates).
+      # This is especially true with uneven request load balancing among replicas,
+      # or maybe just random transient significative unbalance of longer/shorter requests.
+      # NOTE: This parameter must be taken into account to size the Xmx correctly.
+      maximum-pool-size: 20
 
 powsybl-ws:
   database:

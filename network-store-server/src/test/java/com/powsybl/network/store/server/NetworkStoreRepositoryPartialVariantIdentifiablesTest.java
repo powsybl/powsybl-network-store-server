@@ -370,6 +370,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                         .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(30.).build())
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
                                 .build()))
                         .build())
                 .build();
@@ -381,10 +382,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(LineAttributes.builder()
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl3")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
-                                .id("group1")
-                                .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
-                                .build()))
                         .build())
                 .build();
         networkStoreRepository.createLines(NETWORK_UUID, List.of(line2));
@@ -396,10 +393,6 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .attributes(LineAttributes.builder()
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
-                                .id("group1")
-                                .currentLimits(LimitsAttributes.builder().permanentLimit(30.).build())
-                                .build()))
                         .build())
                 .build();
 
@@ -409,9 +402,26 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(Optional.of(expLine1), networkStoreRepository.getLine(NETWORK_UUID, 1, lineId1));
         assertEquals(Optional.of(line2), networkStoreRepository.getLine(NETWORK_UUID, 1, lineId2));
 
-        assertEquals(List.of(expLine1, line2), networkStoreRepository.getVoltageLevelLines(NETWORK_UUID, 1, "vl1"));
+        Resource<LineAttributes> withoutLimitsLine1 = Resource.lineBuilder()
+            .id(lineId1)
+            .variantNum(1)
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+            .build())
+            .build();
+        Resource<LineAttributes> withoutLimitsLine2 = Resource.lineBuilder()
+            .id(lineId2)
+            .variantNum(1)
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl3")
+                .build())
+            .build();
 
-        assertEquals(List.of(expLine1, line2), networkStoreRepository.getLines(NETWORK_UUID, 1));
+        assertEquals(List.of(withoutLimitsLine1, withoutLimitsLine2), networkStoreRepository.getVoltageLevelLines(NETWORK_UUID, 1, "vl1"));
+
+        assertEquals(List.of(withoutLimitsLine1, withoutLimitsLine2), networkStoreRepository.getLines(NETWORK_UUID, 1));
     }
 
     @Test
@@ -858,7 +868,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
     private Set<String> getTombstonedIdentifiableIds(UUID networkUuid, int variantNum) {
         try (var connection = dataSource.getConnection()) {
-            return networkStoreRepository.getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
+            return Utils.getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }

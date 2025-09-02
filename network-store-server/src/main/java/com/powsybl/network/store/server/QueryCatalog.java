@@ -9,11 +9,13 @@ package com.powsybl.network.store.server;
 import com.powsybl.network.store.model.Resource;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.Mappings.*;
+import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
@@ -38,26 +40,36 @@ public final class QueryCatalog {
     static final String REGULATED_EQUIPMENT_TYPE_COLUMN = "regulatedEquipmentType";
     static final String REGULATING_TAP_CHANGER_TYPE = "regulatingTapChangerType";
     public static final String EQUIPMENT_ID_COLUMN = "equipmentId";
+    public static final String AREA_ID_COLUMN = "areaId";
     static final String REGULATING_EQUIPMENT_ID = "regulatingEquipmentId";
     public static final String INDEX_COLUMN = "index";
     public static final String TAPCHANGER_TYPE_COLUMN = "tapChangerType";
     public static final String TAPCHANGER_STEPS_COLUMN = "tapchangersteps";
     public static final String TAP_CHANGER_TYPE = "tapchangertype";
     public static final String ALPHA_COLUMN = "alpha";
-    static final String TEMPORARY_LIMITS_TABLE = "temporarylimits";
-    static final String TEMPORARY_LIMITS_COLUMN = "temporarylimits";
-    static final String PERMANENT_LIMITS_TABLE = "permanentlimits";
-    static final String PERMANENT_LIMITS_COLUMN = "permanentlimits";
     public static final String TAP_CHANGER_STEP_TABLE = "tapchangersteps";
+    public static final String AREA_BOUNDARY_TABLE = "areaboundary";
+    public static final String REACTIVE_CAPABILITY_CURVE_POINT_TABLE = "reactiveCapabilityCurvePoint";
     static final String REGULATING_POINT_TABLE = "regulatingPoint";
     static final String REGULATION_MODE = "regulationMode";
     public static final String SIDE_COLUMN = "side";
     private static final String TYPE_COLUMN = "type";
     static final String REGULATING = "regulating";
+    public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 = "selectedoperationallimitsgroupid1";
+    public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 = "selectedoperationallimitsgroupid2";
     private static final Predicate<String> CLONE_PREDICATE = column -> !column.equals(UUID_COLUMN) && !column.equals(VARIANT_ID_COLUMN)
             && !column.equals(NAME_COLUMN) && !column.equals(FULL_VARIANT_NUM_COLUMN);
     private static final String TOMBSTONED_IDENTIFIABLE_TABLE = "tombstonedidentifiable";
     private static final String TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE = "tombstonedexternalattributes";
+    static final String OPERATIONAL_LIMITS_GROUP_TABLE = "operationallimitsgroup";
+    static final String GROUP_ID_COLUMN = "operationallimitgroupid";
+    static final String CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN = "current_limits_permanent_limit";
+    static final String CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN = "current_limits_temporary_limits";
+    static final String APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "apparent_power_limits_permanent_limit";
+    static final String APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "apparent_power_limits_temporary_limits";
+    static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
+    static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
+    static final String PROPERTIES_COLUMN = "properties";
 
     private QueryCatalog() {
     }
@@ -69,6 +81,15 @@ public final class QueryCatalog {
                 " where " + NETWORK_UUID_COLUMN + " = ?" +
                 " and " + VARIANT_NUM_COLUMN + " = ?" +
                 " and " + ID_COLUMN + " = ?";
+    }
+
+    public static String buildGetSelectedOperationalLimitsGroupsQuery(String tableName) {
+        return "select " + ID_COLUMN + ", " +
+            SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 + ", " +
+            SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 +
+            " from " + tableName +
+            " where " + NETWORK_UUID_COLUMN + " = ?" +
+            " and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildGetNetworkQuery(Collection<String> columns) {
@@ -97,8 +118,7 @@ public final class QueryCatalog {
                 " from " + tableName +
                 " where " + NETWORK_UUID_COLUMN + " = ?" +
                 " and " + VARIANT_NUM_COLUMN + " = ?" +
-                " and " + ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                " and " + ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetIdentifiablesInContainerQuery(String tableName, Collection<String> columns, Set<String> containerColumns) {
@@ -129,8 +149,7 @@ public final class QueryCatalog {
         return "delete from " + tableName + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteNetworkQuery() {
@@ -291,7 +310,7 @@ public final class QueryCatalog {
     }
 
     public static String buildCloneNetworksQuery(Collection<String> columns) {
-        return "insert into network(" +
+        return "insert into " + NETWORK_TABLE + "(" +
                 VARIANT_NUM_COLUMN + ", " +
                 VARIANT_ID_COLUMN + ", " +
                 UUID_COLUMN + ", " +
@@ -353,70 +372,33 @@ public final class QueryCatalog {
                 VARIANT_NUM_COLUMN + " = ? ";
     }
 
-    // Temporary Limits
-    public static String buildCloneTemporaryLimitsQuery() {
-        return "insert into " + TEMPORARY_LIMITS_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + TEMPORARY_LIMITS_COLUMN + ") " + "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", ?, ?, " + TEMPORARY_LIMITS_COLUMN + " from " + TEMPORARY_LIMITS_TABLE + " where " + NETWORK_UUID_COLUMN +
+    // Operational limits
+    public static String buildCloneOperationalLimitsGroupQuery() {
+        return "insert into " + OPERATIONAL_LIMITS_GROUP_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
+                NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN + ") " +
+                "select " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", ?, ?, " +
+                GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
+                " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " + NETWORK_UUID_COLUMN +
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
-    public static String buildTemporaryLimitQuery(String columnNameForWhereClause) {
-        return "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " +
-                VARIANT_NUM_COLUMN + ", " +
-                TEMPORARY_LIMITS_COLUMN +
-                " from " + TEMPORARY_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForWhereClause + " = ?";
+    public static String buildDeleteOperationalLimitsGroupQuery() {
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
+                NETWORK_UUID_COLUMN + " = ?";
     }
 
-    public static String buildTemporaryLimitWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
-        if (numberOfValues < 1) {
-            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
-        }
-        return "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " +
-                VARIANT_NUM_COLUMN + ", " +
-                TEMPORARY_LIMITS_COLUMN +
-                " from " + TEMPORARY_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
-    }
-
-    public static String buildInsertTemporaryLimitsQuery() {
-        return "insert into " + TEMPORARY_LIMITS_TABLE + "(" +
-                EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " +
-                VARIANT_NUM_COLUMN + ", " + TEMPORARY_LIMITS_COLUMN + ") " +
-                " values (?, ?, ?, ?, ?)";
-    }
-
-    public static String buildDeleteTemporaryLimitsVariantEquipmentINQuery(int numberOfValues) {
-        if (numberOfValues < 1) {
-            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
-        }
-        return "delete from " + TEMPORARY_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
-    }
-
-    public static String buildDeleteTemporaryLimitsVariantQuery() {
-        return "delete from " + TEMPORARY_LIMITS_TABLE + " where " +
+    public static String buildDeleteOperationalLimitsGroupVariantQuery() {
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    public static String buildDeleteTemporaryLimitsQuery() {
-        return "delete from " + TEMPORARY_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ?";
     }
 
     // Tombstoned external attributes
@@ -459,78 +441,37 @@ public final class QueryCatalog {
                 VARIANT_NUM_COLUMN + " = ? ";
     }
 
-    // permanent Limits
-    public static String buildClonePermanentLimitsQuery() {
-        return "insert into " + PERMANENT_LIMITS_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + PERMANENT_LIMITS_COLUMN + ") " + "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", ?, ?, " + PERMANENT_LIMITS_COLUMN + " from " + PERMANENT_LIMITS_TABLE + " where " + NETWORK_UUID_COLUMN +
-                " = ? and " + VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    public static String buildPermanentLimitQuery(String columnNameForWhereClause) {
-        return "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " +
-                VARIANT_NUM_COLUMN + ", " +
-                PERMANENT_LIMITS_COLUMN +
-                " from " + PERMANENT_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForWhereClause + " = ?";
-    }
-
-    public static String buildPermanentLimitWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
+    public static String buildDeleteOperationalLimitsGroupVariantEquipmentINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
-        return "select " + EQUIPMENT_ID_COLUMN + ", " +
-                EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " +
-                VARIANT_NUM_COLUMN + ", " +
-                PERMANENT_LIMITS_COLUMN +
-                " from " + PERMANENT_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? and " +
+            EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
-    public static String buildInsertPermanentLimitsQuery() {
-        return "insert into " + PERMANENT_LIMITS_TABLE + " (" +
-                EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
-                NETWORK_UUID_COLUMN + ", " +
-                VARIANT_NUM_COLUMN + ", " + PERMANENT_LIMITS_COLUMN + ") " +
-                " values (?, ?, ?, ?, ?)";
-    }
-
-    public static String buildDeletePermanentLimitsVariantEquipmentINQuery(int numberOfValues) {
+    public static String buildDeleteOperationalLimitsGroupByGroupIdAndSideAndIdentifiableIdINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
-        return "delete from " + PERMANENT_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
-    }
 
-    public static String buildDeletePermanentLimitsVariantQuery() {
-        return "delete from " + PERMANENT_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ? and " +
-                VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    public static String buildDeletePermanentLimitsQuery() {
-        return "delete from " + PERMANENT_LIMITS_TABLE + " where " +
-                NETWORK_UUID_COLUMN + " = ?";
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " t " +
+                "where t." + NETWORK_UUID_COLUMN + " = ? " +
+                " and t." + VARIANT_NUM_COLUMN + " = ? " +
+                " and exists (select 1 from (values " +
+                String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) +
+                ") v(" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                "where (t." + EQUIPMENT_ID_COLUMN + ", t." + GROUP_ID_COLUMN + ", t." + SIDE_COLUMN + ") = " +
+                "      (v." + EQUIPMENT_ID_COLUMN + ", v." + GROUP_ID_COLUMN + ", v." + SIDE_COLUMN + "))";
     }
 
     // Reactive Capability Curve Point
     public static String buildCloneReactiveCapabilityCurvePointsQuery() {
-        return "insert into ReactiveCapabilityCurvePoint(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
+        return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
                 ", " + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", minQ, maxQ, p) select " +
                 EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
-                ", ?, ?, minQ, maxQ, p from ReactiveCapabilityCurvePoint where " + NETWORK_UUID_COLUMN +
+                ", ?, ?, minQ, maxQ, p from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " + NETWORK_UUID_COLUMN +
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
@@ -540,7 +481,7 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
                 "minQ, maxQ, p " +
-                "from ReactiveCapabilityCurvePoint where " +
+                "from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 columnNameForWhereClause + " = ?";
@@ -555,15 +496,14 @@ public final class QueryCatalog {
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
                 "minQ, maxQ, p " +
-                "from ReactiveCapabilityCurvePoint where " +
+                "from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertReactiveCapabilityCurvePointsQuery() {
-        return "insert into ReactiveCapabilityCurvePoint(" +
+        return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" +
                 EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + " ," +
                 VARIANT_NUM_COLUMN + ", minQ, maxQ, p)" +
@@ -574,22 +514,85 @@ public final class QueryCatalog {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
-        return "delete from ReactiveCapabilityCurvePoint where " +
+        return "delete from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteReactiveCapabilityCurvePointsVariantQuery() {
-        return "delete from ReactiveCapabilityCurvePoint where " +
+        return "delete from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildDeleteReactiveCapabilityCurvePointsQuery() {
-        return "delete from ReactiveCapabilityCurvePoint where " +
+        return "delete from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ?";
+    }
+
+    // Area Boundaries
+    public static String buildCloneAreaBoundariesQuery() {
+        return "insert into " + AREA_BOUNDARY_TABLE + " (" + AREA_ID_COLUMN + ", " + NETWORK_UUID_COLUMN + ", "
+            + VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac) select " +
+            AREA_ID_COLUMN +
+            ", ?, ?, boundarydanglinglineid, terminalconnectableid, terminalside, ac from " + AREA_BOUNDARY_TABLE + " where " + NETWORK_UUID_COLUMN +
+            " = ? and " + VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildAreaBoundaryQuery(String columnNameForWhereClause) {
+        String baseQuery = "select " + AREA_ID_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + ", " +
+            "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
+            "from " + AREA_BOUNDARY_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? ";
+        if (columnNameForWhereClause != null) {
+            baseQuery += " and " + columnNameForWhereClause + " = ?";
+        }
+        return baseQuery;
+    }
+
+    public static String buildAreaBoundaryWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+        return "select " + AREA_ID_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + ", " +
+            "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
+            "from " + AREA_BOUNDARY_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? and " +
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildInsertAreaBoundariesQuery() {
+        return "insert into " + AREA_BOUNDARY_TABLE + " (" +
+            AREA_ID_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + " ," +
+            VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac)" +
+            " values (?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    public static String buildDeleteAreaBoundariesVariantEquipmentINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+        return "delete from " + AREA_BOUNDARY_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? and " +
+            AREA_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildDeleteAreaBoundariesVariantQuery() {
+        return "delete from " + AREA_BOUNDARY_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildDeleteAreaBoundariesQuery() {
+        return "delete from " + AREA_BOUNDARY_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ?";
     }
 
     // Regulating point
@@ -641,8 +644,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATING_EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            columnNameForInClause + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildDeleteRegulatingPointsVariantQuery() {
@@ -664,8 +666,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATING_EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            REGULATING_EQUIPMENT_ID + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            REGULATING_EQUIPMENT_ID + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     // regulating equipments
@@ -693,8 +694,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
             REGULATED_EQUIPMENT_TYPE_COLUMN + " = ? and " +
-            columnNameForInClause + " in (" +
-            "?, ".repeat(numberOfValues - 1) + "?)";
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     // Tap Changer Steps
@@ -748,8 +748,7 @@ public final class QueryCatalog {
                 "where " +
                 NETWORK_UUID_COLUMN + " = ?" + " and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForInClause + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildInsertTapChangerStepQuery() {
@@ -785,8 +784,7 @@ public final class QueryCatalog {
                 " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                EQUIPMENT_ID_COLUMN + " in (" +
-                "?, ".repeat(numberOfValues - 1) + "?)";
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     public static String buildGetIdsQuery(String table) {
@@ -794,5 +792,90 @@ public final class QueryCatalog {
                 " from " + table + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildInsertOperationalLimitsGroupQuery() {
+        return "insert into " + OPERATIONAL_LIMITS_GROUP_TABLE + " (" +
+            NETWORK_UUID_COLUMN + ", " +
+            VARIANT_NUM_COLUMN + ", " +
+            EQUIPMENT_TYPE_COLUMN + ", " +
+            EQUIPMENT_ID_COLUMN + ", " +
+            GROUP_ID_COLUMN + ", " +
+            SIDE_COLUMN + ", " +
+            CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            PROPERTIES_COLUMN + ")" +
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+    }
+
+    public static String buildOperationalLimitsGroupQuery(String columnNameForWhereClause) {
+        return "select " + EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                SIDE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
+                " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
+                NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                columnNameForWhereClause + " = ?";
+    }
+
+    public static String buildOperationalLimitsGroupWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+        return "select " + EQUIPMENT_ID_COLUMN + ", " +
+            EQUIPMENT_TYPE_COLUMN + ", " +
+            NETWORK_UUID_COLUMN + ", " +
+            VARIANT_NUM_COLUMN + ", " +
+            SIDE_COLUMN + "," +
+            GROUP_ID_COLUMN + "," +
+            CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+            PROPERTIES_COLUMN +
+            " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
+            NETWORK_UUID_COLUMN + " = ? and " +
+            VARIANT_NUM_COLUMN + " = ? and " +
+            columnNameForInClause + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
+    public static String buildSelectedOperationalLimitsGroupINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+
+        return "select " + EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                SIDE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                PROPERTIES_COLUMN +
+                " from " + OPERATIONAL_LIMITS_GROUP_TABLE +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? " +
+                " and (" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
+                " in (values " + String.join(",", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
     }
 }

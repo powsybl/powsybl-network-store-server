@@ -193,7 +193,9 @@ class ExtensionHandlerTest {
 
         Map<String, ExtensionAttributes> extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
         assertEquals(2, extensions.size());
-        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(batteryId1, Set.of("activePowerControl")));
+        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(
+                "activePowerControl", Set.of(batteryId1)
+        ));
         extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
         assertEquals(1, extensions.size());
         assertFalse(extensions.containsKey("activePowerControl"));
@@ -203,7 +205,10 @@ class ExtensionHandlerTest {
         extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
         assertEquals(0, extensions.size());
 
-        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(batteryId2, Set.of("activePowerControl", "operatingStatus")));
+        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(
+                "activePowerControl", Set.of(batteryId2),
+                "operatingStatus", Set.of(batteryId2)
+        ));
         extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId2);
         assertEquals(0, extensions.size());
     }
