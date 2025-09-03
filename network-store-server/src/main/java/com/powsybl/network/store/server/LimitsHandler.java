@@ -172,22 +172,22 @@ public class LimitsHandler {
     }
 
     private LimitsAttributes createLimitsAttributes(Double permanentLimitData,
-                                                    String temporaryLimitData)
+                                                    String temporaryLimitsData)
             throws JsonProcessingException {
-        if (permanentLimitData == null && temporaryLimitData == null) {
+        boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
+        boolean hasTemporaryLimits = temporaryLimitsData != null && !temporaryLimitsData.equals("[]");
+        if (!hasPermanentLimit && !hasTemporaryLimits) {
             return null;
         }
 
         double permanentLimit = permanentLimitData == null ? Double.NaN : permanentLimitData;
         TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = null;
-        if (!StringUtils.isEmpty(temporaryLimitData)) {
-            List<TemporaryLimitAttributes> temporatyLimitsList = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
-            if (temporatyLimitsList != null) {
-                temporaryLimits = new TreeMap<>();
-                for (TemporaryLimitAttributes temporaryLimit : temporatyLimitsList) {
-                    int duration = temporaryLimit.getAcceptableDuration();
-                    temporaryLimits.put(duration, temporaryLimit);
-                }
+        if (hasTemporaryLimits) {
+            List<TemporaryLimitAttributes> temporaryLimitsList = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
+            temporaryLimits = new TreeMap<>();
+            for (TemporaryLimitAttributes temporaryLimit : temporaryLimitsList) {
+                int duration = temporaryLimit.getAcceptableDuration();
+                temporaryLimits.put(duration, temporaryLimit);
             }
         }
 
