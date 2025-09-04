@@ -7,6 +7,7 @@
 package com.powsybl.network.store.server;
 
 import com.powsybl.network.store.model.*;
+import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.apache.commons.lang3.function.TriFunction;
 
@@ -210,5 +211,31 @@ public final class PartialVariantUtils {
 
         // Retrieve identifiable from the full variant
         return fetchIdentifiableInVariant.apply(fullVariantNum);
+    }
+
+    public static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupsAttributes(
+                                                                                                                            int variantNum,
+                                                                                                                            int fullVariantNum,
+                                                                                                                            Supplier<Set<String>> fetchTombstonedIdentifiableIds,
+                                                                                                                            Supplier<Set<OperationalLimitsGroupOwnerInfo>> fetchTombstonedOperationalLimitsGroup,
+                                                                                                                            IntFunction<Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> operationalLimitsGroupFunction,
+                                                                                                                            Function<Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>, Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>>> convertResultMap) {
+
+        if (NetworkAttributes.isFullVariant(fullVariantNum)) {
+            // If the variant is full, retrieve limits groups for the specified variant directly
+            return convertResultMap.apply(operationalLimitsGroupFunction.apply(variantNum));
+        }
+        Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = operationalLimitsGroupFunction.apply(fullVariantNum);
+
+        // get tombstoned identifiable
+        Set<String> tombstonedIdentifiables = fetchTombstonedIdentifiableIds.get();
+        // get tombstoned operational limits groups
+        Set<OperationalLimitsGroupOwnerInfo> tombstonedOperationalLimitsGroups = fetchTombstonedOperationalLimitsGroup.get();
+        // remove tombstoned elements
+        operationalLimitsGroupAttributes.keySet().stream()
+            .filter(entry -> tombstonedIdentifiables.contains(entry.getEquipmentId()) || tombstonedOperationalLimitsGroups.contains(entry))
+            .forEach(operationalLimitsGroupAttributes::remove);
+
+        return convertResultMap.apply(operationalLimitsGroupAttributes);
     }
 }
