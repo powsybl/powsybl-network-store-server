@@ -180,7 +180,7 @@ public class LimitsHandler {
             return null;
         }
 
-        double permanentLimit = permanentLimitData == null ? Double.NaN : permanentLimitData;
+        double permanentLimit = hasPermanentLimit ? permanentLimitData : Double.NaN;
         TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = null;
         if (hasTemporaryLimits) {
             List<TemporaryLimitAttributes> temporaryLimitsList = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
