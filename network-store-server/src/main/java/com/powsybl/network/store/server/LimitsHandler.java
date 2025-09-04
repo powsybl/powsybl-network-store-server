@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_ID_COLUMN;
 import static com.powsybl.network.store.server.QueryLimitsCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
 
@@ -357,7 +357,7 @@ public class LimitsHandler {
 
     public void insertTombstonedOperationalLimitsGroups(Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) throws SQLException {
         try (var connection = dataSource.getConnection()) {
-            try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildInsertTombstonedExtensionsQuery())) {
+            try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildInsertTombstonedOperationalLimitsGroupQuery())) {
                 for (OperationalLimitsGroupOwnerInfo entry : operationalLimitsGroupInfos) {
                     preparedStmt.setObject(1, entry.getNetworkUuid());
                     preparedStmt.setInt(2, entry.getVariantNum());

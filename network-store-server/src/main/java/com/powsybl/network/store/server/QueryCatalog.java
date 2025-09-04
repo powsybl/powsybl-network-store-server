@@ -55,7 +55,6 @@ public final class QueryCatalog {
             && !column.equals(NAME_COLUMN) && !column.equals(FULL_VARIANT_NUM_COLUMN);
     private static final String TOMBSTONED_IDENTIFIABLE_TABLE = "tombstonedidentifiable";
     private static final String TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE = "tombstonedexternalattributes";
-    static final String TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE = "tombstonedoperationallimitsgroup";
     public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 = "selectedoperationallimitsgroupid1";
     public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 = "selectedoperationallimitsgroupid2";
 
@@ -726,11 +725,5 @@ public final class QueryCatalog {
                 " from " + table + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    // Tombstoned operational limits group
-    public static String buildInsertTombstonedExtensionsQuery() {
-        return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ") " +
-            "values (?, ?, ?, ?, ?)";
     }
 }
