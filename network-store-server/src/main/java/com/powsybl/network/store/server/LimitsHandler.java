@@ -53,8 +53,8 @@ public class LimitsHandler {
                 getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
-                variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variantNum,
-                    columnNameForWhereClause, valueForWhereClause, variant),
+                variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
+                    columnNameForWhereClause, valueForWhereClause, variantNum),
                 LimitsHandler::convertOperationalLimitsGroupsMap);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
@@ -424,16 +424,14 @@ public class LimitsHandler {
         if (selectedOperationalLimitsGroups.isEmpty()) {
             return Collections.emptyMap();
         }
-
         try (var connection = dataSource.getConnection()) {
-            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> result = PartialVariantUtils.getExternalAttributes(
+            return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
                     variantNum,
                     getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).getFullVariantNum(),
                     () -> getTombstonedIdentifiableIds(connection, networkId, variantNum),
-                    Set::of,
+                    () -> getTombstonedOperationalLimitsGroups(connection, networkId, variantNum),
                     variant -> getSelectedOperationalLimitsGroupsForVariant(connection, networkId, variant, selectedOperationalLimitsGroups, variantNum),
-                    OperationalLimitsGroupOwnerInfo::getEquipmentId);
-            return convertOperationalLimitsGroupsMap(result);
+                LimitsHandler::convertOperationalLimitsGroupsMap);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
