@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.QueryLimitsCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
 
 /**
@@ -290,9 +291,9 @@ public class LimitsHandler {
         }
     }
 
-    public void deleteOperationalLimitsGroups(UUID networkUuid, Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroup) {
+    public void deleteOperationalLimitsGroups(UUID networkUuid, Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfo) {
         Map<Integer, Set<OperationalLimitsGroupOwnerInfo>> operationalLimitGroupsToDeleteByVariant =
-                operationalLimitsGroup.keySet().stream()
+                operationalLimitsGroupInfo.stream()
                         .collect(Collectors.groupingBy(
                                 OperationalLimitsGroupOwnerInfo::getVariantNum,
                                 Collectors.toSet()
@@ -329,7 +330,7 @@ public class LimitsHandler {
 
     public <T extends IdentifiableAttributes & LimitHolder> void updateOperationalLimitsGroups(UUID networkUuid, List<Resource<T>> resources) {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = getOperationalLimitsGroupsFromEquipments(networkUuid, resources);
-        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroups);
+        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroups.keySet());
         insertOperationalLimitsGroups(operationalLimitsGroups);
     }
 
@@ -405,7 +406,7 @@ public class LimitsHandler {
                         (identifiers.operationalLimitsGroupId2() != null ? 1 : 0))
                 .sum();
 
-        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildSelectedOperationalLimitsGroupINQuery(conditionCount))) {
+        try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildSelectedOperationalLimitsGroupINQuery(conditionCount))) {
             preparedStmt.setObject(1, networkId);
             preparedStmt.setInt(2, variantNum);
 
@@ -445,7 +446,7 @@ public class LimitsHandler {
 
     private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIdsForVariant(Connection connection, UUID networkId, int variantNum, ResourceType type, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(
-                QueryCatalog.buildGetSelectedOperationalLimitsGroupsQuery(mappings.getTableMapping(type).getTable()))) {
+                QueryLimitsCatalog.buildGetSelectedOperationalLimitsGroupsQuery(mappings.getTableMapping(type).getTable()))) {
             preparedStmt.setObject(1, networkId);
             preparedStmt.setInt(2, variantNum);
             return getInnerSelectedOperationalLimitsGroupIds(networkId, type, preparedStmt, variantNumOverride);
