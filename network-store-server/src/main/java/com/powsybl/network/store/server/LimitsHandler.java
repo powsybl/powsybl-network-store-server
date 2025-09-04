@@ -446,7 +446,7 @@ public class LimitsHandler {
 
     private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIdsForVariant(Connection connection, UUID networkId, int variantNum, ResourceType type, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(
-                QueryLimitsCatalog.buildGetSelectedOperationalLimitsGroupsQuery(mappings.getTableMapping(type).getTable()))) {
+                QueryCatalog.buildGetSelectedOperationalLimitsGroupsQuery(mappings.getTableMapping(type).getTable()))) {
             preparedStmt.setObject(1, networkId);
             preparedStmt.setInt(2, variantNum);
             return getInnerSelectedOperationalLimitsGroupIds(networkId, type, preparedStmt, variantNumOverride);

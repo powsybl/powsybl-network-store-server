@@ -23,8 +23,6 @@ public final class QueryLimitsCatalog {
     static final String APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "apparent_power_limits_temporary_limits";
     static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
     static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
-    public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 = "selectedoperationallimitsgroupid1";
-    public static final String SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 = "selectedoperationallimitsgroupid2";
     public static final String SIDE_COLUMN = "side";
     static final String PROPERTIES_COLUMN = "properties";
 
@@ -32,16 +30,6 @@ public final class QueryLimitsCatalog {
 
     }
 
-    public static String buildGetSelectedOperationalLimitsGroupsQuery(String tableName) {
-        return "select " + ID_COLUMN + ", " +
-            SELECTED_OPERATIONAL_LIMITS_GROUP_ID1 + ", " +
-            SELECTED_OPERATIONAL_LIMITS_GROUP_ID2 +
-            " from " + tableName +
-            " where " + NETWORK_UUID_COLUMN + " = ?" +
-            " and " + VARIANT_NUM_COLUMN + " = ?";
-    }
-
-    // Operational limits
     public static String buildCloneOperationalLimitsGroupQuery() {
         return "insert into " + OPERATIONAL_LIMITS_GROUP_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
