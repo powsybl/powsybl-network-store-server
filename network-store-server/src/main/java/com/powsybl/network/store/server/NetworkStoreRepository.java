@@ -3530,6 +3530,15 @@ public class NetworkStoreRepository {
         return limitsHandler.getOperationalLimitsGroupAttributes(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
     }
 
+    public void removeOperationalLimitsGroupAttributes(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
+        try (var connection = dataSource.getConnection()) {
+            boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).isFullVariant();
+            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, Set.of(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupName, side)), isPartialVariant);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroups(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());

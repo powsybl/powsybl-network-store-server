@@ -290,9 +290,9 @@ public class LimitsHandler {
         }
     }
 
-    public void deleteOperationalLimitsGroups(UUID networkUuid, Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroup) {
+    public void deleteOperationalLimitsGroups(UUID networkUuid, Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) {
         Map<Integer, Set<OperationalLimitsGroupOwnerInfo>> operationalLimitGroupsToDeleteByVariant =
-                operationalLimitsGroup.keySet().stream()
+            operationalLimitsGroupInfos.stream()
                         .collect(Collectors.groupingBy(
                                 OperationalLimitsGroupOwnerInfo::getVariantNum,
                                 Collectors.toSet()
@@ -329,7 +329,7 @@ public class LimitsHandler {
 
     public <T extends IdentifiableAttributes & LimitHolder> void updateOperationalLimitsGroups(UUID networkUuid, List<Resource<T>> resources) {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = getOperationalLimitsGroupsFromEquipments(networkUuid, resources);
-        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroups);
+        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroups.keySet());
         insertOperationalLimitsGroups(operationalLimitsGroups);
     }
 
@@ -345,6 +345,29 @@ public class LimitsHandler {
         return Optional.of(operationalLimitsGroups)
                 .map(sideMap -> sideMap.get(side))
                 .map(groupMap -> groupMap.get(operationalLimitsGroupId));
+    }
+
+    public void deleteAndTombstoneOperationalLimitsGroups(UUID networkUuid, Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant) throws SQLException {
+        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroupInfos);
+        if (isPartialVariant) {
+            insertTombstonedOperationalLimitsGroups(operationalLimitsGroupInfos);
+        }
+    }
+
+    public void insertTombstonedOperationalLimitsGroups(Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) throws SQLException {
+        try (var connection = dataSource.getConnection()) {
+            try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildInsertTombstonedExtensionsQuery())) {
+                for (OperationalLimitsGroupOwnerInfo entry : operationalLimitsGroupInfos) {
+                    preparedStmt.setObject(1, entry.getNetworkUuid());
+                    preparedStmt.setInt(2, entry.getVariantNum());
+                    preparedStmt.setString(3, entry.getEquipmentId());
+                    preparedStmt.setInt(4, entry.getSide());
+                    preparedStmt.setString(5, entry.getOperationalLimitsGroupId());
+                    preparedStmt.addBatch();
+                }
+                preparedStmt.executeBatch();
+            }
+        }
     }
 
     public List<OperationalLimitsGroupAttributes> getAllOperationalLimitsGroupAttributesForBranchSide(

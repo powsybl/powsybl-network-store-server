@@ -70,6 +70,7 @@ public final class QueryCatalog {
     static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
     static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
     static final String PROPERTIES_COLUMN = "properties";
+    static final String TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE = "tombstonedoperationallimitsgroup";
 
     private QueryCatalog() {
     }
@@ -877,5 +878,11 @@ public final class QueryCatalog {
                 " where " + NETWORK_UUID_COLUMN + " = ? and " + VARIANT_NUM_COLUMN + " = ? " +
                 " and (" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
                 " in (values " + String.join(",", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
+    }
+
+    // Tombstoned operational limits group
+    public static String buildInsertTombstonedExtensionsQuery() {
+        return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ") " +
+            "values (?, ?, ?, ?, ?)";
     }
 }
