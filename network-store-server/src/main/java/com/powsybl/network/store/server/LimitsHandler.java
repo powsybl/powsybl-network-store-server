@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.QueryLimitsCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
 
 /**
@@ -172,22 +173,22 @@ public class LimitsHandler {
     }
 
     private LimitsAttributes createLimitsAttributes(Double permanentLimitData,
-                                                    String temporaryLimitData)
+                                                    String temporaryLimitsData)
             throws JsonProcessingException {
-        if (permanentLimitData == null && temporaryLimitData == null) {
+        boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
+        boolean hasTemporaryLimits = temporaryLimitsData != null && !temporaryLimitsData.equals("[]");
+        if (!hasPermanentLimit && !hasTemporaryLimits) {
             return null;
         }
 
-        double permanentLimit = permanentLimitData == null ? Double.NaN : permanentLimitData;
+        double permanentLimit = hasPermanentLimit ? permanentLimitData : Double.NaN;
         TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = null;
-        if (!StringUtils.isEmpty(temporaryLimitData)) {
-            List<TemporaryLimitAttributes> temporatyLimitsList = mapper.readValue(temporaryLimitData, new TypeReference<>() { });
-            if (temporatyLimitsList != null) {
-                temporaryLimits = new TreeMap<>();
-                for (TemporaryLimitAttributes temporaryLimit : temporatyLimitsList) {
-                    int duration = temporaryLimit.getAcceptableDuration();
-                    temporaryLimits.put(duration, temporaryLimit);
-                }
+        if (hasTemporaryLimits) {
+            List<TemporaryLimitAttributes> temporaryLimitsList = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
+            temporaryLimits = new TreeMap<>();
+            for (TemporaryLimitAttributes temporaryLimit : temporaryLimitsList) {
+                int duration = temporaryLimit.getAcceptableDuration();
+                temporaryLimits.put(duration, temporaryLimit);
             }
         }
 
@@ -293,10 +294,10 @@ public class LimitsHandler {
     public void deleteOperationalLimitsGroups(UUID networkUuid, Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) {
         Map<Integer, Set<OperationalLimitsGroupOwnerInfo>> operationalLimitGroupsToDeleteByVariant =
             operationalLimitsGroupInfos.stream()
-                        .collect(Collectors.groupingBy(
-                                OperationalLimitsGroupOwnerInfo::getVariantNum,
-                                Collectors.toSet()
-                        ));
+                .collect(Collectors.groupingBy(
+                    OperationalLimitsGroupOwnerInfo::getVariantNum,
+                    Collectors.toSet()
+                ));
 
         try (var connection = dataSource.getConnection()) {
             for (Map.Entry<Integer, Set<OperationalLimitsGroupOwnerInfo>> variantEntry : operationalLimitGroupsToDeleteByVariant.entrySet()) {
@@ -428,7 +429,7 @@ public class LimitsHandler {
                         (identifiers.operationalLimitsGroupId2() != null ? 1 : 0))
                 .sum();
 
-        try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildSelectedOperationalLimitsGroupINQuery(conditionCount))) {
+        try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildSelectedOperationalLimitsGroupINQuery(conditionCount))) {
             preparedStmt.setObject(1, networkId);
             preparedStmt.setInt(2, variantNum);
 

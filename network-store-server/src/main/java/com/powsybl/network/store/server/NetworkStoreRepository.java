@@ -301,7 +301,7 @@ public class NetworkStoreRepository {
 
     private static void deleteExternalAttributes(UUID uuid, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesQueries = List.of(
-                QueryCatalog.buildDeleteOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildDeleteOperationalLimitsGroupQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
@@ -337,7 +337,7 @@ public class NetworkStoreRepository {
 
     private static void deleteExternalAttributesVariant(UUID uuid, int variantNum, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesVariantQueries = List.of(
-                QueryCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
+                QueryLimitsCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
@@ -454,7 +454,7 @@ public class NetworkStoreRepository {
     private void cloneExternalAttributes(Connection connection, UUID uuid, UUID targetUuid, int sourceVariantNum, int targetVariantNum) throws SQLException {
         Stopwatch stopwatch = Stopwatch.createStarted();
         List<String> externalAttributesQueries = List.of(
-                QueryCatalog.buildCloneOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildCloneOperationalLimitsGroupQuery(),
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildCloneAreaBoundariesQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
