@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="lesoteti" id="298655686352-1">
+        <createTable tableName="tombstonedoperationallimitsgroup">
+            <column name="networkuuid" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="variantnum" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="equipmentid" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="equipmenttype" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="side" type="INTEGER">
+                <constraints nullable="false"/>
+            </column>
+            <column name="operationallimitgroupid" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <addPrimaryKey columnNames="networkuuid, variantnum, equipmentid, side, operationallimitgroupid" constraintName="tombstonedoperationallimitsgroup_pkey" tableName="tombstonedoperationallimitsgroup"/>
+    </changeSet>
+</databaseChangeLog>

@@ -1585,6 +1585,18 @@ public class NetworkStoreController {
         return getOperationalLimitsGroupAttributes(() -> repository.getOperationalLimitsGroupAttributes(networkId, variantNum, branchId, type, operationalLimitsGroupId, side));
     }
 
+    @DeleteMapping(value = "{networkId}/{variantNum}/branch/{branchId}/types/{resourceType}/operationalLimitsGroup/{operationalLimitsGroupId}/side/{side}")
+    @Operation(summary = "Remove an operational limit group on attributes by its identifiable id and extension name")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Operational limits group attributes successfully removed"))
+    public void removeOperationalLimitsGroupAttributes(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                                                                                @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
+                                                                                                                @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type,
+                                                                                                                @Parameter(description = "Branch id", required = true) @PathVariable("branchId") String branchId,
+                                                                                                                @Parameter(description = "Operational Limits Group id", required = true) @PathVariable("operationalLimitsGroupId") String operationalLimitsGroupId,
+                                                                                                                @Parameter(description = "Branch side", required = true) @PathVariable("side") int side) {
+        repository.removeOperationalLimitsGroupAttributes(networkId, variantNum, branchId, type, operationalLimitsGroupId, side);
+    }
+
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup")
     @Operation(summary = "Get all operational limits group attributes for a specific type of equipment")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get operational limits groups attributes"))
