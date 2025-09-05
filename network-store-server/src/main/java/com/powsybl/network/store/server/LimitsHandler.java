@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_ID_COLUMN;
+import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_TYPE_COLUMN;
 import static com.powsybl.network.store.server.QueryLimitsCatalog.*;
 import static com.powsybl.network.store.server.Utils.*;
 
@@ -72,6 +73,7 @@ public class LimitsHandler {
                     operationalLimitsGroupOwnerInfo.setNetworkUuid(networkUuid);
                     operationalLimitsGroupOwnerInfo.setVariantNum(variantNum);
                     operationalLimitsGroupOwnerInfo.setEquipmentId(resultSet.getString(EQUIPMENT_ID_COLUMN));
+                    operationalLimitsGroupOwnerInfo.setEquipmentType(ResourceType.valueOf(resultSet.getString(EQUIPMENT_TYPE_COLUMN)));
                     operationalLimitsGroupOwnerInfo.setSide(resultSet.getInt(SIDE_COLUMN));
                     operationalLimitsGroupOwnerInfo.setOperationalLimitsGroupId(resultSet.getString(GROUP_ID_COLUMN));
                     tombstonedOperationalLimitsGroups.add(operationalLimitsGroupOwnerInfo);
@@ -383,8 +385,9 @@ public class LimitsHandler {
                     preparedStmt.setObject(1, entry.getNetworkUuid());
                     preparedStmt.setInt(2, entry.getVariantNum());
                     preparedStmt.setString(3, entry.getEquipmentId());
-                    preparedStmt.setInt(4, entry.getSide());
-                    preparedStmt.setString(5, entry.getOperationalLimitsGroupId());
+                    preparedStmt.setString(4, entry.getEquipmentType().name());
+                    preparedStmt.setInt(5, entry.getSide());
+                    preparedStmt.setString(6, entry.getOperationalLimitsGroupId());
                     preparedStmt.addBatch();
                 }
                 preparedStmt.executeBatch();

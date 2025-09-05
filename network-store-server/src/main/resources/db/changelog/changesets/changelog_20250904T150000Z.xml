@@ -14,6 +14,9 @@
             <column name="equipmentid" type="VARCHAR(255)">
                 <constraints nullable="false"/>
             </column>
+            <column name="equipmenttype" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
             <column name="side" type="INTEGER">
                 <constraints nullable="false"/>
             </column>
