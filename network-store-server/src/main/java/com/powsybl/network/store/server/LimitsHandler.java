@@ -400,18 +400,16 @@ public class LimitsHandler {
             return Collections.emptyMap();
         }
 
-        List<Object> parameters = buildParametersForSelectedGroups(selectedOperationalLimitsGroups);
-
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> results = new HashMap<>();
-        final int parametersPerOperationalLimitsGroup = 3; // branchId, operationalLimitsGroupId, side
-        for (List<Object> parameterBatch : Lists.partition(parameters, BATCH_SIZE * parametersPerOperationalLimitsGroup)) {
-            int inConditionCount = parameterBatch.size() / parametersPerOperationalLimitsGroup;
+        for (List<SelectedOperationalLimitsGroupIdentifiers> subSelectedOperationalLimitsGroups : Lists.partition(selectedOperationalLimitsGroups, BATCH_SIZE)) {
+            List<Object> parameters = buildParametersForSelectedGroups(subSelectedOperationalLimitsGroups);
+            int inConditionCount = parameters.size() / 3;
 
             try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildSelectedOperationalLimitsGroupINQuery(inConditionCount))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
                 int paramIndex = 3;
-                for (Object param : parameterBatch) {
+                for (Object param : parameters) {
                     preparedStmt.setObject(paramIndex++, param);
                 }
 
