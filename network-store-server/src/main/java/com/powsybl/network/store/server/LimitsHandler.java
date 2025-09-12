@@ -402,15 +402,27 @@ public class LimitsHandler {
 
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> results = new HashMap<>();
         for (List<SelectedOperationalLimitsGroupIdentifiers> subSelectedOperationalLimitsGroups : Lists.partition(selectedOperationalLimitsGroups, BATCH_SIZE)) {
-            List<Object> parameters = buildParametersForSelectedGroups(subSelectedOperationalLimitsGroups);
-            int inConditionCount = parameters.size() / 3;
+            int conditionCount = subSelectedOperationalLimitsGroups.stream()
+                    .mapToInt(identifiers ->
+                            (identifiers.operationalLimitsGroupId1() != null ? 1 : 0) +
+                                    (identifiers.operationalLimitsGroupId2() != null ? 1 : 0))
+                    .sum();
 
-            try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildSelectedOperationalLimitsGroupINQuery(inConditionCount))) {
+            try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildSelectedOperationalLimitsGroupINQuery(conditionCount))) {
                 preparedStmt.setObject(1, networkId);
                 preparedStmt.setInt(2, variantNum);
                 int paramIndex = 3;
-                for (Object param : parameters) {
-                    preparedStmt.setObject(paramIndex++, param);
+                for (SelectedOperationalLimitsGroupIdentifiers identifiers : subSelectedOperationalLimitsGroups) {
+                    if (identifiers.operationalLimitsGroupId1() != null) {
+                        preparedStmt.setString(paramIndex++, identifiers.branchId());
+                        preparedStmt.setString(paramIndex++, identifiers.operationalLimitsGroupId1());
+                        preparedStmt.setInt(paramIndex++, 1);
+                    }
+                    if (identifiers.operationalLimitsGroupId2() != null) {
+                        preparedStmt.setString(paramIndex++, identifiers.branchId());
+                        preparedStmt.setString(paramIndex++, identifiers.operationalLimitsGroupId2());
+                        preparedStmt.setInt(paramIndex++, 2);
+                    }
                 }
 
                 Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> batchResults = innerGetOperationalLimitsGroups(preparedStmt, variantNumOverride);
@@ -419,25 +431,7 @@ public class LimitsHandler {
                 throw new UncheckedSqlException(e);
             }
         }
-
         return results;
-    }
-
-    private static List<Object> buildParametersForSelectedGroups(List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups) {
-        List<Object> parameters = new ArrayList<>();
-        for (SelectedOperationalLimitsGroupIdentifiers identifiers : selectedOperationalLimitsGroups) {
-            if (identifiers.operationalLimitsGroupId1() != null) {
-                parameters.add(identifiers.branchId());
-                parameters.add(identifiers.operationalLimitsGroupId1());
-                parameters.add(1);
-            }
-            if (identifiers.operationalLimitsGroupId2() != null) {
-                parameters.add(identifiers.branchId());
-                parameters.add(identifiers.operationalLimitsGroupId2());
-                parameters.add(2);
-            }
-        }
-        return parameters;
     }
 
     private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIds(UUID networkId, int variantNum, ResourceType type) {
