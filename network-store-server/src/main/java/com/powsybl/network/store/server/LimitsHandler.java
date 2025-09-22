@@ -55,8 +55,7 @@ public class LimitsHandler {
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
                 variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
-                    columnNameForWhereClause, valueForWhereClause, variantNum),
-                LimitsHandler::convertOperationalLimitsGroupsMap);
+                    columnNameForWhereClause, valueForWhereClause, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -85,20 +84,6 @@ public class LimitsHandler {
         return tombstonedOperationalLimitsGroups;
     }
 
-    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupsMap(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map) {
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> result = new HashMap<>();
-
-        map.forEach((ownerInfo, attributes) -> {
-            OwnerInfo owner = new OwnerInfo(ownerInfo.getEquipmentId(), ownerInfo.getEquipmentType(),
-                    ownerInfo.getNetworkUuid(), ownerInfo.getVariantNum());
-            result.computeIfAbsent(owner, k -> new HashMap<>())
-                    .computeIfAbsent(ownerInfo.getSide(), k -> new HashMap<>())
-                    .put(ownerInfo.getOperationalLimitsGroupId(), attributes);
-        });
-
-        return result;
-    }
-
     public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
@@ -106,8 +91,7 @@ public class LimitsHandler {
                 getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
-                variant -> getOperationalLimitsGroupsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum),
-                LimitsHandler::convertOperationalLimitsGroupsMap);
+                variant -> getOperationalLimitsGroupsWithInClauseForVariant(connection, networkUuid, variant, columnNameForWhereClause, valuesForInClause, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -433,8 +417,7 @@ public class LimitsHandler {
                     getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).getFullVariantNum(),
                     () -> getTombstonedIdentifiableIds(connection, networkId, variantNum),
                     () -> getTombstonedOperationalLimitsGroups(connection, networkId, variantNum),
-                    variant -> getSelectedOperationalLimitsGroupsForVariant(connection, networkId, variant, selectedOperationalLimitsGroups, variantNum),
-                LimitsHandler::convertOperationalLimitsGroupsMap);
+                    variant -> getSelectedOperationalLimitsGroupsForVariant(connection, networkId, variant, selectedOperationalLimitsGroups, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }

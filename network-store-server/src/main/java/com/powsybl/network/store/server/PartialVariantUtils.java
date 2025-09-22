@@ -218,12 +218,11 @@ public final class PartialVariantUtils {
                                                                                                                             int fullVariantNum,
                                                                                                                             Supplier<Set<String>> fetchTombstonedIdentifiableIds,
                                                                                                                             Supplier<Set<OperationalLimitsGroupOwnerInfo>> fetchTombstonedOperationalLimitsGroup,
-                                                                                                                            IntFunction<Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> operationalLimitsGroupFunction,
-                                                                                                                            Function<Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>, Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>>> convertResultMap) {
+                                                                                                                            IntFunction<Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> operationalLimitsGroupFunction) {
 
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve limits groups for the specified variant directly
-            return convertResultMap.apply(operationalLimitsGroupFunction.apply(variantNum));
+            return convertOperationalLimitsGroupsMap(operationalLimitsGroupFunction.apply(variantNum));
         }
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroupAttributes = operationalLimitsGroupFunction.apply(fullVariantNum);
 
@@ -240,6 +239,20 @@ public final class PartialVariantUtils {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> partialVariantOperationalLimitsGroupAttributes = operationalLimitsGroupFunction.apply(variantNum);
         operationalLimitsGroupAttributes.putAll(partialVariantOperationalLimitsGroupAttributes);
 
-        return convertResultMap.apply(operationalLimitsGroupAttributes);
+        return convertOperationalLimitsGroupsMap(operationalLimitsGroupAttributes);
+    }
+
+    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupsMap(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map) {
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> result = new HashMap<>();
+
+        map.forEach((ownerInfo, attributes) -> {
+            OwnerInfo owner = new OwnerInfo(ownerInfo.getEquipmentId(), ownerInfo.getEquipmentType(),
+                    ownerInfo.getNetworkUuid(), ownerInfo.getVariantNum());
+            result.computeIfAbsent(owner, k -> new HashMap<>())
+                    .computeIfAbsent(ownerInfo.getSide(), k -> new HashMap<>())
+                    .put(ownerInfo.getOperationalLimitsGroupId(), attributes);
+        });
+
+        return result;
     }
 }

@@ -3530,10 +3530,17 @@ public class NetworkStoreRepository {
         return limitsHandler.getOperationalLimitsGroupAttributes(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
     }
 
-    public void removeOperationalLimitsGroupAttributes(UUID networkId, int variantNum, String branchId, ResourceType type, String operationalLimitsGroupName, int side) {
+    public void removeOperationalLimitsGroupAttributes(UUID networkId, int variantNum, ResourceType type, Map<String, Map<Integer, Set<String>>> operationalLimitsGroupsToDelete) {
         try (var connection = dataSource.getConnection()) {
             boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).isFullVariant();
-            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, Set.of(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupName, side)), isPartialVariant);
+            Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupOwnerInfos = new HashSet<>();
+            operationalLimitsGroupsToDelete.forEach((branchId, limitsGroupBySide) -> {
+                limitsGroupBySide.forEach((side, limitsGroupIds) ->
+                        limitsGroupIds.forEach(operationalLimitsGroupId ->
+                                operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
+                        ));
+            });
+            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }

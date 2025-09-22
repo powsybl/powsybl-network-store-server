@@ -59,7 +59,7 @@ class NetworkStoreRepositoryPartialVariantOperationalLimitsGroupAttributesTest {
         createLineWithLimits(networkStoreRepository, NETWORK_UUID, 0, lineId1, "vl1", "vl2",
                 List.of(operationalLimitsGroupId1Side1, operationalLimitsGroupId2Side1),
                 List.of(operationalLimitsGroupId1Side2));
-        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 0, lineId1, ResourceType.LINE, operationalLimitsGroupId1Side1, 1);
+        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 0, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of(operationalLimitsGroupId1Side1))));
 
         assertEquals(1, getOperationalLimitsGroupForLineForVariant(NETWORK_UUID, 0).get(lineId1).get(1).size());
         assertNull(getOperationalLimitsGroupForLineForVariant(NETWORK_UUID, 0).get(lineId1).get(1).get(operationalLimitsGroupId1Side1));
@@ -78,7 +78,7 @@ class NetworkStoreRepositoryPartialVariantOperationalLimitsGroupAttributesTest {
         createLineWithLimits(networkStoreRepository, NETWORK_UUID, 1, lineId1, "vl1", "vl2",
                 List.of(operationalLimitsGroupId1Side1, operationalLimitsGroupId2Side1),
                 List.of(operationalLimitsGroupId1Side2));
-        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 1, lineId1, ResourceType.LINE, operationalLimitsGroupId1Side1, 1);
+        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 1, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of(operationalLimitsGroupId1Side1))));
 
         assertEquals(1, getOperationalLimitsGroupForLineForVariant(NETWORK_UUID, 1).get(lineId1).get(1).size());
         assertNull(getOperationalLimitsGroupForLineForVariant(NETWORK_UUID, 1).get(lineId1).get(1).get(operationalLimitsGroupId1Side1));
