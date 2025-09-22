@@ -84,7 +84,6 @@ class NetworkStoreRepositoryPartialVariantOperationalLimitsGroupAttributesTest {
         assertNull(getOperationalLimitsGroupForLineForVariant(NETWORK_UUID, 1).get(lineId1).get(1).get(operationalLimitsGroupId1Side1));
         assertNotNull(getOperationalLimitsGroupForLineForVariant(NETWORK_UUID, 1).get(lineId1).get(1).get(operationalLimitsGroupId2Side1));
         assertEquals(1, getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1).size());
-        List<OperationalLimitsGroupOwnerInfo> test = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1).stream().toList();
         assertTrue(getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1).contains(new
                 OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 1, operationalLimitsGroupId1Side1, 1)));
     }

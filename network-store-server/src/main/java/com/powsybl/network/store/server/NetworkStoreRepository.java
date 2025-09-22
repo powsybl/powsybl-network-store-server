@@ -3534,12 +3534,10 @@ public class NetworkStoreRepository {
         try (var connection = dataSource.getConnection()) {
             boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).isFullVariant();
             Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupOwnerInfos = new HashSet<>();
-            operationalLimitsGroupsToDelete.forEach((branchId, limitsGroupBySide) -> {
-                limitsGroupBySide.forEach((side, limitsGroupIds) ->
-                        limitsGroupIds.forEach(operationalLimitsGroupId ->
-                                operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
-                        ));
-            });
+            operationalLimitsGroupsToDelete.forEach((branchId, limitsGroupBySide) -> limitsGroupBySide.forEach((side, limitsGroupIds) ->
+                    limitsGroupIds.forEach(operationalLimitsGroupId ->
+                            operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
+                    )));
             limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
