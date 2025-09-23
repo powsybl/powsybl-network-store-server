@@ -48,6 +48,7 @@ class OperationalLimitsGroupIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = FourSubstationsNodeBreakerFactory.create(service.getNetworkFactory());
             Line lineS3S4 = network.getLine("LINE_S3S4");
+            // create 2 operational limits group
             lineS3S4.newOperationalLimitsGroup2("TEST")
                     .newCurrentLimits()
                     .setPermanentLimit(300)
@@ -63,7 +64,7 @@ class OperationalLimitsGroupIT {
                     .setAcceptableDuration(600)
                     .endTemporaryLimit()
                     .add();
-            lineS3S4.newOperationalLimitsGroup2("TEST2")
+            lineS3S4.newOperationalLimitsGroup1("TEST2")
                     .newCurrentLimits()
                     .setPermanentLimit(450)
                     .beginTemporaryLimit()
@@ -88,10 +89,12 @@ class OperationalLimitsGroupIT {
             Assertions.assertTrue(lineS3S4.getSelectedOperationalLimitsGroup2().isPresent());
             Assertions.assertEquals("DEFAULT", lineS3S4.getSelectedOperationalLimitsGroup2().get().getId());
             List<OperationalLimitsGroup> operationalLimitsGroupList = lineS3S4.getOperationalLimitsGroups2().stream().toList();
-            Assertions.assertEquals(3, operationalLimitsGroupList.size());
+            Assertions.assertEquals(2, operationalLimitsGroupList.size());
+            List<OperationalLimitsGroup> operationalLimitsGroupList1 = lineS3S4.getOperationalLimitsGroups1().stream().toList();
+            Assertions.assertEquals(2, operationalLimitsGroupList.size());
 
             // remove them
-            lineS3S4.removeOperationalLimitsGroup2("TEST2");
+            lineS3S4.removeOperationalLimitsGroup1("TEST2");
             lineS3S4.removeOperationalLimitsGroup2("TEST");
             service.flush(network);
         }
@@ -99,7 +102,7 @@ class OperationalLimitsGroupIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
             Line lineS3S4 = network.getLine("LINE_S3S4");
-            Assertions.assertTrue(lineS3S4.getOperationalLimitsGroup2("TEST2").isEmpty());
+            Assertions.assertTrue(lineS3S4.getOperationalLimitsGroup1("TEST2").isEmpty());
             Assertions.assertTrue(lineS3S4.getOperationalLimitsGroup2("TEST").isEmpty());
         }
     }
