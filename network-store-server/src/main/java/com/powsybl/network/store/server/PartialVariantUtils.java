@@ -231,10 +231,10 @@ public final class PartialVariantUtils {
         // get tombstoned operational limits groups
         Set<OperationalLimitsGroupOwnerInfo> tombstonedOperationalLimitsGroups = fetchTombstonedOperationalLimitsGroup.get();
         // remove tombstoned elements
-        Set<OperationalLimitsGroupOwnerInfo> toRemove = operationalLimitsGroupAttributes.keySet().stream()
-            .filter(entry -> tombstonedIdentifiables.contains(entry.getEquipmentId()) || tombstonedOperationalLimitsGroups.contains(entry))
-            .collect(Collectors.toSet());
-        toRemove.forEach(operationalLimitsGroupAttributes::remove);
+        operationalLimitsGroupAttributes.keySet()
+                .removeIf(operationalLimitsGroup ->
+                        tombstonedIdentifiables.contains(operationalLimitsGroup.getEquipmentId()) ||
+                                tombstonedOperationalLimitsGroups.contains(operationalLimitsGroup));
 
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> partialVariantOperationalLimitsGroupAttributes = operationalLimitsGroupFunction.apply(variantNum);
         operationalLimitsGroupAttributes.putAll(partialVariantOperationalLimitsGroupAttributes);
