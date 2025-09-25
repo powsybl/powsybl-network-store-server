@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
@@ -365,14 +366,16 @@ public class LimitsHandler {
     public void insertTombstonedOperationalLimitsGroups(Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) throws SQLException {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildInsertTombstonedOperationalLimitsGroupQuery())) {
-                for (OperationalLimitsGroupOwnerInfo entry : operationalLimitsGroupInfos) {
-                    preparedStmt.setObject(1, entry.getNetworkUuid());
-                    preparedStmt.setInt(2, entry.getVariantNum());
-                    preparedStmt.setString(3, entry.getEquipmentId());
-                    preparedStmt.setString(4, entry.getEquipmentType().name());
-                    preparedStmt.setInt(5, entry.getSide());
-                    preparedStmt.setString(6, entry.getOperationalLimitsGroupId());
-                    preparedStmt.addBatch();
+                for (List<OperationalLimitsGroupOwnerInfo> partition : Iterables.partition(operationalLimitsGroupInfos, BATCH_SIZE)) {
+                    for (OperationalLimitsGroupOwnerInfo entry : partition) {
+                        preparedStmt.setObject(1, entry.getNetworkUuid());
+                        preparedStmt.setInt(2, entry.getVariantNum());
+                        preparedStmt.setString(3, entry.getEquipmentId());
+                        preparedStmt.setString(4, entry.getEquipmentType().name());
+                        preparedStmt.setInt(5, entry.getSide());
+                        preparedStmt.setString(6, entry.getOperationalLimitsGroupId());
+                        preparedStmt.addBatch();
+                    }
                 }
                 preparedStmt.executeBatch();
             }
