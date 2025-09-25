@@ -99,6 +99,7 @@ class OperationalLimitsGroupIT {
 
             // remove them
             lineS3S4.removeOperationalLimitsGroup2("TEST");
+            lineS3S4.removeOperationalLimitsGroup2("DEFAULT");
             service.flush(network);
         }
 
@@ -107,6 +108,8 @@ class OperationalLimitsGroupIT {
             Line lineS3S4 = network.getLine("LINE_S3S4");
             Assertions.assertTrue(lineS3S4.getOperationalLimitsGroup1("TEST2").isEmpty());
             Assertions.assertTrue(lineS3S4.getOperationalLimitsGroup2("TEST").isEmpty());
+            Assertions.assertTrue(lineS3S4.getOperationalLimitsGroup2("DEFAULT").isEmpty());
+            Assertions.assertTrue(lineS3S4.getSelectedOperationalLimitsGroup2().isEmpty());
         }
     }
 }
