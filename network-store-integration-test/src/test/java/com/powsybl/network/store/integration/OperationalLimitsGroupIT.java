@@ -85,16 +85,19 @@ class OperationalLimitsGroupIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
             Line lineS3S4 = network.getLine("LINE_S3S4");
+
+            // delete directly olg TEST2 without loading
+            lineS3S4.removeOperationalLimitsGroup1("TEST2");
+
             // check olg are created
             Assertions.assertTrue(lineS3S4.getSelectedOperationalLimitsGroup2().isPresent());
             Assertions.assertEquals("DEFAULT", lineS3S4.getSelectedOperationalLimitsGroup2().get().getId());
             List<OperationalLimitsGroup> operationalLimitsGroupList = lineS3S4.getOperationalLimitsGroups2().stream().toList();
             Assertions.assertEquals(2, operationalLimitsGroupList.size());
             List<OperationalLimitsGroup> operationalLimitsGroupList1 = lineS3S4.getOperationalLimitsGroups1().stream().toList();
-            Assertions.assertEquals(2, operationalLimitsGroupList.size());
+            Assertions.assertEquals(1, operationalLimitsGroupList1.size());
 
             // remove them
-            lineS3S4.removeOperationalLimitsGroup1("TEST2");
             lineS3S4.removeOperationalLimitsGroup2("TEST");
             service.flush(network);
         }
