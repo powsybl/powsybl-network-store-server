@@ -9,7 +9,6 @@ package com.powsybl.network.store.server;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
@@ -299,7 +298,7 @@ public class LimitsHandler {
         }
     }
 
-    public void deleteOperationalLimitsGroups(UUID networkUuid, Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) {
+    public void deleteOperationalLimitsGroups(UUID networkUuid, List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) {
         Map<Integer, Set<OperationalLimitsGroupOwnerInfo>> operationalLimitGroupsToDeleteByVariant =
             operationalLimitsGroupInfos.stream()
                 .collect(Collectors.groupingBy(
@@ -338,7 +337,7 @@ public class LimitsHandler {
 
     public <T extends IdentifiableAttributes & LimitHolder> void updateOperationalLimitsGroups(UUID networkUuid, List<Resource<T>> resources) {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = getOperationalLimitsGroupsFromEquipments(networkUuid, resources);
-        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroups.keySet());
+        deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroups.keySet().stream().toList());
         insertOperationalLimitsGroups(operationalLimitsGroups);
     }
 
@@ -356,17 +355,17 @@ public class LimitsHandler {
                 .map(groupMap -> groupMap.get(operationalLimitsGroupId));
     }
 
-    public void deleteAndTombstoneOperationalLimitsGroups(UUID networkUuid, Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant) throws SQLException {
+    public void deleteAndTombstoneOperationalLimitsGroups(UUID networkUuid, List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant) throws SQLException {
         deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroupInfos);
         if (isPartialVariant) {
             insertTombstonedOperationalLimitsGroups(operationalLimitsGroupInfos);
         }
     }
 
-    public void insertTombstonedOperationalLimitsGroups(Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) throws SQLException {
+    public void insertTombstonedOperationalLimitsGroups(List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) throws SQLException {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildInsertTombstonedOperationalLimitsGroupQuery())) {
-                for (List<OperationalLimitsGroupOwnerInfo> partition : Iterables.partition(operationalLimitsGroupInfos, BATCH_SIZE)) {
+                for (List<OperationalLimitsGroupOwnerInfo> partition : Lists.partition(operationalLimitsGroupInfos, BATCH_SIZE)) {
                     for (OperationalLimitsGroupOwnerInfo entry : partition) {
                         preparedStmt.setObject(1, entry.getNetworkUuid());
                         preparedStmt.setInt(2, entry.getVariantNum());
@@ -376,8 +375,8 @@ public class LimitsHandler {
                         preparedStmt.setString(6, entry.getOperationalLimitsGroupId());
                         preparedStmt.addBatch();
                     }
+                    preparedStmt.executeBatch();
                 }
-                preparedStmt.executeBatch();
             }
         }
     }

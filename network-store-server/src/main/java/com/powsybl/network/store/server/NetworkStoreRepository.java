@@ -3533,7 +3533,7 @@ public class NetworkStoreRepository {
     public void removeOperationalLimitsGroupAttributes(UUID networkId, int variantNum, ResourceType type, Map<String, Map<Integer, Set<String>>> operationalLimitsGroupsToDelete) {
         try (var connection = dataSource.getConnection()) {
             boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).isFullVariant();
-            Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupOwnerInfos = new HashSet<>();
+            List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupOwnerInfos = new ArrayList<>();
             operationalLimitsGroupsToDelete.forEach((branchId, limitsGroupBySide) -> limitsGroupBySide.forEach((side, limitsGroupIds) ->
                     limitsGroupIds.forEach(operationalLimitsGroupId ->
                             operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
