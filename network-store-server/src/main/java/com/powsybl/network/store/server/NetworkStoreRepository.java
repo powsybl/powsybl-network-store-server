@@ -3516,10 +3516,10 @@ public class NetworkStoreRepository {
         }
     }
 
-    public void removeExtensionAttributes(UUID networkId, int variantNum, String identifiableId, String extensionName) {
+    public void removeExtensionAttributes(UUID networkId, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName) {
         try (var connection = dataSource.getConnection()) {
             boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).isFullVariant();
-            extensionHandler.deleteAndTombstoneExtensions(connection, networkId, variantNum, Map.of(extensionName, Set.of(identifiableId)), isPartialVariant);
+            extensionHandler.deleteAndTombstoneExtensions(connection, networkId, variantNum, identifiableIdsByExtensionName, isPartialVariant);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
