@@ -1130,9 +1130,14 @@ class NetworkStoreControllerIT {
     @Test
     void removeExtensionAttributesTest() throws Exception {
         setupExtensionAttributesTest();
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/id/extensions/" + ActivePowerControl.NAME))
+        Map<String, Set<String>> identifiableIdsByExtensionName = Map.of(ActivePowerControl.NAME, Set.of("id"));
+        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/types/"  + ResourceType.GENERATOR + "/extensions")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(identifiableIdsByExtensionName)))
                 .andExpect(status().isOk());
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/id/extensions/" + ActivePowerControl.NAME))
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/types/"  + ResourceType.GENERATOR + "/extensions")
+                        .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(identifiableIdsByExtensionName)))
                 .andExpect(status().isNotFound());
     }
 
