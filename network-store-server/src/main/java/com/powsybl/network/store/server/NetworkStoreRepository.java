@@ -302,6 +302,7 @@ public class NetworkStoreRepository {
     private static void deleteExternalAttributes(UUID uuid, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesQueries = List.of(
                 QueryLimitsCatalog.buildDeleteOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildDeleteTombstonedOperationalLimitsGroupQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
@@ -338,6 +339,7 @@ public class NetworkStoreRepository {
     private static void deleteExternalAttributesVariant(UUID uuid, int variantNum, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesVariantQueries = List.of(
                 QueryLimitsCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
+                QueryLimitsCatalog.buildDeleteTombstonedOperationalLimitsGroupVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
