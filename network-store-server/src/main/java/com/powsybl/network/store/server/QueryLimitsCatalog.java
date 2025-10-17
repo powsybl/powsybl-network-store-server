@@ -169,6 +169,16 @@ public final class QueryLimitsCatalog {
             " in (values " + String.join(",", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
     }
 
+    public static String buildDeleteOperationalLimitsGroupsVariantEquipmentINQuery(int numberOfValues) {
+        if (numberOfValues < 1) {
+            throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
+        }
+        return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
+                NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
+    }
+
     // Tombstoned
     public static String buildInsertTombstonedOperationalLimitsGroupQuery() {
         return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ") " +
@@ -190,5 +200,26 @@ public final class QueryLimitsCatalog {
                 " where " +
                 NETWORK_UUID_COLUMN + " = ?" + " and " +
                 VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildCloneTombstonedOperationalLimitsGroupQuery() {
+        return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                GROUP_ID_COLUMN + ", " +
+                SIDE_COLUMN + ") " +
+                "select " +
+                "?" + "," +
+                "?" + "," +
+                EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                SIDE_COLUMN +
+                " from " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " " +
+                "where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ? ";
     }
 }

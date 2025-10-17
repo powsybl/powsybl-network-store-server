@@ -506,6 +506,17 @@ public class LimitsHandler {
         }
     }
 
+    public void deleteOperationalLimitsGroupsFromIdentifiables(Connection connection, UUID networkUuid, int variantNum, List<String> equipmentIds) throws SQLException {
+        try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildDeleteOperationalLimitsGroupsVariantEquipmentINQuery(equipmentIds.size()))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            for (int i = 0; i < equipmentIds.size(); i++) {
+                preparedStmt.setString(3 + i, equipmentIds.get(i));
+            }
+            preparedStmt.executeUpdate();
+        }
+    }
+
     private record SelectedOperationalLimitsGroupIdentifiers(String branchId, String operationalLimitsGroupId1,
                                                      String operationalLimitsGroupId2) {
     }
