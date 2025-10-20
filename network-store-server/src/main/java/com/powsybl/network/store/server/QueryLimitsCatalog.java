@@ -178,4 +178,38 @@ public final class QueryLimitsCatalog {
     public static String buildGetTombstonedOperationalLimitsGroupQuery() {
         return "select " + EQUIPMENT_ID_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + " FROM " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ?";
     }
+
+    public static String buildDeleteTombstonedOperationalLimitsGroupQuery() {
+        return "delete from " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?";
+    }
+
+    public static String buildDeleteTombstonedOperationalLimitsGroupVariantQuery() {
+        return "delete from " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE +
+                " where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ?";
+    }
+
+    public static String buildCloneTombstonedOperationalLimitsGroupQuery() {
+        return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                GROUP_ID_COLUMN + ", " +
+                SIDE_COLUMN + ") " +
+                "select " +
+                "?" + "," +
+                "?" + "," +
+                EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                SIDE_COLUMN +
+                " from " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " " +
+                "where " +
+                NETWORK_UUID_COLUMN + " = ?" + " and " +
+                VARIANT_NUM_COLUMN + " = ? ";
+    }
 }
