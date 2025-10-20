@@ -1644,4 +1644,56 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                 .properties(Map.of("prop1", "value1", "prop2", "value2"))
                 .build();
     }
+
+    @Test
+    void clonePartialVariantInPartialModeWithOperationalLimitsGroup() {
+        String networkId = "network1";
+        String lineId1 = "line1";
+        createNetwork(networkStoreRepository, NETWORK_UUID, networkId, 1, "variant1", 0);
+        createLineWithLimits(networkStoreRepository, NETWORK_UUID, 1, lineId1, "vl1", "vl2", List.of("olgside1"), List.of("olgside2"));
+
+        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 1, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of("olgside1"))));
+        assertEquals(1, getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1).size());
+
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+        Set<OperationalLimitsGroupOwnerInfo> tombstonedOperationalLimitsGroups = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 2);
+        assertEquals(1, tombstonedOperationalLimitsGroups.size());
+        assertTrue(tombstonedOperationalLimitsGroups.contains(new OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 2, "olgside1", 1)));
+
+        // Check that tombstoned identifiables are cleaned when removing the network
+        networkStoreRepository.deleteNetwork(NETWORK_UUID, 2);
+        assertEquals(Set.of(), getTombstonedOperationalLimitsGroups(NETWORK_UUID, 2));
+
+    }
+
+    @Test
+    void cloneFullVariantInPartialModeWithOperationalLimitsGroup() {
+        String networkId = "network1";
+        String lineId1 = "line1";
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        createLineWithLimits(networkStoreRepository, NETWORK_UUID, 0, lineId1, "vl1", "vl2", List.of("olgside1"), List.of("olgside2"));
+
+        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 0, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of("olgside1"))));
+        assertEquals(0, getTombstonedOperationalLimitsGroups(NETWORK_UUID, 0).size());
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 0, lineId1, ResourceType.LINE, "olgside1", 1).isEmpty());
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 0, lineId1, ResourceType.LINE, "olgside2", 2).isPresent());
+
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+        assertEquals(0, getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1).size());
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 1, lineId1, ResourceType.LINE, "olgside1", 1).isEmpty());
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 1, lineId1, ResourceType.LINE, "olgside2", 2).isPresent());
+
+        // Check that tombstoned identifiables are cleaned when removing the network
+        networkStoreRepository.deleteNetwork(NETWORK_UUID, 1);
+        assertEquals(Set.of(), getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1));
+
+    }
+
+    private Set<OperationalLimitsGroupOwnerInfo> getTombstonedOperationalLimitsGroups(UUID networkUuid, int variantNum) {
+        try (var connection = dataSource.getConnection()) {
+            return LimitsHandler.getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
 }

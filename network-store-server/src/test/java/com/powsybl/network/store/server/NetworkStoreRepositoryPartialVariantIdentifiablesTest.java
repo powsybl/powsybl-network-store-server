@@ -22,8 +22,9 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.function.BiConsumer;
 
-import static com.powsybl.network.store.server.Mappings.*;
-import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.Mappings.LINE_TABLE;
+import static com.powsybl.network.store.server.Mappings.LOAD_TABLE;
+import static com.powsybl.network.store.server.QueryCatalog.VOLTAGE_LEVEL_ID_COLUMN;
 import static com.powsybl.network.store.server.utils.PartialVariantTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
