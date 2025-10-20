@@ -1036,7 +1036,6 @@ public class NetworkStoreRepository {
                 }
             }
             extensionHandler.deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, ids);
-            limitsHandler.deleteOperationalLimitsGroupsFromIdentifiables(connection, networkUuid, variantNum, ids);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
