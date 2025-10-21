@@ -107,8 +107,8 @@ public final class QueryExtensionCatalog {
         return "delete from " + EXTENSION_TABLE +
                 " where " + NETWORK_UUID_COLUMN + " = ? " +
                 "and " + VARIANT_NUM_COLUMN + " = ? " +
-                "and name = ? " +
-                "and " + EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
+                "and " + EQUIPMENT_ID_COLUMN + " = ? " +
+                "and name in (" + generateInPlaceholders(numberOfValues) + ")";
     }
 
     // Tombstoned extensions

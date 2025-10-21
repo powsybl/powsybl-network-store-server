@@ -1568,8 +1568,8 @@ public class NetworkStoreController {
     public ResponseEntity<Void> removeExtensionAttributes(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                           @Parameter(description = "Identifiable id", required = true) @PathVariable("resourceType") ResourceType type,
-                                          @Parameter(description = "identifiables by extension to remove", required = true) @RequestBody Map<String, Set<String>> identifiableIdsByExtensionName) {
-        repository.removeExtensionAttributes(networkId, variantNum, identifiableIdsByExtensionName);
+                                          @Parameter(description = "extensions by identifiable to remove", required = true) @RequestBody Map<String, Set<String>> extensionsByIdentifiableId) {
+        repository.removeExtensionAttributes(networkId, variantNum, extensionsByIdentifiableId);
         return ResponseEntity.ok().build();
     }
 
