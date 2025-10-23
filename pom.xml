@@ -50,7 +50,7 @@
     <properties>
         <sirocco.version>1.0</sirocco.version>
         <powsybl-network-store.version>1.31.0-SNAPSHOT</powsybl-network-store.version>
-        <powsybl-ws-dependencies.version>2.24.0</powsybl-ws-dependencies.version>
+        <powsybl-ws-dependencies.version>2.25.0</powsybl-ws-dependencies.version>
         <!-- FIXME : to remove when sonar version is updated on github actions -->
         <!-- https://community.sonarsource.com/t/stackoverflowerror-at-defaultinputcomponent-equals/20324 -->
         <!-- The versions are very different from this post. But the fix works again. Maybe a similar problem in sonar code -->
@@ -65,7 +65,7 @@
         <sonar.coverage.exclusions>**/migration/**/*</sonar.coverage.exclusions>
         <sonar.cpd.exclusions>**/migration/**/*</sonar.cpd.exclusions>
         <!-- FIXME: powsybl-network-store modules'version is overloaded in the dependencies section.The overloads and this property below have to be removed at next powsybl-ws-dependencies.version upgrade -->
-        <powsybl-network-store.version>1.31.0</powsybl-network-store.version>
+        <powsybl-network-store.version>1.32.0</powsybl-network-store.version>
     </properties>
 
     <modules>
