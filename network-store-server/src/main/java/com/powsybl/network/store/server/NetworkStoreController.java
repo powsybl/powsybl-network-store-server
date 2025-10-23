@@ -1562,14 +1562,14 @@ public class NetworkStoreController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(repository.getAllExtensionsAttributesByResourceType(networkId, variantNum, type));
     }
 
-    @DeleteMapping(value = "{networkId}/{variantNum}/identifiables/{identifiableId}/extensions/{extensionName}")
+    @DeleteMapping(value = "{networkId}/{variantNum}/identifiables/types/{resourceType}/extensions")
     @Operation(summary = "Delete an extension attributes by extension name and identifiable id")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully deleted extension attributes"))
     public ResponseEntity<Void> removeExtensionAttributes(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                           @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                          @Parameter(description = "Identifiable id", required = true) @PathVariable("identifiableId") String identifiableId,
-                                          @Parameter(description = "Extension name", required = true) @PathVariable("extensionName") String extensionName) {
-        repository.removeExtensionAttributes(networkId, variantNum, identifiableId, extensionName);
+                                          @Parameter(description = "Identifiable id", required = true) @PathVariable("resourceType") ResourceType type,
+                                          @Parameter(description = "extensions by identifiable to remove", required = true) @RequestBody Map<String, Set<String>> extensionsByIdentifiableId) {
+        repository.removeExtensionAttributes(networkId, variantNum, extensionsByIdentifiableId);
         return ResponseEntity.ok().build();
     }
 
