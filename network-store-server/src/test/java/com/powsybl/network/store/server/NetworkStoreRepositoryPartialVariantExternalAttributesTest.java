@@ -1689,6 +1689,81 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
     }
 
+    @Test
+    void testTombstonedWhenRemovingTwiceTheSameLimitsGroup() {
+        String networkId = "network1";
+        String lineId1 = "line1";
+        // create network and line on variant 0
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        createLineWithLimits(networkStoreRepository, NETWORK_UUID, 0, lineId1, "vl1", "vl2",
+                Collections.singletonList("GROUP1"), Collections.singletonList("GROUP2"));
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        // delete on variant 1
+        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 1, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of("GROUP1"))));
+        Set<OperationalLimitsGroupOwnerInfo> tombstonedIds = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1);
+        assertEquals(1, tombstonedIds.size());
+        assertTrue(tombstonedIds.contains(new OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 1, "GROUP1", 1)));
+
+        // recreate on variant 2
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+        Optional<Resource<LineAttributes>> line1 = networkStoreRepository.getLine(NETWORK_UUID, 2, lineId1);
+        assertTrue(line1.isPresent());
+        Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroups1 = new HashMap<>();
+        operationalLimitsGroups1.put("GROUP1", OperationalLimitsGroupAttributes.builder().id("GROUP1").build());
+        line1.get().getAttributes().setOperationalLimitsGroups1(operationalLimitsGroups1);
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(line1.get()));
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 2, lineId1, ResourceType.LINE, "GROUP1", 1).isPresent());
+        Set<OperationalLimitsGroupOwnerInfo> tombstonedIds2 = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 2);
+        assertEquals(1, tombstonedIds2.size());
+        assertTrue(tombstonedIds2.contains(new OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 2, "GROUP1", 1)));
+
+        // re delete on variant 3
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 2, 3, "variant3");
+        networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 3, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of("GROUP1"))));
+        Set<OperationalLimitsGroupOwnerInfo> tombstonedIds3 = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 3);
+        assertEquals(1, tombstonedIds3.size());
+        assertTrue(tombstonedIds3.contains(new OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 3, "GROUP1", 1)));
+    }
+
+    @Test
+    void testTombstonedWhenRemovingTwiceTheSameExtension() {
+        String networkId = "network1";
+        String lineId = "line1";
+        // create network and line on variant 0
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        createLine(networkStoreRepository, NETWORK_UUID, 0, lineId, "vl1", "vl2");
+        OwnerInfo ownerInfo1 = new OwnerInfo(lineId, ResourceType.LINE, NETWORK_UUID, 0);
+        Map<String, ExtensionAttributes> extensionAttributesMap = buildExtensionAttributesMap(5.6, "status1");
+        insertExtensions(Map.of(ownerInfo1, extensionAttributesMap));
+
+        // remove extension on variant 1
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+        networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 1, lineId, ActivePowerControl.NAME);
+        Map<String, Set<String>> tombstonedExtension1 = getTombstonedExtensions(NETWORK_UUID, 1);
+        assertTrue(tombstonedExtension1.containsKey(lineId));
+        assertTrue(tombstonedExtension1.get(lineId).contains(ActivePowerControl.NAME));
+
+        // recreate extension on variant 2
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+        Optional<Resource<LineAttributes>> line1 = networkStoreRepository.getLine(NETWORK_UUID, 2, lineId);
+        assertTrue(line1.isPresent());
+        line1.get().getAttributes().getExtensionAttributes().putAll(extensionAttributesMap);
+        networkStoreRepository.updateLines(NETWORK_UUID, List.of(line1.get()));
+        assertTrue(networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 2, lineId, ActivePowerControl.NAME).isPresent());
+        Map<String, Set<String>> tombstonedExtension2 = getTombstonedExtensions(NETWORK_UUID, 2);
+        assertTrue(tombstonedExtension2.containsKey(lineId));
+        assertTrue(tombstonedExtension2.get(lineId).contains(ActivePowerControl.NAME));
+
+        // re delete on variant 3
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 2, 3, "variant3");
+        networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 3, lineId, ActivePowerControl.NAME);
+        Map<String, Set<String>> tombstonedExtension3 = getTombstonedExtensions(NETWORK_UUID, 3);
+        assertTrue(tombstonedExtension3.containsKey(lineId));
+        assertTrue(tombstonedExtension3.get(lineId).contains(ActivePowerControl.NAME));
+        assertTrue(networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 3, lineId, ActivePowerControl.NAME).isEmpty());
+    }
+
     private Set<OperationalLimitsGroupOwnerInfo> getTombstonedOperationalLimitsGroups(UUID networkUuid, int variantNum) {
         try (var connection = dataSource.getConnection()) {
             return LimitsHandler.getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum);

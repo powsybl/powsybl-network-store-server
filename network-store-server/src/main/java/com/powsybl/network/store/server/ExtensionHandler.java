@@ -380,14 +380,17 @@ public class ExtensionHandler {
 
     public void insertTombstonedExtensions(UUID networkId, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName, Connection connection) throws SQLException {
         try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildInsertTombstonedExtensionsQuery())) {
+            Map<String, Set<String>> tombstonedExtensionByIdentifiableId = getTombstonedExtensions(connection, networkId, variantNum);
             for (Map.Entry<String, Set<String>> entry : identifiableIdsByExtensionName.entrySet()) {
                 String extensionName = entry.getKey();
                 for (String identifiableId : entry.getValue()) {
-                    preparedStmt.setObject(1, networkId);
-                    preparedStmt.setInt(2, variantNum);
-                    preparedStmt.setString(3, identifiableId);
-                    preparedStmt.setString(4, extensionName);
-                    preparedStmt.addBatch();
+                    if (!(tombstonedExtensionByIdentifiableId.containsKey(identifiableId) && tombstonedExtensionByIdentifiableId.get(identifiableId).contains(extensionName))) {
+                        preparedStmt.setObject(1, networkId);
+                        preparedStmt.setInt(2, variantNum);
+                        preparedStmt.setString(3, identifiableId);
+                        preparedStmt.setString(4, extensionName);
+                        preparedStmt.addBatch();
+                    }
                 }
             }
             preparedStmt.executeBatch();

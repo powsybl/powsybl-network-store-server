@@ -355,25 +355,28 @@ public class LimitsHandler {
                 .map(groupMap -> groupMap.get(operationalLimitsGroupId));
     }
 
-    public void deleteAndTombstoneOperationalLimitsGroups(UUID networkUuid, List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant) throws SQLException {
+    public void deleteAndTombstoneOperationalLimitsGroups(UUID networkUuid, List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant, Integer variantNum) throws SQLException {
         deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroupInfos);
         if (isPartialVariant) {
-            insertTombstonedOperationalLimitsGroups(operationalLimitsGroupInfos);
+            insertTombstonedOperationalLimitsGroups(operationalLimitsGroupInfos, networkUuid, variantNum);
         }
     }
 
-    public void insertTombstonedOperationalLimitsGroups(List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos) throws SQLException {
+    public void insertTombstonedOperationalLimitsGroups(List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, UUID networkUuid, Integer variantNum) throws SQLException {
         try (var connection = dataSource.getConnection()) {
+            Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupsToInsert = getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum);
             try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildInsertTombstonedOperationalLimitsGroupQuery())) {
                 for (List<OperationalLimitsGroupOwnerInfo> partition : Lists.partition(operationalLimitsGroupInfos, BATCH_SIZE)) {
                     for (OperationalLimitsGroupOwnerInfo entry : partition) {
-                        preparedStmt.setObject(1, entry.getNetworkUuid());
-                        preparedStmt.setInt(2, entry.getVariantNum());
-                        preparedStmt.setString(3, entry.getEquipmentId());
-                        preparedStmt.setString(4, entry.getEquipmentType().name());
-                        preparedStmt.setInt(5, entry.getSide());
-                        preparedStmt.setString(6, entry.getOperationalLimitsGroupId());
-                        preparedStmt.addBatch();
+                        if (!operationalLimitsGroupsToInsert.contains(entry)) {
+                            preparedStmt.setObject(1, entry.getNetworkUuid());
+                            preparedStmt.setInt(2, entry.getVariantNum());
+                            preparedStmt.setString(3, entry.getEquipmentId());
+                            preparedStmt.setString(4, entry.getEquipmentType().name());
+                            preparedStmt.setInt(5, entry.getSide());
+                            preparedStmt.setString(6, entry.getOperationalLimitsGroupId());
+                            preparedStmt.addBatch();
+                        }
                     }
                     preparedStmt.executeBatch();
                 }
