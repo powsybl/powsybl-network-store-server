@@ -194,7 +194,7 @@ class ExtensionHandlerTest {
         Map<String, ExtensionAttributes> extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
         assertEquals(2, extensions.size());
         extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(
-                "activePowerControl", Set.of(batteryId1)
+                batteryId1, Set.of("activePowerControl")
         ));
         extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
         assertEquals(1, extensions.size());
@@ -206,8 +206,7 @@ class ExtensionHandlerTest {
         assertEquals(0, extensions.size());
 
         extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(
-                "activePowerControl", Set.of(batteryId2),
-                "operatingStatus", Set.of(batteryId2)
+                batteryId2, Set.of("activePowerControl", "operatingStatus")
         ));
         extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId2);
         assertEquals(0, extensions.size());
