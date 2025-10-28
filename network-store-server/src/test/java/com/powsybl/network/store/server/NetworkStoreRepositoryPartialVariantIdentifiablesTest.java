@@ -475,6 +475,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
         assertEquals(List.of(lineId1), getIdentifiableIdsForVariant(NETWORK_UUID, 0));
         assertTrue(getTombstonedIdentifiableIds(NETWORK_UUID, 0).isEmpty());
+
+        // Delete an identifiable already deleted does not throw
+        assertDoesNotThrow(() -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(loadId1), LOAD_TABLE));
     }
 
     @Test
@@ -490,8 +493,8 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(List.of(lineId1), getIdentifiableIdsForVariant(NETWORK_UUID, 1));
         assertEquals(Set.of(loadId1), getTombstonedIdentifiableIds(NETWORK_UUID, 1));
 
-        // Delete an identifiable already deleted should throw
-        // assertThrows(UncheckedSqlException.class, () -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, idsToDelete, LOAD_TABLE));
+        // Delete an identifiable already deleted does not throw
+        assertDoesNotThrow(() -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, idsToDelete, LOAD_TABLE));
     }
 
     @Test
