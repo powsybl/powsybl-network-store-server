@@ -357,6 +357,38 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     }
 
     @Test
+    void testTombstonedIdentifiablesWhenRemovingTwiceTheSameEquipment() {
+        String networkId = "network1";
+        String lineId1 = "line1";
+        // create network and line on variant 0
+        createFullVariantNetwork(networkStoreRepository, NETWORK_UUID, networkId, 0, "variant0");
+        createLine(networkStoreRepository, NETWORK_UUID, 0, lineId1, "vl1", "vl2");
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
+
+        // delete on variant 1
+        networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(lineId1), LINE_TABLE);
+        assertTrue(networkStoreRepository.getIdentifiable(NETWORK_UUID, 1, lineId1).isEmpty());
+        List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, 1);
+        assertTrue(identifiablesIds.isEmpty());
+        Set<String> tombstonedIds = getTombstonedIdentifiableIds(NETWORK_UUID, 1);
+        assertEquals(Set.of(lineId1), tombstonedIds);
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
+
+        // recreate element on variant 2
+        createLine(networkStoreRepository, NETWORK_UUID, 2, lineId1, "vl1", "vl2");
+        assertTrue(networkStoreRepository.getIdentifiable(NETWORK_UUID, 2, lineId1).isPresent());
+        Set<String> tombstonedIds2 = getTombstonedIdentifiableIds(NETWORK_UUID, 2);
+        assertEquals(Set.of(lineId1), tombstonedIds2);
+
+        // re delete on variant 3
+        networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 2, 3, "variant3");
+        networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 3, Collections.singletonList(lineId1), LINE_TABLE);
+        assertTrue(networkStoreRepository.getIdentifiable(NETWORK_UUID, 3, lineId1).isEmpty());
+        Set<String> tombstonedIds3 = getTombstonedIdentifiableIds(NETWORK_UUID, 3);
+        assertEquals(Set.of(lineId1), tombstonedIds3);
+    }
+
+    @Test
     void getIdentifiableFromPartialCloneWithExternalAttributes() {
         String networkId = "network1";
         String lineId1 = "line1";
@@ -446,6 +478,9 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
         assertEquals(List.of(lineId1), getIdentifiableIdsForVariant(NETWORK_UUID, 0));
         assertTrue(getTombstonedIdentifiableIds(NETWORK_UUID, 0).isEmpty());
+
+        // Delete an identifiable already deleted does not throw
+        assertDoesNotThrow(() -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 0, Collections.singletonList(loadId1), LOAD_TABLE));
     }
 
     @Test
@@ -461,8 +496,8 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         assertEquals(List.of(lineId1), getIdentifiableIdsForVariant(NETWORK_UUID, 1));
         assertEquals(Set.of(loadId1), getTombstonedIdentifiableIds(NETWORK_UUID, 1));
 
-        // Delete an identifiable already deleted should throw
-        assertThrows(UncheckedSqlException.class, () -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, idsToDelete, LOAD_TABLE));
+        // Delete an identifiable already deleted does not throw
+        assertDoesNotThrow(() -> networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, idsToDelete, LOAD_TABLE));
     }
 
     @Test
