@@ -364,11 +364,11 @@ public class LimitsHandler {
 
     public void insertTombstonedOperationalLimitsGroups(List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, UUID networkUuid, Integer variantNum) throws SQLException {
         try (var connection = dataSource.getConnection()) {
-            Set<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupsToInsert = getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum);
+            Set<OperationalLimitsGroupOwnerInfo> tombstonedOperationalLimitsGroups = getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum);
             try (var preparedStmt = connection.prepareStatement(QueryLimitsCatalog.buildInsertTombstonedOperationalLimitsGroupQuery())) {
                 for (List<OperationalLimitsGroupOwnerInfo> partition : Lists.partition(operationalLimitsGroupInfos, BATCH_SIZE)) {
                     for (OperationalLimitsGroupOwnerInfo entry : partition) {
-                        if (!operationalLimitsGroupsToInsert.contains(entry)) {
+                        if (!tombstonedOperationalLimitsGroups.contains(entry)) {
                             preparedStmt.setObject(1, entry.getNetworkUuid());
                             preparedStmt.setInt(2, entry.getVariantNum());
                             preparedStmt.setString(3, entry.getEquipmentId());

@@ -1701,6 +1701,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
         // delete on variant 1
         networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 1, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of("GROUP1"))));
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 1, lineId1, ResourceType.LINE, "GROUP1", 1).isEmpty());
         Set<OperationalLimitsGroupOwnerInfo> tombstonedIds = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 1);
         assertEquals(1, tombstonedIds.size());
         assertTrue(tombstonedIds.contains(new OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 1, "GROUP1", 1)));
@@ -1721,6 +1722,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         // re delete on variant 3
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 2, 3, "variant3");
         networkStoreRepository.removeOperationalLimitsGroupAttributes(NETWORK_UUID, 3, ResourceType.LINE, Map.of(lineId1, Map.of(1, Set.of("GROUP1"))));
+        assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 3, lineId1, ResourceType.LINE, "GROUP1", 1).isEmpty());
         Set<OperationalLimitsGroupOwnerInfo> tombstonedIds3 = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 3);
         assertEquals(1, tombstonedIds3.size());
         assertTrue(tombstonedIds3.contains(new OperationalLimitsGroupOwnerInfo(lineId1, ResourceType.LINE, NETWORK_UUID, 3, "GROUP1", 1)));
@@ -1740,6 +1742,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         // remove extension on variant 1
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 1, lineId, ActivePowerControl.NAME);
+        assertTrue(networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 1, lineId, ActivePowerControl.NAME).isEmpty());
         Map<String, Set<String>> tombstonedExtension1 = getTombstonedExtensions(NETWORK_UUID, 1);
         assertTrue(tombstonedExtension1.containsKey(lineId));
         assertTrue(tombstonedExtension1.get(lineId).contains(ActivePowerControl.NAME));
@@ -1758,6 +1761,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         // re delete on variant 3
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 2, 3, "variant3");
         networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 3, lineId, ActivePowerControl.NAME);
+        assertTrue(networkStoreRepository.getExtensionAttributes(NETWORK_UUID, 3, lineId, ActivePowerControl.NAME).isEmpty());
         Map<String, Set<String>> tombstonedExtension3 = getTombstonedExtensions(NETWORK_UUID, 3);
         assertTrue(tombstonedExtension3.containsKey(lineId));
         assertTrue(tombstonedExtension3.get(lineId).contains(ActivePowerControl.NAME));
