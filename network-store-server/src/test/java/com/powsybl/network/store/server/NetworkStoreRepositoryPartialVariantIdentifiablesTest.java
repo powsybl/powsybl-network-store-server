@@ -367,6 +367,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
         // delete on variant 1
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 1, Collections.singletonList(lineId1), LINE_TABLE);
+        assertTrue(networkStoreRepository.getIdentifiable(NETWORK_UUID, 1, lineId1).isEmpty());
         List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, 1);
         assertTrue(identifiablesIds.isEmpty());
         Set<String> tombstonedIds = getTombstonedIdentifiableIds(NETWORK_UUID, 1);
@@ -375,12 +376,14 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
         // recreate element on variant 2
         createLine(networkStoreRepository, NETWORK_UUID, 2, lineId1, "vl1", "vl2");
+        assertTrue(networkStoreRepository.getIdentifiable(NETWORK_UUID, 2, lineId1).isPresent());
         Set<String> tombstonedIds2 = getTombstonedIdentifiableIds(NETWORK_UUID, 2);
         assertEquals(Set.of(lineId1), tombstonedIds2);
 
         // re delete on variant 3
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 2, 3, "variant3");
         networkStoreRepository.deleteIdentifiables(NETWORK_UUID, 3, Collections.singletonList(lineId1), LINE_TABLE);
+        assertTrue(networkStoreRepository.getIdentifiable(NETWORK_UUID, 3, lineId1).isEmpty());
         Set<String> tombstonedIds3 = getTombstonedIdentifiableIds(NETWORK_UUID, 3);
         assertEquals(Set.of(lineId1), tombstonedIds3);
     }
