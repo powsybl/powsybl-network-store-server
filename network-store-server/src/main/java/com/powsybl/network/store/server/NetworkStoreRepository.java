@@ -302,6 +302,7 @@ public class NetworkStoreRepository {
     private static void deleteExternalAttributes(UUID uuid, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesQueries = List.of(
                 QueryLimitsCatalog.buildDeleteOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildDeleteTombstonedOperationalLimitsGroupQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
@@ -338,6 +339,7 @@ public class NetworkStoreRepository {
     private static void deleteExternalAttributesVariant(UUID uuid, int variantNum, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesVariantQueries = List.of(
                 QueryLimitsCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
+                QueryLimitsCatalog.buildDeleteTombstonedOperationalLimitsGroupVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
@@ -480,7 +482,8 @@ public class NetworkStoreRepository {
         List<String> tombstonedQueries = List.of(
                 QueryCatalog.buildCloneTombstonedIdentifiablesQuery(),
                 QueryCatalog.buildCloneTombstonedExternalAttributesQuery(),
-                QueryExtensionCatalog.buildCloneTombstonedExtensionsQuery()
+                QueryExtensionCatalog.buildCloneTombstonedExtensionsQuery(),
+                QueryLimitsCatalog.buildCloneTombstonedOperationalLimitsGroupQuery()
         );
 
         int totalTombstonedCloned = 0;
@@ -1020,13 +1023,16 @@ public class NetworkStoreRepository {
             }
             NetworkAttributes network = getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper);
             if (!network.isFullVariant()) {
+                Set<String> tombstonedIdentifiableIds = getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
                 try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedIdentifiablesQuery())) {
                     for (List<String> idsPartition : Lists.partition(ids, BATCH_SIZE)) {
                         for (String id : idsPartition) {
-                            preparedStmt.setObject(1, networkUuid);
-                            preparedStmt.setInt(2, variantNum);
-                            preparedStmt.setString(3, id);
-                            preparedStmt.addBatch();
+                            if (!tombstonedIdentifiableIds.contains(id)) {
+                                preparedStmt.setObject(1, networkUuid);
+                                preparedStmt.setInt(2, variantNum);
+                                preparedStmt.setString(3, id);
+                                preparedStmt.addBatch();
+                            }
                         }
                         preparedStmt.executeBatch();
                     }
@@ -3538,7 +3544,7 @@ public class NetworkStoreRepository {
                     limitsGroupIds.forEach(operationalLimitsGroupId ->
                             operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
                     )));
-            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant);
+            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant, variantNum);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
