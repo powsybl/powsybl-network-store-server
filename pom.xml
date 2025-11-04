@@ -78,6 +78,7 @@
                 <groupId>com.powsybl</groupId>
                 <artifactId>powsybl-ws-dependencies</artifactId>
                 <version>${powsybl-ws-dependencies.version}</version>
+                <type>pom</type>
                 <scope>import</scope>
             </dependency>
             <!-- project specific dependencies -->
