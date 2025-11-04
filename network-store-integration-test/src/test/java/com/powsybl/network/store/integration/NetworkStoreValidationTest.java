@@ -9,6 +9,7 @@ package com.powsybl.network.store.integration;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.RestClientImpl;
 import com.powsybl.network.store.iidm.impl.ConfiguredBusImpl;
 import com.powsybl.network.store.iidm.impl.ShuntCompensatorLinearModelImpl;
 import com.powsybl.network.store.iidm.impl.ShuntCompensatorNonLinearModelImpl;
@@ -29,7 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class})})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
 class NetworkStoreValidationTest {
 
     @LocalServerPort
