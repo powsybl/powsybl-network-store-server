@@ -74,7 +74,12 @@
 
     <dependencyManagement>
         <dependencies>
-
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-ws-dependencies</artifactId>
+                <version>${powsybl-ws-dependencies.version}</version>
+                <scope>import</scope>
+            </dependency>
             <!-- project specific dependencies -->
             <dependency>
                 <groupId>org.ow2.sirocco</groupId>
