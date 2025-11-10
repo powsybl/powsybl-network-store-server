@@ -81,7 +81,6 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
             <!-- project specific dependencies -->
             <dependency>
                 <groupId>org.ow2.sirocco</groupId>
