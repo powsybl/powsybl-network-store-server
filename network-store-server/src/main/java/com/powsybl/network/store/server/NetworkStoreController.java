@@ -6,7 +6,12 @@
  */
 package com.powsybl.network.store.server;
 
+import com.fasterxml.jackson.annotation.JsonView;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.network.store.model.*;
+import com.powsybl.network.store.model.utils.Views;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -38,6 +43,9 @@ public class NetworkStoreController {
 
     @Autowired
     private NetworkStoreObserver networkStoreObserver;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private <T extends IdentifiableAttributes> ResponseEntity<TopLevelDocument<T>> get(Supplier<Optional<Resource<T>>> f) {
         Optional<Resource<T>> optResource = networkStoreObserver.observeOne("get", f::get);
@@ -1252,8 +1260,7 @@ public class NetworkStoreController {
     @Operation(summary = "Update lines")
     @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update lines"))
     public ResponseEntity<Void> updateLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                            @Parameter(description = "line resources", required = true) @RequestBody List<Resource<LineAttributes>> lineResources) {
-
+                                            @Parameter(description = "line resources", required = true) @RequestBody @JsonView(value = Views.Basic.class) List<Resource<LineAttributes>> lineResources) {
         return updateAll(resources -> repository.updateLines(networkId, resources), lineResources, ResourceType.LINE);
     }
 
