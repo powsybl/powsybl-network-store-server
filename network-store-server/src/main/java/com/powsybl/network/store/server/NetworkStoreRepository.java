@@ -1859,12 +1859,8 @@ public class NetworkStoreRepository {
         return lines;
     }
 
-    public void updateLinesWithoutOperationalLimits(UUID networkUuid, List<Resource<LineAttributes>> resources) {
-        updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
-    }
-
     public void updateLines(UUID networkUuid, List<Resource<LineAttributes>> resources) {
-        updateLinesWithoutOperationalLimits(networkUuid, resources);
+        updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
         limitsHandler.updateOperationalLimitsGroups(networkUuid, resources);
     }
 

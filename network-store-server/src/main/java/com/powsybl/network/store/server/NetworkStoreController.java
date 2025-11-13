@@ -1140,16 +1140,6 @@ public class NetworkStoreController {
         return updateAll(resources -> repository.updateTwoWindingsTransformersSv(networkId, resources), twoWindingsTransformerResources, ResourceType.TWO_WINDINGS_TRANSFORMER);
     }
 
-    @PutMapping(value = "/{networkId}/2-windings-transformers/sv")
-    @Operation(summary = "Update 2 windings transformers SV")
-    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update 2 windings transformers SV"))
-    public ResponseEntity<Void> updateTwoWindingsTransformersWithoutLimits(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                                @Parameter(description = "2 windings transformer SV resources", required = true) @RequestBody List<Resource<BranchSvAttributes>> twoWindingsTransformerResources) {
-
-        return updateAll(resources -> repository.updateTwoWindingsTransformersSv(networkId, resources), twoWindingsTransformerResources, ResourceType.TWO_WINDINGS_TRANSFORMER);
-    }
-
-
     @DeleteMapping(value = "/{networkId}/{variantNum}/2-windings-transformers", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Delete multiple 2-windings transformers by IDs")
     @ApiResponses(value = {
@@ -1271,15 +1261,6 @@ public class NetworkStoreController {
                                               @Parameter(description = "line SV resources", required = true) @RequestBody List<Resource<BranchSvAttributes>> lineResources) {
 
         return updateAll(resources -> repository.updateLinesSv(networkId, resources), lineResources, ResourceType.LINE);
-    }
-
-    @PutMapping(value = "/{networkId}/lines/without_limits")
-    @Operation(summary = "Update lines without operationalLimitsGroups")
-    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update lines without operationalLimitsGroups"))
-    public ResponseEntity<Void> updateLinesWithoutOperationalLimitsGroups(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                              @Parameter(description = "line resources without limits groups", required = true) @RequestBody List<Resource<LineAttributes>> lineResources) {
-
-        return updateAll(resources -> repository.updateLinesWithoutOperationalLimits(networkId, resources), lineResources, ResourceType.LINE);
     }
 
     @DeleteMapping(value = "/{networkId}/{variantNum}/lines", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
