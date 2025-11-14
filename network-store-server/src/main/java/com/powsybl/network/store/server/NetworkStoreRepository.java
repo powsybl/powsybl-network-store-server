@@ -1023,13 +1023,16 @@ public class NetworkStoreRepository {
             }
             NetworkAttributes network = getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper);
             if (!network.isFullVariant()) {
+                Set<String> tombstonedIdentifiableIds = getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
                 try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedIdentifiablesQuery())) {
                     for (List<String> idsPartition : Lists.partition(ids, BATCH_SIZE)) {
                         for (String id : idsPartition) {
-                            preparedStmt.setObject(1, networkUuid);
-                            preparedStmt.setInt(2, variantNum);
-                            preparedStmt.setString(3, id);
-                            preparedStmt.addBatch();
+                            if (!tombstonedIdentifiableIds.contains(id)) {
+                                preparedStmt.setObject(1, networkUuid);
+                                preparedStmt.setInt(2, variantNum);
+                                preparedStmt.setString(3, id);
+                                preparedStmt.addBatch();
+                            }
                         }
                         preparedStmt.executeBatch();
                     }
@@ -3541,7 +3544,7 @@ public class NetworkStoreRepository {
                     limitsGroupIds.forEach(operationalLimitsGroupId ->
                             operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
                     )));
-            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant);
+            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant, variantNum);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
