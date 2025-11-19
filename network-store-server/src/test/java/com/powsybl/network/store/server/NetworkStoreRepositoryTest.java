@@ -1676,4 +1676,24 @@ class NetworkStoreRepositoryTest {
         assertTrue(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().isLoadTapChangingCapabilities());
         assertEquals(2, retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
     }
+
+    @Test
+    void testLineWithoutSelectedOlgShouldNotThrow() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String lineId = "line1";
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+                .id(lineId)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line1));
+
+        assertNotNull(networkStoreRepository.getLine(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId));
+        assertTrue(networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.LINE).isEmpty());
+    }
 }
