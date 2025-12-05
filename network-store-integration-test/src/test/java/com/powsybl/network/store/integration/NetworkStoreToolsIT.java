@@ -7,6 +7,7 @@
 package com.powsybl.network.store.integration;
 
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.RestClientImpl;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.network.store.tools.NetworkStoreDeleteTool;
 import com.powsybl.network.store.tools.NetworkStoreImportTool;
@@ -35,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class})})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
 @DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreToolsIT extends AbstractNetworkStoreToolsIT {
 

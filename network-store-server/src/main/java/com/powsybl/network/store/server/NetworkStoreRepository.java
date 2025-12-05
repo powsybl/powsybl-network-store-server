@@ -270,9 +270,9 @@ public class NetworkStoreRepository {
 
     public void deleteNetwork(UUID uuid) {
         try (var connection = dataSource.getConnection()) {
-            deleteNetwork(uuid, connection);
             deleteIdentifiables(uuid, connection);
             deleteExternalAttributes(uuid, connection);
+            deleteNetwork(uuid, connection);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -301,7 +301,8 @@ public class NetworkStoreRepository {
 
     private static void deleteExternalAttributes(UUID uuid, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesQueries = List.of(
-                QueryCatalog.buildDeleteOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildDeleteOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildDeleteTombstonedOperationalLimitsGroupQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsQuery(),
@@ -327,9 +328,9 @@ public class NetworkStoreRepository {
             throw new IllegalArgumentException("Cannot delete initial variant");
         }
         try (var connection = dataSource.getConnection()) {
-            deleteNetworkVariant(uuid, variantNum, connection);
             deleteIdentifiablesVariant(uuid, variantNum, connection);
             deleteExternalAttributesVariant(uuid, variantNum, connection);
+            deleteNetworkVariant(uuid, variantNum, connection);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -337,7 +338,8 @@ public class NetworkStoreRepository {
 
     private static void deleteExternalAttributesVariant(UUID uuid, int variantNum, Connection connection) throws SQLException {
         List<String> deleteExternalAttributesVariantQueries = List.of(
-                QueryCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
+                QueryLimitsCatalog.buildDeleteOperationalLimitsGroupVariantQuery(),
+                QueryLimitsCatalog.buildDeleteTombstonedOperationalLimitsGroupVariantQuery(),
                 QueryCatalog.buildDeleteReactiveCapabilityCurvePointsVariantQuery(),
                 QueryCatalog.buildDeleteAreaBoundariesVariantQuery(),
                 QueryCatalog.buildDeleteRegulatingPointsVariantQuery(),
@@ -454,7 +456,7 @@ public class NetworkStoreRepository {
     private void cloneExternalAttributes(Connection connection, UUID uuid, UUID targetUuid, int sourceVariantNum, int targetVariantNum) throws SQLException {
         Stopwatch stopwatch = Stopwatch.createStarted();
         List<String> externalAttributesQueries = List.of(
-                QueryCatalog.buildCloneOperationalLimitsGroupQuery(),
+                QueryLimitsCatalog.buildCloneOperationalLimitsGroupQuery(),
                 QueryCatalog.buildCloneReactiveCapabilityCurvePointsQuery(),
                 QueryCatalog.buildCloneAreaBoundariesQuery(),
                 QueryCatalog.buildCloneRegulatingPointsQuery(),
@@ -480,7 +482,8 @@ public class NetworkStoreRepository {
         List<String> tombstonedQueries = List.of(
                 QueryCatalog.buildCloneTombstonedIdentifiablesQuery(),
                 QueryCatalog.buildCloneTombstonedExternalAttributesQuery(),
-                QueryExtensionCatalog.buildCloneTombstonedExtensionsQuery()
+                QueryExtensionCatalog.buildCloneTombstonedExtensionsQuery(),
+                QueryLimitsCatalog.buildCloneTombstonedOperationalLimitsGroupQuery()
         );
 
         int totalTombstonedCloned = 0;
@@ -656,7 +659,7 @@ public class NetworkStoreRepository {
 
     private <T extends IdentifiableAttributes> Resource<T> completeThreeWindingsTransformerInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Resource<ThreeWindingsTransformerAttributes> threeWindingsTransformerResource = (Resource<ThreeWindingsTransformerAttributes>) resource;
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroups(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, List.of(threeWindingsTransformerResource), operationalLimitsGroups);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
@@ -674,7 +677,7 @@ public class NetworkStoreRepository {
     }
 
     private <T extends IdentifiableAttributes> Resource<T> completeDanglingLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroups(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
         limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, List.of((Resource<DanglingLineAttributes>) resource), operationalLimitsGroups);
         return resource;
     }
@@ -1020,13 +1023,16 @@ public class NetworkStoreRepository {
             }
             NetworkAttributes network = getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper);
             if (!network.isFullVariant()) {
+                Set<String> tombstonedIdentifiableIds = getTombstonedIdentifiableIds(connection, networkUuid, variantNum);
                 try (var preparedStmt = connection.prepareStatement(buildInsertTombstonedIdentifiablesQuery())) {
                     for (List<String> idsPartition : Lists.partition(ids, BATCH_SIZE)) {
                         for (String id : idsPartition) {
-                            preparedStmt.setObject(1, networkUuid);
-                            preparedStmt.setInt(2, variantNum);
-                            preparedStmt.setString(3, id);
-                            preparedStmt.addBatch();
+                            if (!tombstonedIdentifiableIds.contains(id)) {
+                                preparedStmt.setObject(1, networkUuid);
+                                preparedStmt.setInt(2, variantNum);
+                                preparedStmt.setString(3, id);
+                                preparedStmt.addBatch();
+                            }
                         }
                         preparedStmt.executeBatch();
                     }
@@ -1753,7 +1759,7 @@ public class NetworkStoreRepository {
     public List<Resource<ThreeWindingsTransformerAttributes>> getThreeWindingsTransformers(UUID networkUuid, int variantNum) {
         List<Resource<ThreeWindingsTransformerAttributes>> threeWindingsTransformers = getIdentifiables(networkUuid, variantNum, mappings.getThreeWindingsTransformerMappings());
 
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroups(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
         limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, threeWindingsTransformers, operationalLimitsGroups);
 
         Map<OwnerInfo, List<TapChangerStepAttributes>> tapChangerSteps = getTapChangerSteps(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.THREE_WINDINGS_TRANSFORMER.toString());
@@ -1917,7 +1923,7 @@ public class NetworkStoreRepository {
     public List<Resource<DanglingLineAttributes>> getDanglingLines(UUID networkUuid, int variantNum) {
         List<Resource<DanglingLineAttributes>> danglingLines = getIdentifiables(networkUuid, variantNum, mappings.getDanglingLineMappings());
 
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroups(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
         limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, danglingLines, operationalLimitsGroups);
         setRegulatingEquipments(danglingLines, networkUuid, variantNum, ResourceType.DANGLING_LINE);
 
@@ -3530,9 +3536,23 @@ public class NetworkStoreRepository {
         return limitsHandler.getOperationalLimitsGroupAttributes(networkId, variantNum, branchId, type, operationalLimitsGroupName, side);
     }
 
+    public void removeOperationalLimitsGroupAttributes(UUID networkId, int variantNum, ResourceType type, Map<String, Map<Integer, Set<String>>> operationalLimitsGroupsToDelete) {
+        try (var connection = dataSource.getConnection()) {
+            boolean isPartialVariant = !getNetworkAttributes(connection, networkId, variantNum, mappings, mapper).isFullVariant();
+            List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupOwnerInfos = new ArrayList<>();
+            operationalLimitsGroupsToDelete.forEach((branchId, limitsGroupBySide) -> limitsGroupBySide.forEach((side, limitsGroupIds) ->
+                    limitsGroupIds.forEach(operationalLimitsGroupId ->
+                            operationalLimitsGroupOwnerInfos.add(new OperationalLimitsGroupOwnerInfo(branchId, type, networkId, variantNum, operationalLimitsGroupId, side))
+                    )));
+            limitsHandler.deleteAndTombstoneOperationalLimitsGroups(networkId, operationalLimitsGroupOwnerInfos, isPartialVariant, variantNum);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroups(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
         return operationalLimitsGroups.entrySet().stream()
                 .collect(Collectors.toMap(
                         entry -> entry.getKey().getEquipmentId(),
