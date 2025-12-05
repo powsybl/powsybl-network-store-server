@@ -14,9 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -29,17 +26,10 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Antoine Bouhours <antoine.bouhours at rte-france.com>
  */
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class ExtensionHandlerTest {
 
     @Autowired
     private DataSource dataSource;
-
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
 
     @Autowired
     private ExtensionHandler extensionHandler;
@@ -47,6 +37,8 @@ class ExtensionHandlerTest {
     private Connection connection;
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    @Autowired
+    private NetworkStoreRepository networkStoreRepository;
 
     @BeforeEach
     void setUp() throws SQLException {
@@ -55,6 +47,7 @@ class ExtensionHandlerTest {
 
     @AfterEach
     void tearDown() throws SQLException {
+        networkStoreRepository.deleteNetwork(NETWORK_UUID);
         if (connection != null && !connection.isClosed()) {
             connection.close();
         }

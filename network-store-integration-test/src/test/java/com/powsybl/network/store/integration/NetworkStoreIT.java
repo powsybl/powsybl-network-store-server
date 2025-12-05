@@ -32,16 +32,13 @@ import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -60,19 +57,20 @@ import static org.mockito.Mockito.*;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
-@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreIT {
-    @DynamicPropertySource
-    private static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
 
     private static final double ESP = 0.000001;
 
     @LocalServerPort
     private int randomServerPort;
     private static Properties properties;
+
+    @AfterEach
+    void tearDown() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            service.deleteAllNetworks();
+        }
+    }
 
     @BeforeAll
     static void setUp() {
