@@ -37,8 +37,9 @@ class ExtensionHandlerTest {
     private Connection connection;
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
-    @Autowired
-    private NetworkStoreRepository networkStoreRepository;
+    private static final String EQUPMENT_ID1 = "idBattery1";
+    private static final String EQUPMENT_ID2 = "idBattery2";
+    private static final String EQUPMENT_ID3 = "idGenerator1";
 
     @BeforeEach
     void setUp() throws SQLException {
@@ -47,7 +48,9 @@ class ExtensionHandlerTest {
 
     @AfterEach
     void tearDown() throws SQLException {
-        networkStoreRepository.deleteNetwork(NETWORK_UUID);
+        extensionHandler.deleteExtensionsFromIdentifiable(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, EQUPMENT_ID1);
+        extensionHandler.deleteExtensionsFromIdentifiable(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, EQUPMENT_ID2);
+        extensionHandler.deleteExtensionsFromIdentifiable(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, EQUPMENT_ID3);
         if (connection != null && !connection.isClosed()) {
             connection.close();
         }
@@ -55,7 +58,7 @@ class ExtensionHandlerTest {
 
     @Test
     void createExtensionsTest() throws SQLException {
-        String equipmentId1 = "idBatteryA";
+        String equipmentId1 = "idBattery1";
 
         OwnerInfo infoBatteryA = new OwnerInfo(
                 equipmentId1,
@@ -71,7 +74,7 @@ class ExtensionHandlerTest {
 
         extensionHandler.insertExtensions(connection, map1);
 
-        Map<String, ExtensionAttributes> extensionAttributesResults = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, "idBatteryA");
+        Map<String, ExtensionAttributes> extensionAttributesResults = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, equipmentId1);
         assertEquals(2, extensionAttributesResults.size());
         assertNotNull(extensionAttributesResults.get("activePowerControl"));
         ActivePowerControlAttributes activePowerControl = (ActivePowerControlAttributes) extensionAttributesResults.get("activePowerControl");
@@ -120,34 +123,34 @@ class ExtensionHandlerTest {
         extensionHandler.insertExtensions(connection, Map.of(infoGenerator1, extensionAttributesGenerator1));
 
         // Get one extension attributes
-        Optional<ExtensionAttributes> apcAttributesOpt = extensionHandler.getExtensionAttributesForVariant(connection, NETWORK_UUID, 0, batteryId1, "activePowerControl");
+        Optional<ExtensionAttributes> apcAttributesOpt = extensionHandler.getExtensionAttributesForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1, "activePowerControl");
         assertTrue(apcAttributesOpt.isPresent());
         ActivePowerControlAttributes apcAttributes = (ActivePowerControlAttributes) apcAttributesOpt.get();
         assertTrue(apcAttributes.isParticipate());
         assertEquals(6.0, apcAttributes.getDroop(), 0.1);
         assertEquals(1.5, apcAttributes.getParticipationFactor(), 0.1);
-        Optional<ExtensionAttributes> notFoundAttributesOpt = extensionHandler.getExtensionAttributesForVariant(connection, NETWORK_UUID, 0, batteryId1, "notFound");
+        Optional<ExtensionAttributes> notFoundAttributesOpt = extensionHandler.getExtensionAttributesForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1, "notFound");
         assertFalse(notFoundAttributesOpt.isPresent());
 
         // Get all extensions attributes by resource type and extensionName
-        Map<String, ExtensionAttributes> extensionAttributesById = extensionHandler.getAllExtensionsAttributesByResourceTypeAndExtensionNameForVariant(connection, NETWORK_UUID, 0, ResourceType.BATTERY.toString(), "activePowerControl");
+        Map<String, ExtensionAttributes> extensionAttributesById = extensionHandler.getAllExtensionsAttributesByResourceTypeAndExtensionNameForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.BATTERY.toString(), "activePowerControl");
         assertEquals(2, extensionAttributesById.size());
         assertTrue(extensionAttributesById.containsKey(batteryId1));
         assertTrue(extensionAttributesById.containsKey(batteryId2));
-        Map<String, ExtensionAttributes> notFoundAttributesById = extensionHandler.getAllExtensionsAttributesByResourceTypeAndExtensionNameForVariant(connection, NETWORK_UUID, 0, ResourceType.BATTERY.toString(), "notFound");
+        Map<String, ExtensionAttributes> notFoundAttributesById = extensionHandler.getAllExtensionsAttributesByResourceTypeAndExtensionNameForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.BATTERY.toString(), "notFound");
         assertTrue(notFoundAttributesById.isEmpty());
 
         // Get all extensions attributes by identifiable id
-        Map<String, ExtensionAttributes> extensionAttributesByExtensionName = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
+        Map<String, ExtensionAttributes> extensionAttributesByExtensionName = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
         assertEquals(2, extensionAttributesByExtensionName.size());
         assertTrue(extensionAttributesByExtensionName.containsKey("activePowerControl"));
         assertTrue(extensionAttributesByExtensionName.containsKey("operatingStatus"));
         assertTrue(extensionAttributesById.containsKey(batteryId2));
-        Map<String, ExtensionAttributes> notFoundByExtensionName = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, "notFound");
+        Map<String, ExtensionAttributes> notFoundByExtensionName = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "notFound");
         assertTrue(notFoundByExtensionName.isEmpty());
 
         // Get all extensions attributes by resource type
-        Map<String, Map<String, ExtensionAttributes>> extensionAttributesMap = extensionHandler.getAllExtensionsAttributesByResourceTypeForVariant(connection, NETWORK_UUID, 0, ResourceType.BATTERY.toString());
+        Map<String, Map<String, ExtensionAttributes>> extensionAttributesMap = extensionHandler.getAllExtensionsAttributesByResourceTypeForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.BATTERY.toString());
         assertEquals(2, extensionAttributesMap.size());
         assertTrue(extensionAttributesMap.containsKey(batteryId1));
         assertTrue(extensionAttributesMap.get(batteryId1).containsKey("activePowerControl"));
@@ -155,7 +158,7 @@ class ExtensionHandlerTest {
         assertTrue(extensionAttributesMap.containsKey(batteryId2));
         assertTrue(extensionAttributesMap.get(batteryId2).containsKey("activePowerControl"));
         assertTrue(extensionAttributesMap.get(batteryId2).containsKey("operatingStatus"));
-        Map<String, Map<String, ExtensionAttributes>> notExtensionAttributes = extensionHandler.getAllExtensionsAttributesByResourceTypeForVariant(connection, NETWORK_UUID, 0, ResourceType.LINE.toString());
+        Map<String, Map<String, ExtensionAttributes>> notExtensionAttributes = extensionHandler.getAllExtensionsAttributesByResourceTypeForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.LINE.toString());
         assertTrue(notExtensionAttributes.isEmpty());
     }
 
@@ -184,25 +187,25 @@ class ExtensionHandlerTest {
                 "operatingStatus", OperatingStatusAttributes.builder().operatingStatus("test23").build());
         extensionHandler.insertExtensions(connection, Map.of(infoBattery2, extensionAttributesBattery2));
 
-        Map<String, ExtensionAttributes> extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
+        Map<String, ExtensionAttributes> extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
         assertEquals(2, extensions.size());
-        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(
+        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Map.of(
                 "activePowerControl", Set.of(batteryId1)
         ));
-        extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
+        extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
         assertEquals(1, extensions.size());
         assertFalse(extensions.containsKey("activePowerControl"));
         assertTrue(extensions.containsKey("operatingStatus"));
 
-        extensionHandler.deleteExtensionsFromIdentifiable(connection, NETWORK_UUID, 0, batteryId1);
-        extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
+        extensionHandler.deleteExtensionsFromIdentifiable(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
+        extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
         assertEquals(0, extensions.size());
 
-        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, 0, Map.of(
+        extensionHandler.deleteExtensionsFromIdentifiables(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Map.of(
                 "activePowerControl", Set.of(batteryId2),
                 "operatingStatus", Set.of(batteryId2)
         ));
-        extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId2);
+        extensions = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId2);
         assertEquals(0, extensions.size());
     }
 
@@ -221,7 +224,7 @@ class ExtensionHandlerTest {
                 "operatingStatus", OperatingStatusAttributes.builder().operatingStatus("test12").build());
         extensionHandler.insertExtensions(connection, Map.of(infoBattery1, extensionAttributesBattery1));
 
-        Map<String, ExtensionAttributes> extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
+        Map<String, ExtensionAttributes> extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
         assertEquals(2, extensionAttributes.size());
         assertNotNull(extensionAttributes.get("activePowerControl"));
         ActivePowerControlAttributes activePowerControl = (ActivePowerControlAttributes) extensionAttributes.get("activePowerControl");
@@ -237,7 +240,7 @@ class ExtensionHandlerTest {
         batteryAttributes.setExtensionAttributes(updatedExtensionAttributes);
         Resource<BatteryAttributes> battery1 = Resource.batteryBuilder().id(batteryId1).attributes(batteryAttributes).build();
         extensionHandler.updateExtensionsFromEquipments(connection, NETWORK_UUID, List.of(battery1));
-        extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, batteryId1);
+        extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId1);
         assertEquals(2, extensionAttributes.size());
         assertNotNull(extensionAttributes.get("activePowerControl"));
         activePowerControl = (ActivePowerControlAttributes) extensionAttributes.get("activePowerControl");
@@ -261,7 +264,7 @@ class ExtensionHandlerTest {
                 "operatingStatus", OperatingStatusAttributes.builder().operatingStatus("test12").build());
         extensionHandler.insertExtensions(connection, Map.of(infoNetwork1, extensionAttributesNetwork1));
 
-        Map<String, ExtensionAttributes> extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, networkId1);
+        Map<String, ExtensionAttributes> extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, networkId1);
         assertEquals(2, extensionAttributes.size());
         assertNotNull(extensionAttributes.get("activePowerControl"));
         ActivePowerControlAttributes activePowerControl = (ActivePowerControlAttributes) extensionAttributes.get("activePowerControl");
@@ -278,7 +281,7 @@ class ExtensionHandlerTest {
         networkAttributes.setUuid(NETWORK_UUID);
         Resource<NetworkAttributes> network1 = Resource.networkBuilder().id(networkId1).attributes(networkAttributes).build();
         extensionHandler.updateExtensionsFromNetworks(connection, List.of(network1));
-        extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, networkId1);
+        extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, networkId1);
         assertEquals(2, extensionAttributes.size());
         assertNotNull(extensionAttributes.get("activePowerControl"));
         activePowerControl = (ActivePowerControlAttributes) extensionAttributes.get("activePowerControl");
@@ -290,7 +293,7 @@ class ExtensionHandlerTest {
 
     @Test
     void insertNonPersistentExtensionTest() throws SQLException {
-        String equipmentId = "idBattery";
+        String equipmentId = "idBattery1";
 
         OwnerInfo infoBattery = new OwnerInfo(
                 equipmentId,
@@ -304,7 +307,7 @@ class ExtensionHandlerTest {
         );
         extensionHandler.insertExtensions(connection, Map.of(infoBattery, extensionAttributes));
 
-        extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, 0, equipmentId);
+        extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, equipmentId);
         assertEquals(1, extensionAttributes.size());
         assertFalse(extensionAttributes.containsKey("notPersistent"));
         assertTrue(extensionAttributes.containsKey("activePowerControl"));
