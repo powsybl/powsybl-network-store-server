@@ -10,12 +10,10 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
@@ -32,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Antoine Bouhours <antoine.bouhours at rte-france.com>
  */
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
 
     @Autowired
@@ -44,13 +41,15 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
     @Autowired
     private DataSource dataSource;
 
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
-
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+
+    private static final UUID CLONED_NETWORK_UUID = UUID.fromString("0dd45074-009d-49b8-877f-8ae648a8e8b4");
+
+    @AfterEach
+    void tearDown() {
+        networkStoreRepository.deleteNetwork(NETWORK_UUID);
+        networkStoreRepository.deleteNetwork(CLONED_NETWORK_UUID);
+    }
 
     @Test
     void getNetworkContainsFullVariantNum() {
@@ -129,31 +128,30 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 0, loadId1, lineId1, "vl1", "vl2");
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createLineAndLoad(networkStoreRepository, NETWORK_UUID, 1, loadId2, lineId2, "vl1", "vl2");
-        UUID targetNetworkUuid = UUID.fromString("0dd45074-009d-49b8-877f-8ae648a8e8b4");
 
-        networkStoreRepository.cloneNetwork(targetNetworkUuid, NETWORK_UUID, List.of("variant0", "variant1"));
+        networkStoreRepository.cloneNetwork(CLONED_NETWORK_UUID, NETWORK_UUID, List.of("variant0", "variant1"));
 
         // Check variant 0
-        Optional<Resource<NetworkAttributes>> networkAttributesOptVariant0 = networkStoreRepository.getNetwork(targetNetworkUuid, 0);
+        Optional<Resource<NetworkAttributes>> networkAttributesOptVariant0 = networkStoreRepository.getNetwork(CLONED_NETWORK_UUID, 0);
         assertTrue(networkAttributesOptVariant0.isPresent());
         Resource<NetworkAttributes> networkAttributesVariant0 = networkAttributesOptVariant0.get();
         assertEquals(networkId, networkAttributesVariant0.getId());
         assertEquals(0, networkAttributesVariant0.getVariantNum());
-        assertEquals(targetNetworkUuid, networkAttributesVariant0.getAttributes().getUuid());
+        assertEquals(CLONED_NETWORK_UUID, networkAttributesVariant0.getAttributes().getUuid());
         assertEquals("variant0", networkAttributesVariant0.getAttributes().getVariantId());
         assertEquals(-1, networkAttributesVariant0.getAttributes().getFullVariantNum());
-        assertEquals(List.of(loadId1, lineId1), getIdentifiableIdsForVariant(targetNetworkUuid, 0));
+        assertEquals(List.of(loadId1, lineId1), getIdentifiableIdsForVariant(CLONED_NETWORK_UUID, 0));
 
         // Check variant 1
-        Optional<Resource<NetworkAttributes>> networkAttributesOptVariant1 = networkStoreRepository.getNetwork(targetNetworkUuid, 1);
+        Optional<Resource<NetworkAttributes>> networkAttributesOptVariant1 = networkStoreRepository.getNetwork(CLONED_NETWORK_UUID, 1);
         assertTrue(networkAttributesOptVariant1.isPresent());
         Resource<NetworkAttributes> networkAttributesVariant1 = networkAttributesOptVariant1.get();
         assertEquals(networkId, networkAttributesVariant1.getId());
         assertEquals(1, networkAttributesVariant1.getVariantNum());
-        assertEquals(targetNetworkUuid, networkAttributesVariant1.getAttributes().getUuid());
+        assertEquals(CLONED_NETWORK_UUID, networkAttributesVariant1.getAttributes().getUuid());
         assertEquals("variant1", networkAttributesVariant1.getAttributes().getVariantId());
         assertEquals(0, networkAttributesVariant1.getAttributes().getFullVariantNum());
-        assertEquals(List.of(loadId2, lineId2), getIdentifiableIdsForVariant(targetNetworkUuid, 1));
+        assertEquals(List.of(loadId2, lineId2), getIdentifiableIdsForVariant(CLONED_NETWORK_UUID, 1));
     }
 
     @Test

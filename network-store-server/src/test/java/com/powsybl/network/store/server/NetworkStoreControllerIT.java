@@ -16,15 +16,12 @@ import com.powsybl.iidm.network.extensions.ConnectablePosition;
 import com.powsybl.iidm.network.extensions.GeneratorStartup;
 import com.powsybl.network.store.model.*;
 import jakarta.servlet.ServletException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.ZonedDateTime;
@@ -43,22 +40,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreControllerIT {
 
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
-
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    private static final UUID CLONED_NETWORK_UUID = UUID.randomUUID();
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
     private MockMvc mvc;
+
+    @AfterEach
+    void tearDown() throws Exception {
+        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
 
     @BeforeEach
     void setup() {
@@ -1006,19 +1007,18 @@ class NetworkStoreControllerIT {
                 .andExpect(status().isCreated());
 
         //Clone the third variant
-        UUID clonedNetworkUuid = UUID.randomUUID();
-        mvc.perform(post("/" + VERSION + "/networks/" + clonedNetworkUuid + "?duplicateFrom=" + NETWORK_UUID + "&targetVariantIds=" + String.join(",", List.of("v2", "v3", "nonExistingVariant")))
+        mvc.perform(post("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID + "?duplicateFrom=" + NETWORK_UUID + "&targetVariantIds=" + String.join(",", List.of("v2", "v3", "nonExistingVariant")))
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/" + VERSION + "/networks/" + clonedNetworkUuid)
+        mvc.perform(get("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID)
                         .contentType(APPLICATION_JSON))
                  .andExpect(status().isOk())
                  .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                  .andExpect(content().json("[{\"id\":\"v2\",\"num\":0},{\"id\":\"v3\",\"num\":1}]"));
 
         //Check the generator is present in the cloned network
-        mvc.perform(get("/" + VERSION + "/networks/" + clonedNetworkUuid + "/" + 1 + "/generators")
+        mvc.perform(get("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID + "/" + 1 + "/generators")
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -1030,7 +1030,7 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.maxQ").value(10.));
 
         //Check the shunt is present in the cloned network
-        mvc.perform(get("/" + VERSION + "/networks/" + clonedNetworkUuid + "/" + 1 + "/shunt-compensators")
+        mvc.perform(get("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID + "/" + 1 + "/shunt-compensators")
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))

@@ -14,13 +14,11 @@ import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -36,7 +34,6 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Antoine Bouhours <antoine.bouhours at rte-france.com>
  */
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
     @Autowired
@@ -48,13 +45,15 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
     @Autowired
     private DataSource dataSource;
 
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
-
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+
+    private static final UUID CLONED_NETWORK_UUID = UUID.fromString("0dd45074-009d-49b8-877f-8ae648a8e8b4");
+
+    @AfterEach
+    void tearDown() {
+        networkStoreRepository.deleteNetwork(NETWORK_UUID);
+        networkStoreRepository.deleteNetwork(CLONED_NETWORK_UUID);
+    }
 
     @Test
     void cloneAllVariantsOfNetworkWithExternalAttributes() {
@@ -73,15 +72,14 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         createEquipmentsWithExternalAttributes(0, lineId1, genId1, twoWTId1, loadId1, areaId1);
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 0, 1, "variant1");
         createEquipmentsWithExternalAttributes(1, lineId2, genId2, twoWTId2, loadId2, areaId2);
-        UUID targetNetworkUuid = UUID.fromString("0dd45074-009d-49b8-877f-8ae648a8e8b4");
 
-        networkStoreRepository.cloneNetwork(targetNetworkUuid, NETWORK_UUID, List.of("variant0", "variant1"));
+        networkStoreRepository.cloneNetwork(CLONED_NETWORK_UUID, NETWORK_UUID, List.of("variant0", "variant1"));
 
         // Check variant 0
-        verifyExternalAttributes(lineId1, genId1, twoWTId1, areaId1, 0, targetNetworkUuid);
+        verifyExternalAttributes(lineId1, genId1, twoWTId1, areaId1, 0, CLONED_NETWORK_UUID);
 
         // Check variant 1
-        verifyExternalAttributes(lineId2, genId2, twoWTId2, areaId2, 1, targetNetworkUuid);
+        verifyExternalAttributes(lineId2, genId2, twoWTId2, areaId2, 1, CLONED_NETWORK_UUID);
     }
 
     private void createEquipmentsWithExternalAttributes(int variantNum, String lineId, String generatorId, String twoWTId, String loadId, String areaId) {
