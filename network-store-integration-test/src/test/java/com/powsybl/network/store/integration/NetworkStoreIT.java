@@ -1563,20 +1563,20 @@ class NetworkStoreIT {
             Map<String, Integer> nbInternalConnectionsPerVL = new HashMap();
             readNetwork.getVoltageLevels().forEach(vl -> nbInternalConnectionsPerVL.put(vl.getId(), vl.getNodeBreakerView().getInternalConnectionCount()));
 
-            assertEquals(9, nbInternalConnectionsPerVL.get("b2707f00-2554-41d2-bde2-7dd80a669e50"), .0001);
-            assertEquals(11, nbInternalConnectionsPerVL.get("8d4a8238-5b31-4c16-8692-0265dae5e132"), .0001);
-            assertEquals(23, nbInternalConnectionsPerVL.get("0d68ac81-124d-4d21-afa8-6c503feef5b8"), .0001);
-            assertEquals(9, nbInternalConnectionsPerVL.get("6f8ef715-bc0a-47d7-a74e-27f17234f590"), .0001);
-            assertEquals(29, nbInternalConnectionsPerVL.get("347fb7af-642f-4c60-97d9-c03d440b6a82"), .0001);
-            assertEquals(22, nbInternalConnectionsPerVL.get("051b93ae-9c15-4490-8cea-33395298f031"), .0001);
-            assertEquals(23, nbInternalConnectionsPerVL.get("5d9d9d87-ce6b-4213-b4ec-d50de9790a59"), .0001);
-            assertEquals(16, nbInternalConnectionsPerVL.get("93778e52-3fd5-456d-8b10-987c3e6bc47e"), .0001);
-            assertEquals(51, nbInternalConnectionsPerVL.get("a43d15db-44a6-4fda-a525-2402ff43226f"), .0001);
-            assertEquals(36, nbInternalConnectionsPerVL.get("cd28a27e-8b17-4f23-b9f5-03b6de15203f"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("b2707f00-2554-41d2-bde2-7dd80a669e50"), .0001);
+            assertEquals(3, nbInternalConnectionsPerVL.get("8d4a8238-5b31-4c16-8692-0265dae5e132"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("0d68ac81-124d-4d21-afa8-6c503feef5b8"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("6f8ef715-bc0a-47d7-a74e-27f17234f590"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("347fb7af-642f-4c60-97d9-c03d440b6a82"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("051b93ae-9c15-4490-8cea-33395298f031"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("5d9d9d87-ce6b-4213-b4ec-d50de9790a59"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("93778e52-3fd5-456d-8b10-987c3e6bc47e"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("a43d15db-44a6-4fda-a525-2402ff43226f"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("cd28a27e-8b17-4f23-b9f5-03b6de15203f"), .0001);
 
             VoltageLevel.NodeBreakerView.InternalConnection ic = readNetwork.getVoltageLevel("b2707f00-2554-41d2-bde2-7dd80a669e50").getNodeBreakerView().getInternalConnections().iterator().next();
-            assertEquals(4, ic.getNode1());
-            assertEquals(0, ic.getNode2());
+            assertEquals(0, ic.getNode1());
+            assertEquals(4, ic.getNode2());
         }
     }
 
@@ -4173,6 +4173,23 @@ class NetworkStoreIT {
             network.getVariantManager().setWorkingVariant("v2");
             networkAttributes = network.getResource().getAttributes();
             assertEquals(0, networkAttributes.getFullVariantNum());
+        }
+    }
+
+    @Test
+    void testEquivalentLocalTargetV() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
+            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
+            Generator generator = network.getGenerator("GEN");
+            assertNotNull(generator);
+            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
         }
     }
 }
