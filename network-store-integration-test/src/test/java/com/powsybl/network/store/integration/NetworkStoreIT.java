@@ -4190,6 +4190,10 @@ class NetworkStoreIT {
             Generator generator = network.getGenerator("GEN");
             assertNotNull(generator);
             assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
+            generator.setTargetV(200, 20);
+            assertEquals(20, generator.getEquivalentLocalTargetV());
+            generator.setTargetV(220);
+            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
         }
     }
 }
