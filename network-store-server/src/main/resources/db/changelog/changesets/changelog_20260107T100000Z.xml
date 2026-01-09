@@ -6,7 +6,7 @@
 
     <changeSet id="29868756484874-1" author="lesoteti">
         <addColumn tableName="generator">
-            <column name="equivalentLocalTargetV" type="FLOAT8" defaultValue="NaN"/>
+            <column name="equivalentlocaltargetv" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
     </changeSet>
 
