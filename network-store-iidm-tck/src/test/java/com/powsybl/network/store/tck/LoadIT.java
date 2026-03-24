@@ -6,12 +6,17 @@
  */
 package com.powsybl.network.store.tck;
 
+import com.powsybl.iidm.network.DefaultNetworkListener;
+import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.NetworkListener;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.tck.AbstractLoadTest;
 import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
 import com.powsybl.network.store.server.NetworkStoreApplication;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
@@ -42,4 +47,19 @@ class LoadIT extends AbstractLoadTest {
     public void testSetterGetterInMultiVariants() {
         //FIXME remove when we fix primary key constraints violation on DB
     }
+
+    @Test
+    @Override
+    public void setNameTest() {
+        NetworkListener mockedListener = Mockito.mock(DefaultNetworkListener.class);
+        Network network = FictitiousSwitchFactory.create();
+        network.addListener(mockedListener);
+        Load load = network.getLoad("CE");
+        Assertions.assertNotNull(load);
+        Assertions.assertTrue(load.getOptionalName().isEmpty());
+        load.setName("FOO");
+        Assertions.assertEquals("FOO", load.getOptionalName().orElseThrow());
+        Mockito.verify(mockedListener, Mockito.times(1)).onUpdate(load, "name", "InitialState", null, "FOO");
+    }
+
 }

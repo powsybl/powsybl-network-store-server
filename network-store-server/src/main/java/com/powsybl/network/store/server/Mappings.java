@@ -49,7 +49,7 @@ public class Mappings {
     static final String TWO_WINDINGS_TRANSFORMER_TABLE = "twoWindingsTransformer";
     static final String THREE_WINDINGS_TRANSFORMER_TABLE = "threeWindingsTransformer";
     static final String HVDC_LINE_TABLE = "hvdcLine";
-    static final String DANGLING_LINE_TABLE = "danglingLine";
+    static final String BOUNDARY_LINE_TABLE = "boundaryLine";
     static final String CONFIGURED_BUS_TABLE = "configuredBus";
     static final String LOAD_TABLE = "load";
     static final String LINE_TABLE = "line";
@@ -59,7 +59,7 @@ public class Mappings {
 
     static final List<String> ELEMENT_TABLES = List.of(SUBSTATION_TABLE, VOLTAGE_LEVEL_TABLE, BUSBAR_SECTION_TABLE, CONFIGURED_BUS_TABLE, SWITCH_TABLE, GENERATOR_TABLE, BATTERY_TABLE, LOAD_TABLE, SHUNT_COMPENSATOR_TABLE,
             STATIC_VAR_COMPENSATOR_TABLE, VSC_CONVERTER_STATION_TABLE, LCC_CONVERTER_STATION_TABLE, TWO_WINDINGS_TRANSFORMER_TABLE,
-            THREE_WINDINGS_TRANSFORMER_TABLE, LINE_TABLE, HVDC_LINE_TABLE, DANGLING_LINE_TABLE, TIE_LINE_TABLE, GROUND_TABLE, AREA_TABLE);
+            THREE_WINDINGS_TRANSFORMER_TABLE, LINE_TABLE, HVDC_LINE_TABLE, BOUNDARY_LINE_TABLE, TIE_LINE_TABLE, GROUND_TABLE, AREA_TABLE);
 
     private final TableMapping lineMappings = new TableMapping(LINE_TABLE, ResourceType.LINE, Resource::lineBuilder, LineAttributes::new, Set.of(VOLTAGE_LEVEL_ID_1_COLUMN, VOLTAGE_LEVEL_ID_2_COLUMN));
     private final TableMapping loadMappings = new TableMapping(LOAD_TABLE, ResourceType.LOAD, Resource::loadBuilder, LoadAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
@@ -71,7 +71,7 @@ public class Mappings {
     private final TableMapping batteryMappings = new TableMapping(BATTERY_TABLE, ResourceType.BATTERY, Resource::batteryBuilder, BatteryAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
     private final TableMapping busbarSectionMappings = new TableMapping(BUSBAR_SECTION_TABLE, ResourceType.BUSBAR_SECTION, Resource::busbarSectionBuilder, BusbarSectionAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
     private final TableMapping configuredBusMappings = new TableMapping(CONFIGURED_BUS_TABLE, ResourceType.CONFIGURED_BUS, Resource::configuredBusBuilder, ConfiguredBusAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
-    private final TableMapping danglingLineMappings = new TableMapping(DANGLING_LINE_TABLE, ResourceType.DANGLING_LINE, Resource::danglingLineBuilder, DanglingLineAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
+    private final TableMapping boundaryLineMappings = new TableMapping(BOUNDARY_LINE_TABLE, ResourceType.BOUNDARY_LINE, Resource::boundaryLineBuilder, BoundaryLineAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
     private final TableMapping shuntCompensatorMappings = new TableMapping(SHUNT_COMPENSATOR_TABLE, ResourceType.SHUNT_COMPENSATOR, Resource::shuntCompensatorBuilder, ShuntCompensatorAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
     private final TableMapping vscConverterStationMappings = new TableMapping(VSC_CONVERTER_STATION_TABLE, ResourceType.VSC_CONVERTER_STATION, Resource::vscConverterStationBuilder, VscConverterStationAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
     private final TableMapping lccConverterStationMappings = new TableMapping(LCC_CONVERTER_STATION_TABLE, ResourceType.LCC_CONVERTER_STATION, Resource::lccConverterStationBuilder, LccConverterStationAttributes::new, Set.of(VOLTAGE_LEVEL_ID_COLUMN));
@@ -93,7 +93,7 @@ public class Mappings {
                                                    batteryMappings,
                                                    busbarSectionMappings,
                                                    configuredBusMappings,
-                                                   danglingLineMappings,
+                                                   boundaryLineMappings,
                                                    shuntCompensatorMappings,
                                                    vscConverterStationMappings,
                                                    vscConverterStationMappings,
@@ -138,6 +138,8 @@ public class Mappings {
     private static final String MINQ = "minQ";
     private static final String MAXQ = "maxQ";
     private static final String TIE_LINE_ID = "tieLineId";
+    private static final String MIN_MAX_REACTIVE_LIMITS_PROPERTIES = "minmaxreactivelimitsproperties";
+    private static final String CURVE_REACTIVE_LIMITS_PROPERTIES = "curvereactivelimitsproperties";
 
     public TableMapping getTableMapping(String table) {
         Objects.requireNonNull(table);
@@ -238,6 +240,22 @@ public class Mappings {
                     attributes.setReactiveLimits(new MinMaxReactiveLimitsAttributes());
                 }
                 ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).setMaxQ(value);
+            }));
+        generatorMappings.addColumnMapping(MIN_MAX_REACTIVE_LIMITS_PROPERTIES, new ColumnMapping<>(Map.class,
+            (GeneratorAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).getProperties() : null,
+            (GeneratorAttributes attributes, Map<String, String> value) -> {
+                if (attributes.getReactiveLimits() == null) {
+                    attributes.setReactiveLimits(new MinMaxReactiveLimitsAttributes());
+                }
+                ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).setProperties(value);
+            }));
+        generatorMappings.addColumnMapping(CURVE_REACTIVE_LIMITS_PROPERTIES, new ColumnMapping<>(Map.class,
+            (GeneratorAttributes attributes) -> attributes.getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes ? ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).getProperties() : null,
+            (GeneratorAttributes attributes, Map<String, String> value) -> {
+                if (attributes.getReactiveLimits() == null) {
+                    attributes.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
+                }
+                ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).setProperties(value);
             }));
         generatorMappings.addColumnMapping("coordinatedReactiveControl", new ColumnMapping<>(CoordinatedReactiveControlAttributes.class, GeneratorAttributes::getCoordinatedReactiveControl, GeneratorAttributes::setCoordinatedReactiveControl));
         generatorMappings.addColumnMapping("remoteReactivePowerControl", new ColumnMapping<>(RemoteReactivePowerControlAttributes.class, GeneratorAttributes::getRemoteReactivePowerControl, GeneratorAttributes::setRemoteReactivePowerControl));
@@ -352,6 +370,22 @@ public class Mappings {
                 }
                 ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).setMaxQ(value);
             }));
+        batteryMappings.addColumnMapping(MIN_MAX_REACTIVE_LIMITS_PROPERTIES, new ColumnMapping<>(Map.class,
+            (BatteryAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).getProperties() : null,
+            (BatteryAttributes attributes, Map<String, String> value) -> {
+                if (attributes.getReactiveLimits() == null) {
+                    attributes.setReactiveLimits(new MinMaxReactiveLimitsAttributes());
+                }
+                ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).setProperties(value);
+            }));
+        batteryMappings.addColumnMapping(CURVE_REACTIVE_LIMITS_PROPERTIES, new ColumnMapping<>(Map.class,
+            (BatteryAttributes attributes) -> attributes.getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes ? ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).getProperties() : null,
+            (BatteryAttributes attributes, Map<String, String> value) -> {
+                if (attributes.getReactiveLimits() == null) {
+                    attributes.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
+                }
+                ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).setProperties(value);
+            }));
         batteryMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, BatteryAttributes::getNode, BatteryAttributes::setNode));
         batteryMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, BatteryAttributes::getProperties, BatteryAttributes::setProperties));
         batteryMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, BatteryAttributes::getAliasByType, BatteryAttributes::setAliasByType));
@@ -384,35 +418,35 @@ public class Mappings {
         configuredBusMappings.addColumnMapping("fictitiousq0", new ColumnMapping<>(Double.class, ConfiguredBusAttributes::getFictitiousQ0, ConfiguredBusAttributes::setFictitiousQ0));
     }
 
-    private void createDanglingLineMappings() {
-        danglingLineMappings.addColumnMapping("name", new ColumnMapping<>(String.class, DanglingLineAttributes::getName, DanglingLineAttributes::setName));
-        danglingLineMappings.addColumnMapping(VOLTAGE_LEVEL_ID, new ColumnMapping<>(String.class, DanglingLineAttributes::getVoltageLevelId, DanglingLineAttributes::setVoltageLevelId));
-        danglingLineMappings.addColumnMapping("bus", new ColumnMapping<>(String.class, DanglingLineAttributes::getBus, DanglingLineAttributes::setBus));
-        danglingLineMappings.addColumnMapping(CONNECTABLE_BUS, new ColumnMapping<>(String.class, DanglingLineAttributes::getConnectableBus, DanglingLineAttributes::setConnectableBus));
-        danglingLineMappings.addColumnMapping("r", new ColumnMapping<>(Double.class, DanglingLineAttributes::getR, DanglingLineAttributes::setR));
-        danglingLineMappings.addColumnMapping("x", new ColumnMapping<>(Double.class, DanglingLineAttributes::getX, DanglingLineAttributes::setX));
-        danglingLineMappings.addColumnMapping("g", new ColumnMapping<>(Double.class, DanglingLineAttributes::getG, DanglingLineAttributes::setG));
-        danglingLineMappings.addColumnMapping("b", new ColumnMapping<>(Double.class, DanglingLineAttributes::getB, DanglingLineAttributes::setB));
-        danglingLineMappings.addColumnMapping("p0", new ColumnMapping<>(Double.class, DanglingLineAttributes::getP0, DanglingLineAttributes::setP0));
-        danglingLineMappings.addColumnMapping("q0", new ColumnMapping<>(Double.class, DanglingLineAttributes::getQ0, DanglingLineAttributes::setQ0));
-        danglingLineMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, DanglingLineAttributes::getP, DanglingLineAttributes::setP));
-        danglingLineMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, DanglingLineAttributes::getQ, DanglingLineAttributes::setQ));
-        danglingLineMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, DanglingLineAttributes::isFictitious, DanglingLineAttributes::setFictitious));
-        danglingLineMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, DanglingLineAttributes::getNode, DanglingLineAttributes::setNode));
-        danglingLineMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, DanglingLineAttributes::getProperties, DanglingLineAttributes::setProperties));
-        danglingLineMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, DanglingLineAttributes::getAliasByType, DanglingLineAttributes::setAliasByType));
-        danglingLineMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, DanglingLineAttributes::getAliasesWithoutType, DanglingLineAttributes::setAliasesWithoutType));
-        danglingLineMappings.addColumnMapping("generation", new ColumnMapping<>(DanglingLineGenerationAttributes.class, DanglingLineAttributes::getGeneration, DanglingLineAttributes::setGeneration));
-        danglingLineMappings.addColumnMapping("pairingKey", new ColumnMapping<>(String.class, DanglingLineAttributes::getPairingKey, DanglingLineAttributes::setPairingKey));
-        danglingLineMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, DanglingLineAttributes::getPosition, DanglingLineAttributes::setPosition));
-        danglingLineMappings.addColumnMapping(SELECTED_OPERATIONAL_LIMITS_GROUP_ID_COLUMN, new ColumnMapping<>(String.class, DanglingLineAttributes::getSelectedOperationalLimitsGroupId, DanglingLineAttributes::setSelectedOperationalLimitsGroupId));
-        danglingLineMappings.addColumnMapping(TIE_LINE_ID, new ColumnMapping<>(String.class, DanglingLineAttributes::getTieLineId, DanglingLineAttributes::setTieLineId));
+    private void createBoundaryLineMappings() {
+        boundaryLineMappings.addColumnMapping("name", new ColumnMapping<>(String.class, BoundaryLineAttributes::getName, BoundaryLineAttributes::setName));
+        boundaryLineMappings.addColumnMapping(VOLTAGE_LEVEL_ID, new ColumnMapping<>(String.class, BoundaryLineAttributes::getVoltageLevelId, BoundaryLineAttributes::setVoltageLevelId));
+        boundaryLineMappings.addColumnMapping("bus", new ColumnMapping<>(String.class, BoundaryLineAttributes::getBus, BoundaryLineAttributes::setBus));
+        boundaryLineMappings.addColumnMapping(CONNECTABLE_BUS, new ColumnMapping<>(String.class, BoundaryLineAttributes::getConnectableBus, BoundaryLineAttributes::setConnectableBus));
+        boundaryLineMappings.addColumnMapping("r", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getR, BoundaryLineAttributes::setR));
+        boundaryLineMappings.addColumnMapping("x", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getX, BoundaryLineAttributes::setX));
+        boundaryLineMappings.addColumnMapping("g", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getG, BoundaryLineAttributes::setG));
+        boundaryLineMappings.addColumnMapping("b", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getB, BoundaryLineAttributes::setB));
+        boundaryLineMappings.addColumnMapping("p0", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getP0, BoundaryLineAttributes::setP0));
+        boundaryLineMappings.addColumnMapping("q0", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getQ0, BoundaryLineAttributes::setQ0));
+        boundaryLineMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getP, BoundaryLineAttributes::setP));
+        boundaryLineMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getQ, BoundaryLineAttributes::setQ));
+        boundaryLineMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, BoundaryLineAttributes::isFictitious, BoundaryLineAttributes::setFictitious));
+        boundaryLineMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, BoundaryLineAttributes::getNode, BoundaryLineAttributes::setNode));
+        boundaryLineMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, BoundaryLineAttributes::getProperties, BoundaryLineAttributes::setProperties));
+        boundaryLineMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, BoundaryLineAttributes::getAliasByType, BoundaryLineAttributes::setAliasByType));
+        boundaryLineMappings.addColumnMapping(ALIASES_WITHOUT_TYPE, new ColumnMapping<>(Set.class, BoundaryLineAttributes::getAliasesWithoutType, BoundaryLineAttributes::setAliasesWithoutType));
+        boundaryLineMappings.addColumnMapping("generation", new ColumnMapping<>(BoundaryLineGenerationAttributes.class, BoundaryLineAttributes::getGeneration, BoundaryLineAttributes::setGeneration));
+        boundaryLineMappings.addColumnMapping("pairingKey", new ColumnMapping<>(String.class, BoundaryLineAttributes::getPairingKey, BoundaryLineAttributes::setPairingKey));
+        boundaryLineMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, BoundaryLineAttributes::getPosition, BoundaryLineAttributes::setPosition));
+        boundaryLineMappings.addColumnMapping(SELECTED_OPERATIONAL_LIMITS_GROUP_ID_COLUMN, new ColumnMapping<>(String.class, BoundaryLineAttributes::getSelectedOperationalLimitsGroupId, BoundaryLineAttributes::setSelectedOperationalLimitsGroupId));
+        boundaryLineMappings.addColumnMapping(TIE_LINE_ID, new ColumnMapping<>(String.class, BoundaryLineAttributes::getTieLineId, BoundaryLineAttributes::setTieLineId));
     }
 
     private void createTieLineMappings() {
         tieLineMappings.addColumnMapping("name", new ColumnMapping<>(String.class, TieLineAttributes::getName, TieLineAttributes::setName));
-        tieLineMappings.addColumnMapping("danglingLine1Id", new ColumnMapping<>(String.class, TieLineAttributes::getDanglingLine1Id, TieLineAttributes::setDanglingLine1Id));
-        tieLineMappings.addColumnMapping("danglingLine2Id", new ColumnMapping<>(String.class, TieLineAttributes::getDanglingLine2Id, TieLineAttributes::setDanglingLine2Id));
+        tieLineMappings.addColumnMapping("boundaryLine1Id", new ColumnMapping<>(String.class, TieLineAttributes::getBoundaryLine1Id, TieLineAttributes::setBoundaryLine1Id));
+        tieLineMappings.addColumnMapping("boundaryLine2Id", new ColumnMapping<>(String.class, TieLineAttributes::getBoundaryLine2Id, TieLineAttributes::setBoundaryLine2Id));
         tieLineMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, TieLineAttributes::isFictitious, TieLineAttributes::setFictitious));
         tieLineMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, TieLineAttributes::getProperties, TieLineAttributes::setProperties));
         tieLineMappings.addColumnMapping(ALIAS_BY_TYPE, new ColumnMapping<>(Map.class, TieLineAttributes::getAliasByType, TieLineAttributes::setAliasByType));
@@ -504,6 +538,22 @@ public class Mappings {
                     attributes.setReactiveLimits(new MinMaxReactiveLimitsAttributes());
                 }
                 ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).setMaxQ(value);
+            }));
+        vscConverterStationMappings.addColumnMapping(MIN_MAX_REACTIVE_LIMITS_PROPERTIES, new ColumnMapping<>(Map.class,
+            (VscConverterStationAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).getProperties() : null,
+            (VscConverterStationAttributes attributes, Map<String, String> value) -> {
+                if (attributes.getReactiveLimits() == null) {
+                    attributes.setReactiveLimits(new MinMaxReactiveLimitsAttributes());
+                }
+                ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).setProperties(value);
+            }));
+        vscConverterStationMappings.addColumnMapping(CURVE_REACTIVE_LIMITS_PROPERTIES, new ColumnMapping<>(Map.class,
+            (VscConverterStationAttributes attributes) -> attributes.getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes ? ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).getProperties() : null,
+            (VscConverterStationAttributes attributes, Map<String, String> value) -> {
+                if (attributes.getReactiveLimits() == null) {
+                    attributes.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
+                }
+                ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).setProperties(value);
             }));
         vscConverterStationMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, VscConverterStationAttributes::getNode, VscConverterStationAttributes::setNode));
         vscConverterStationMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, VscConverterStationAttributes::getProperties, VscConverterStationAttributes::setProperties));
@@ -864,7 +914,7 @@ public class Mappings {
         createVoltageLevelMappings();
         createBusbarSectionMappings();
         createConfiguredBusMappings();
-        createDanglingLineMappings();
+        createBoundaryLineMappings();
         createShuntCompensatorMappings();
         createVscConverterStationMappings();
         createLccConverterStationMappings();

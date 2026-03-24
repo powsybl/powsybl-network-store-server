@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet author="lecuyerfra" id="300000000000-1">
+        <renameTable newTableName="boundaryline" oldTableName="danglingline"/>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-2">
+        <renameColumn
+                newColumnName="boundaryboundarylineid"
+                oldColumnName="boundarydanglinglineid"
+                tableName="areaboundary"/>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-3">
+        <renameColumn
+                newColumnName="boundaryline1id"
+                oldColumnName="danglingline1id"
+                tableName="tieline"/>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-4">
+        <renameColumn
+                newColumnName="boundaryline2id"
+                oldColumnName="danglingline2id"
+                tableName="tieline"/>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-5">
+        <addColumn tableName="areaboundary">
+            <column name="properties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-6">
+        <addColumn tableName="battery">
+            <column name="minmaxreactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-7">
+        <addColumn tableName="battery">
+            <column name="curvereactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-8">
+        <addColumn tableName="generator">
+            <column name="minmaxreactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-9">
+        <addColumn tableName="generator">
+            <column name="curvereactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-10">
+        <addColumn tableName="vscconverterstation">
+            <column name="minmaxreactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-11">
+        <addColumn tableName="vscconverterstation">
+            <column name="curvereactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-12">
+        <addColumn tableName="reactivecapabilitycurvepoint">
+            <column name="properties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-13">
+        <addColumn tableName="operationallimitsgroup">
+            <column name="current_limits_properties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-14">
+        <addColumn tableName="operationallimitsgroup">
+            <column name="apparent_power_limits_properties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-15">
+        <addColumn tableName="operationallimitsgroup">
+            <column name="active_power_limits_properties" type="TEXT"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

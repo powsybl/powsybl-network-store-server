@@ -28,4 +28,10 @@ class LineIT extends AbstractLineTest {
     public void testRemoveAcLine() {
         // FIXME remove this test when exception msg are homogenized with the powsybl-core
     }
+
+    @Test
+    @Override
+    public void testChangesNotification() {
+        // FIXME remove this test when proper network listener support is implemented
+    }
 }

@@ -423,13 +423,13 @@ public class NetworkStoreController {
         return getAll(() -> repository.getVoltageLevelLines(networkId, variantNum, voltageLevelId), null, ResourceType.LINE);
     }
 
-    @GetMapping(value = "/{networkId}/{variantNum}/voltage-levels/{voltageLevelId}/dangling-lines", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get dangling lines connected to voltage level")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get dangling lines connected to the voltage level"))
-    public ResponseEntity<TopLevelDocument<DanglingLineAttributes>> getVoltageLevelDanglingLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+    @GetMapping(value = "/{networkId}/{variantNum}/voltage-levels/{voltageLevelId}/boundary-lines", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get boundary lines connected to voltage level")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get boundary lines connected to the voltage level"))
+    public ResponseEntity<TopLevelDocument<BoundaryLineAttributes>> getVoltageLevelBoundaryLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                  @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                  @Parameter(description = "Voltage level ID", required = true) @PathVariable("voltageLevelId") String voltageLevelId) {
-        return getAll(() -> repository.getVoltageLevelDanglingLines(networkId, variantNum, voltageLevelId), null, ResourceType.DANGLING_LINE);
+        return getAll(() -> repository.getVoltageLevelBoundaryLines(networkId, variantNum, voltageLevelId), null, ResourceType.BOUNDARY_LINE);
     }
 
     // grounds
@@ -1322,65 +1322,65 @@ public class NetworkStoreController {
     }
 
 
-    // dangling line
+    // boundary line
 
-    @PostMapping(value = "/{networkId}/dangling-lines")
-    @Operation(summary = "Create dangling lines")
-    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully create dangling lines"))
-    public ResponseEntity<Void> createDanglingLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                    @Parameter(description = "Dangling line resources", required = true) @RequestBody List<Resource<DanglingLineAttributes>> danglingLineResources) {
-        return createAll(resource -> repository.createDanglingLines(networkId, resource), danglingLineResources, ResourceType.DANGLING_LINE);
+    @PostMapping(value = "/{networkId}/boundary-lines")
+    @Operation(summary = "Create boundary lines")
+    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully create boundary lines"))
+    public ResponseEntity<Void> createBoundaryLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                    @Parameter(description = "Boundary line resources", required = true) @RequestBody List<Resource<BoundaryLineAttributes>> boundaryLineResources) {
+        return createAll(resource -> repository.createBoundaryLines(networkId, resource), boundaryLineResources, ResourceType.BOUNDARY_LINE);
     }
 
-    @GetMapping(value = "/{networkId}/{variantNum}/dangling-lines", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get dangling lines")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get dangling line list"))
-    public ResponseEntity<TopLevelDocument<DanglingLineAttributes>> getDanglingLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+    @GetMapping(value = "/{networkId}/{variantNum}/boundary-lines", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get boundary lines")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully get boundary line list"))
+    public ResponseEntity<TopLevelDocument<BoundaryLineAttributes>> getBoundaryLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                      @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                                                                     @Parameter(description = "Max number of dangling line to get") @RequestParam(required = false) Integer limit) {
-        return getAll(() -> repository.getDanglingLines(networkId, variantNum), limit, ResourceType.DANGLING_LINE);
+                                                                                     @Parameter(description = "Max number of boundary line to get") @RequestParam(required = false) Integer limit) {
+        return getAll(() -> repository.getBoundaryLines(networkId, variantNum), limit, ResourceType.BOUNDARY_LINE);
     }
 
-    @GetMapping(value = "/{networkId}/{variantNum}/dangling-lines/{danglingLineId}", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get a dangling line by id")
+    @GetMapping(value = "/{networkId}/{variantNum}/boundary-lines/{boundaryLineId}", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get a boundary line by id")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully get dangling line"),
-        @ApiResponse(responseCode = "404", description = "Dangling line has not been found")
+        @ApiResponse(responseCode = "200", description = "Successfully get boundary line"),
+        @ApiResponse(responseCode = "404", description = "Boundary line has not been found")
         })
-    public ResponseEntity<TopLevelDocument<DanglingLineAttributes>> getDanglingLine(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+    public ResponseEntity<TopLevelDocument<BoundaryLineAttributes>> getBoundaryLine(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                                                                    @Parameter(description = "Dangling line ID", required = true) @PathVariable("danglingLineId") String danglingLineId) {
-        return get(() -> repository.getDanglingLine(networkId, variantNum, danglingLineId));
+                                                                                    @Parameter(description = "Boundary line ID", required = true) @PathVariable("boundaryLineId") String boundaryLineId) {
+        return get(() -> repository.getBoundaryLine(networkId, variantNum, boundaryLineId));
     }
 
-    @DeleteMapping(value = "/{networkId}/{variantNum}/dangling-lines", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Delete multiple dangling lines by IDs")
+    @DeleteMapping(value = "/{networkId}/{variantNum}/boundary-lines", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Delete multiple boundary lines by IDs")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully deleted dangling lines"),
+        @ApiResponse(responseCode = "200", description = "Successfully deleted boundary lines"),
         @ApiResponse(responseCode = "400", description = "Invalid input"),
     })
-    public ResponseEntity<Void> deleteDanglingLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+    public ResponseEntity<Void> deleteBoundaryLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                     @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                                    @Parameter(description = "List of dangling line IDs to delete", required = true) @RequestBody List<String> danglingLineIds) {
-        return removeAll(ids -> repository.deleteDanglingLines(networkId, variantNum, ids), danglingLineIds, ResourceType.DANGLING_LINE);
+                                                    @Parameter(description = "List of boundary line IDs to delete", required = true) @RequestBody List<String> boundaryLineIds) {
+        return removeAll(ids -> repository.deleteBoundaryLines(networkId, variantNum, ids), boundaryLineIds, ResourceType.BOUNDARY_LINE);
     }
 
-    @PutMapping(value = "/{networkId}/dangling-lines")
-    @Operation(summary = "Update dangling lines")
-    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update dangling lines"))
-    public ResponseEntity<Void> updateDanglingLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                    @Parameter(description = "dangling line resources", required = true) @RequestBody List<Resource<DanglingLineAttributes>> danglingLineResources) {
+    @PutMapping(value = "/{networkId}/boundary-lines")
+    @Operation(summary = "Update boundary lines")
+    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update boundary lines"))
+    public ResponseEntity<Void> updateBoundaryLines(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                    @Parameter(description = "boundary line resources", required = true) @RequestBody List<Resource<BoundaryLineAttributes>> boundaryLineResources) {
 
-        return updateAll(resources -> repository.updateDanglingLines(networkId, resources), danglingLineResources, ResourceType.DANGLING_LINE);
+        return updateAll(resources -> repository.updateBoundaryLines(networkId, resources), boundaryLineResources, ResourceType.BOUNDARY_LINE);
     }
 
-    @PutMapping(value = "/{networkId}/dangling-lines/sv")
-    @Operation(summary = "Update dangling lines SV")
-    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update dangling lines SV"))
-    public ResponseEntity<Void> updateDanglingLinesSv(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                      @Parameter(description = "dangling line SV resources", required = true) @RequestBody List<Resource<InjectionSvAttributes>> danglingLineResources) {
+    @PutMapping(value = "/{networkId}/boundary-lines/sv")
+    @Operation(summary = "Update boundary lines SV")
+    @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update boundary lines SV"))
+    public ResponseEntity<Void> updateBoundaryLinesSv(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
+                                                      @Parameter(description = "boundary line SV resources", required = true) @RequestBody List<Resource<InjectionSvAttributes>> boundaryLineResources) {
 
-        return updateAll(resources -> repository.updateDanglingLinesSv(networkId, resources), danglingLineResources, ResourceType.DANGLING_LINE);
+        return updateAll(resources -> repository.updateBoundaryLinesSv(networkId, resources), boundaryLineResources, ResourceType.BOUNDARY_LINE);
     }
 
     // ground

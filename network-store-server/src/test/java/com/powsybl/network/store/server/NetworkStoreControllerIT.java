@@ -344,7 +344,15 @@ class NetworkStoreControllerIT {
                 .selectedOperationalLimitsGroupId1("group1")
                 .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                         .id("group1")
-                        .currentLimits(LimitsAttributes.builder().permanentLimit(20.).temporaryLimits(new TreeMap<>(Map.of(1200, TemporaryLimitAttributes.builder().value(30.).acceptableDuration(1200).build()))).build())
+                        .currentLimits(LimitsAttributes.builder()
+                            .permanentLimit(20.)
+                            .temporaryLimits(new TreeMap<>(Map.of(1200, TemporaryLimitAttributes.builder()
+                                .value(30.)
+                                .acceptableDuration(1200)
+                                .properties(Map.of("property2", "value2"))
+                                .build())))
+                            .properties(Map.of("property1", "value1"))
+                            .build())
                         .build()))
                 .build())
             .build();
@@ -555,9 +563,10 @@ class NetworkStoreControllerIT {
         generator.getAttributes().getRegulatingPoint().getRegulatingTerminal().setSide("TWO");
         generator.getAttributes().setReactiveLimits(ReactiveCapabilityCurveAttributes.builder()
             .points(new TreeMap<>(Map.of(
-                    50., ReactiveCapabilityCurvePointAttributes.builder().p(50.).minQ(11.).maxQ(76.).build(),
-                    50.12, ReactiveCapabilityCurvePointAttributes.builder().p(50.12).minQ(11.12).maxQ(76.12).build()
-            ))).build());
+                    50., ReactiveCapabilityCurvePointAttributes.builder().p(50.).minQ(11.).maxQ(76.).properties(Map.of("property1", "value1")).build(),
+                    50.12, ReactiveCapabilityCurvePointAttributes.builder().p(50.12).minQ(11.12).maxQ(76.12).properties(Map.of("property2", "value2")).build()
+            )))
+            .properties(Map.of("property3", "value3")).build());
 
         mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/generators")
                 .contentType(APPLICATION_JSON)
@@ -572,12 +581,15 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.side").value("TWO"))
                 .andExpect(jsonPath("data[0].attributes.regulatingPoint.localTerminal.connectableId").value("id"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.kind").value("CURVE"))
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.properties[\"property3\"]").value("value3"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].p").value(50.))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].minQ").value(11.))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].maxQ").value(76.))
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].properties[\"property1\"]").value("value1"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].p").value(50.12))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].minQ").value(11.12))
-                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].maxQ").value(76.12));
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].maxQ").value(76.12))
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].properties[\"property2\"]").value("value2"));
 
         // battery creation and update
         Resource<BatteryAttributes> battery = Resource.batteryBuilder()
@@ -644,7 +656,12 @@ class NetworkStoreControllerIT {
                 .attributes(ShuntCompensatorAttributes.builder()
                         .voltageLevelId("vl1")
                         .name("shunt1")
-                        .model(ShuntCompensatorLinearModelAttributes.builder().bPerSection(1).gPerSection(2).maximumSectionCount(3).build())
+                        .model(ShuntCompensatorLinearModelAttributes.builder()
+                            .bPerSection(1)
+                            .gPerSection(2)
+                            .maximumSectionCount(3)
+                            .properties(Map.of("property1", "value1"))
+                            .build())
                         .p(100.)
                         .build())
                 .build();
@@ -661,7 +678,8 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.model.bperSection").value(1))
                 .andExpect(jsonPath("data[0].attributes.model.gperSection").value(2))
                 .andExpect(jsonPath("data[0].attributes.model.maximumSectionCount").value(3))
-                .andExpect(jsonPath("data[0].attributes.p").value(100.));
+                .andExpect(jsonPath("data[0].attributes.model.properties[\"property1\"]").value("value1"))
+            .andExpect(jsonPath("data[0].attributes.p").value(100.));
 
         ((ShuntCompensatorLinearModelAttributes) shuntCompensator.getAttributes().getModel()).setBPerSection(15); // changing bPerSection value
         ((ShuntCompensatorLinearModelAttributes) shuntCompensator.getAttributes().getModel()).setGPerSection(22); // changing gPerSection value
@@ -695,12 +713,12 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.model.gperSection").value(22))
                 .andExpect(jsonPath("data[0].attributes.p").value(200.));
 
-        // dangling line creation and update
-        Resource<DanglingLineAttributes> danglingLine = Resource.danglingLineBuilder()
-                .id("idDanglingLine")
-                .attributes(DanglingLineAttributes.builder()
+        // boundary line creation and update
+        Resource<BoundaryLineAttributes> boundaryLine = Resource.boundaryLineBuilder()
+                .id("idBoundaryLine")
+                .attributes(BoundaryLineAttributes.builder()
                         .voltageLevelId("vl1")
-                        .name("dl1")
+                        .name("bl1")
                         .fictitious(true)
                         .node(5)
                         .p0(10)
@@ -709,32 +727,32 @@ class NetworkStoreControllerIT {
                         .x(7)
                         .g(8)
                         .b(9)
-                        .generation(DanglingLineGenerationAttributes.builder()
+                        .generation(BoundaryLineGenerationAttributes.builder()
                                 .minP(1)
                                 .maxP(2)
                                 .targetP(3)
                                 .targetQ(4)
                                 .targetV(5)
                                 .voltageRegulationOn(false)
-                                .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().minQ(20).maxQ(30).build())
+                                .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().minQ(20).maxQ(30).properties(Map.of("property1", "value1")).build())
                                 .build())
                         .pairingKey("XN1")
                         .selectedOperationalLimitsGroupId("group1")
                         .operationalLimitsGroups(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
-                                .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
+                                .currentLimits(LimitsAttributes.builder().permanentLimit(20.).properties(Map.of("property2", "value2")).build())
                                 .build()))
                         .p(100.)
                         .q(200)
                         .build())
                 .build();
 
-        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/dangling-lines")
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/boundary-lines")
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Collections.singleton(danglingLine))))
+                .content(objectMapper.writeValueAsString(Collections.singleton(boundaryLine))))
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/dangling-lines")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/boundary-lines")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -743,18 +761,19 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.generation.maxP").value(2))
                 .andExpect(jsonPath("data[0].attributes.generation.targetV").value(5))
                 .andExpect(jsonPath("data[0].attributes.generation.voltageRegulationOn").value(false))
-                .andExpect(jsonPath("data[0].attributes.generation.reactiveLimits.maxQ").value(30));
+                .andExpect(jsonPath("data[0].attributes.generation.reactiveLimits.maxQ").value(30))
+                .andExpect(jsonPath("data[0].attributes.generation.reactiveLimits.properties[\"property1\"]").value("value1"));
 
-        danglingLine.getAttributes().getGeneration().setMaxP(33);
-        danglingLine.getAttributes().getGeneration().setVoltageRegulationOn(true);
-        danglingLine.getAttributes().getGeneration().setTargetQ(54);
+        boundaryLine.getAttributes().getGeneration().setMaxP(33);
+        boundaryLine.getAttributes().getGeneration().setVoltageRegulationOn(true);
+        boundaryLine.getAttributes().getGeneration().setTargetQ(54);
 
-        mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/dangling-lines")
+        mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/boundary-lines")
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Collections.singleton(danglingLine))))
+                .content(objectMapper.writeValueAsString(Collections.singleton(boundaryLine))))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/dangling-lines")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/boundary-lines")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -762,7 +781,7 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.generation.targetQ").value(54))
                 .andExpect(jsonPath("data[0].attributes.generation.voltageRegulationOn").value(true));
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/dangling-lines/idDanglingLine")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/boundary-lines/idBoundaryLine")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -770,7 +789,7 @@ class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.generation.targetQ").value(54))
                 .andExpect(jsonPath("data[0].attributes.generation.voltageRegulationOn").value(true));
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/voltage-levels/vl1/dangling-lines")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/voltage-levels/vl1/boundary-lines")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -854,7 +873,7 @@ class NetworkStoreControllerIT {
         // tie line creation and update
         Resource<TieLineAttributes> tieLine = Resource.tieLineBuilder()
                 .id("idTieLine")
-                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).danglingLine1Id("half1").danglingLine2Id("half2")
+                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).boundaryLine1Id("half1").boundaryLine2Id("half2")
                         .build())
                 .build();
 
@@ -867,10 +886,10 @@ class NetworkStoreControllerIT {
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(jsonPath("data[0].attributes.danglingLine1Id").value("half1"))
-                .andExpect(jsonPath("data[0].attributes.danglingLine2Id").value("half2"));
+                .andExpect(jsonPath("data[0].attributes.boundaryLine1Id").value("half1"))
+                .andExpect(jsonPath("data[0].attributes.boundaryLine2Id").value("half2"));
 
-        tieLine.getAttributes().setDanglingLine1Id("halfDl1");
+        tieLine.getAttributes().setBoundaryLine1Id("halfDl1");
         mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/tie-lines")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Collections.singleton(tieLine))))
@@ -1394,25 +1413,25 @@ class NetworkStoreControllerIT {
 
         deleteIdentifiables(List.of("idShunt2", "idShunt1"), "shunt-compensators");
 
-        Resource<DanglingLineAttributes> danglingLine1 = Resource.danglingLineBuilder()
-                .id("idDanglingLine1")
-                .attributes(DanglingLineAttributes.builder()
+        Resource<BoundaryLineAttributes> boundaryLine1 = Resource.boundaryLineBuilder()
+                .id("idBoundaryLine1")
+                .attributes(BoundaryLineAttributes.builder()
                         .voltageLevelId("vl1")
-                        .name("dl1")
+                        .name("bl1")
                         .build())
                 .build();
-        createIdentifiable(danglingLine1, "dangling-lines");
+        createIdentifiable(boundaryLine1, "boundary-lines");
 
-        Resource<DanglingLineAttributes> danglingLine2 = Resource.danglingLineBuilder()
-                .id("idDanglingLine2")
-                .attributes(DanglingLineAttributes.builder()
+        Resource<BoundaryLineAttributes> boundaryLine2 = Resource.boundaryLineBuilder()
+                .id("idBoundaryLine2")
+                .attributes(BoundaryLineAttributes.builder()
                         .voltageLevelId("vl1")
-                        .name("dl1")
+                        .name("bl1")
                         .build())
                 .build();
-        createIdentifiable(danglingLine2, "dangling-lines");
+        createIdentifiable(boundaryLine2, "boundary-lines");
 
-        deleteIdentifiables(List.of("idDanglingLine1", "idDanglingLine2"), "dangling-lines");
+        deleteIdentifiables(List.of("idBoundaryLine1", "idBoundaryLine2"), "boundary-lines");
 
         // grounds
         Resource<GroundAttributes> ground1 = Resource.groundBuilder()
@@ -1438,14 +1457,14 @@ class NetworkStoreControllerIT {
         // tie-lines
         Resource<TieLineAttributes> tieLine1 = Resource.tieLineBuilder()
                 .id("idTieLine1")
-                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).danglingLine1Id("half1").danglingLine2Id("half2")
+                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).boundaryLine1Id("half1").boundaryLine2Id("half2")
                         .build())
                 .build();
         createIdentifiable(tieLine1, "tie-lines");
 
         Resource<TieLineAttributes> tieLine2 = Resource.tieLineBuilder()
                 .id("idTieLine2")
-                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).danglingLine1Id("half1").danglingLine2Id("half2")
+                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).boundaryLine1Id("half1").boundaryLine2Id("half2")
                         .build())
                 .build();
         createIdentifiable(tieLine2, "tie-lines");
@@ -1676,12 +1695,14 @@ class NetworkStoreControllerIT {
             .name("temporarylimit1")
             .acceptableDuration(10)
             .fictitious(false)
+            .properties(Map.of("tlprop1", "tlvalue1", "tlprop2", "tlvalue2"))
             .build());
         return OperationalLimitsGroupAttributes.builder()
             .id(operationalLimitsGroupId)
             .currentLimits(LimitsAttributes.builder()
                 .permanentLimit(1)
                 .temporaryLimits(temporaryLimits)
+                .properties(Map.of("lprop3", "lvalue3", "lprop4", "lvalue4"))
                 .build())
             .properties(Map.of("prop1", "value1", "prop2", "value2"))
             .build();
