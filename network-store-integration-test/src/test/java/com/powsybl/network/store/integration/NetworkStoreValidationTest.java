@@ -111,7 +111,7 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("connection node and connection bus are exclusives"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").add()).getMessage().contains("connectable bus is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(0).add())
-                .getMessage().contains("an equipment (G) is already connected to node 0 of voltage level VL1"));
+                .getMessage().contains("Generator 'G1': an equipment (G) is already connected to node 0 of voltage level VL1"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setEnergySource(null).add())
                 .getMessage().contains("energy source is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).add())
