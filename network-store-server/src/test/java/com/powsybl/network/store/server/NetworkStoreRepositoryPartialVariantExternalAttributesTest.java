@@ -1212,6 +1212,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         // Variant 0
@@ -1271,6 +1272,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId2, newOperationalLimitsGroupAttributes2Bis))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
+        updatedLine1.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine, updatedLine1));
 
         assertEquals(List.of(newOperationalLimitsGroupAttributes, operationalLimitsGroupAttributes2), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
@@ -1307,6 +1310,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         // Variant 0
@@ -1350,6 +1354,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
@@ -1365,6 +1370,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId2, operationalLimitsGroupAttributes2Updated))
                         .build())
                 .build();
+        updatedLineTwice.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLineTwice));
 
         // Variant 0
@@ -1404,6 +1410,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
@@ -1419,6 +1426,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId1, operationalLimitsGroupAttributes1Updated))
                         .build())
                 .build();
+        updatedLineTwice.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLineTwice));
 
         // Variant 0
@@ -1461,6 +1469,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups2(Map.of(operationLimitGroupId3, operationalLimitsGroupAttributes3Updated))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         networkStoreRepository.cloneNetworkVariant(NETWORK_UUID, 1, 2, "variant2");
@@ -1479,6 +1488,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups2(Map.of(operationLimitGroupId4, operationalLimitsGroupAttributes4Updated))
                         .build())
                 .build();
+        updatedLineTwice.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLineTwice));
 
         // Variant 0
@@ -1525,6 +1535,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId3, newOperationalLimitsGroupAttributes))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine));
 
         assertEquals(newOperationalLimitsGroupAttributes, networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 1, lineId, ResourceType.LINE, operationLimitGroupId3, 1).orElseThrow());
@@ -1581,6 +1592,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
                         .operationalLimitsGroups1(Map.of(operationLimitGroupId3, newOperationalLimitsGroupAttributes))
                         .build())
                 .build();
+        updatedLine.setFilter(AttributeFilter.LIMITS);
+        updatedLine1.setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(updatedLine, updatedLine1));
 
         assertEquals(List.of(operationalLimitsGroupAttributes1, operationalLimitsGroupAttributes2, newOperationalLimitsGroupAttributes), networkStoreRepository.getOperationalLimitsGroupAttributesForBranchSide(NETWORK_UUID, 1, ResourceType.LINE, lineId, 1));
@@ -1711,6 +1724,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroups1 = new HashMap<>();
         operationalLimitsGroups1.put("GROUP1", OperationalLimitsGroupAttributes.builder().id("GROUP1").build());
         line1.get().getAttributes().setOperationalLimitsGroups1(operationalLimitsGroups1);
+        line1.get().setFilter(AttributeFilter.LIMITS);
         networkStoreRepository.updateLines(NETWORK_UUID, List.of(line1.get()));
         assertTrue(networkStoreRepository.getOperationalLimitsGroupAttributes(NETWORK_UUID, 2, lineId1, ResourceType.LINE, "GROUP1", 1).isPresent());
         Set<OperationalLimitsGroupOwnerInfo> tombstonedIds2 = getTombstonedOperationalLimitsGroups(NETWORK_UUID, 2);

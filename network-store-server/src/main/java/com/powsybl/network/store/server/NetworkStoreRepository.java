@@ -1674,8 +1674,7 @@ public class NetworkStoreRepository {
 
     public void updateTwoWindingsTransformers(UUID networkUuid, List<Resource<TwoWindingsTransformerAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
-        if (resources.getFirst().getFilter() != null ||
-                resources.getFirst().getFilter() == AttributeFilter.LIMITS ||
+        if (resources.getFirst().getFilter() == AttributeFilter.LIMITS ||
                 resources.getFirst().getFilter() == AttributeFilter.FULL) {
             limitsHandler.updateOperationalLimitsGroups(networkUuid, resources);
         }
@@ -1864,8 +1863,7 @@ public class NetworkStoreRepository {
 
     public void updateLines(UUID networkUuid, List<Resource<LineAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
-        if (resources.getFirst().getFilter() == null ||
-                resources.getFirst().getFilter() == AttributeFilter.LIMITS ||
+        if (resources.getFirst().getFilter() == AttributeFilter.LIMITS ||
                 resources.getFirst().getFilter() == AttributeFilter.FULL) {
             limitsHandler.updateOperationalLimitsGroups(networkUuid, resources);
         }

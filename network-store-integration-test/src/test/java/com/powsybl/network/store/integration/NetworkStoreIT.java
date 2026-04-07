@@ -4247,6 +4247,9 @@ class NetworkStoreIT {
             Battery battery = network.getBattery("battery");
             battery.getTerminal().setP(1400);
             battery.getTerminal().setQ(-1400);
+            VoltageLevel voltageLevel = network.getVoltageLevel("VL1");
+            voltageLevel.getBusView();
+            voltageLevel.getBusBreakerView();
             service.flush(network);
         }
 
@@ -4292,6 +4295,11 @@ class NetworkStoreIT {
             Battery battery = network.getBattery("battery");
             assertEquals(1400, battery.getTerminal().getP());
             assertEquals(-1400, battery.getTerminal().getQ());
+            VoltageLevel voltageLevel = network.getVoltageLevel("VL1");
+            List<String> buseBreakerViewIds = voltageLevel.getBusBreakerView().getBusStream().map(Bus::getId).toList();
+            assertTrue(buseBreakerViewIds.containsAll(List.of("VL1_5", "VL1_0", "VL1_1", "VL1_2", "VL1_3", "VL1_4")));
+            List<String> buseIds = voltageLevel.getBusView().getBusStream().map(Bus::getId).toList();
+            assertTrue(buseIds.isEmpty());
         }
     }
 }
