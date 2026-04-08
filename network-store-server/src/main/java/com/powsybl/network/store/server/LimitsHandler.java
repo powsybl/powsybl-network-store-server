@@ -27,7 +27,6 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.powsybl.network.store.model.AttributeFilter.LIMITS;
 import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_ID_COLUMN;
 import static com.powsybl.network.store.server.QueryCatalog.EQUIPMENT_TYPE_COLUMN;
 import static com.powsybl.network.store.server.QueryLimitsCatalog.*;
@@ -209,22 +208,20 @@ public class LimitsHandler {
         if (!resources.isEmpty()) {
             for (Resource<T> resource : resources) {
                 T equipment = resource.getAttributes();
-                if (AttributeFilter.isCovering(LIMITS, resource.getFilter()) || equipment.hasOperationalLimitsGroups()) {
-                    for (Integer side : equipment.getSideList()) {
-                        Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupsForSide = equipment.getOperationalLimitsGroups(side);
-                        for (Map.Entry<String, OperationalLimitsGroupAttributes> groupEntry : operationalLimitsGroupsForSide.entrySet()) {
-                            String operationalLimitsGroupId = groupEntry.getKey();
-                            OperationalLimitsGroupAttributes attributes = groupEntry.getValue();
-                            OperationalLimitsGroupOwnerInfo ownerInfo = new OperationalLimitsGroupOwnerInfo(
-                                    resource.getId(),
-                                    resource.getType(),
-                                    networkUuid,
-                                    resource.getVariantNum(),
-                                    operationalLimitsGroupId,
-                                    side
-                            );
-                            map.put(ownerInfo, attributes);
-                        }
+                for (Integer side : equipment.getSideList()) {
+                    Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupsForSide = equipment.getOperationalLimitsGroups(side);
+                    for (Map.Entry<String, OperationalLimitsGroupAttributes> groupEntry : operationalLimitsGroupsForSide.entrySet()) {
+                        String operationalLimitsGroupId = groupEntry.getKey();
+                        OperationalLimitsGroupAttributes attributes = groupEntry.getValue();
+                        OperationalLimitsGroupOwnerInfo ownerInfo = new OperationalLimitsGroupOwnerInfo(
+                                resource.getId(),
+                                resource.getType(),
+                                networkUuid,
+                                resource.getVariantNum(),
+                                operationalLimitsGroupId,
+                                side
+                        );
+                        map.put(ownerInfo, attributes);
                     }
                 }
             }

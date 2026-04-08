@@ -4302,35 +4302,4 @@ class NetworkStoreIT {
             assertTrue(buseIds.isEmpty());
         }
     }
-
-    @Test
-    void testDeleteLimits() {
-        String groupId = "group1";
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Network network = NetworkStorageTestCaseFactory.create(service.getNetworkFactory());
-            network.getLine("LINE1").newOperationalLimitsGroup1(groupId).newCurrentLimits().setPermanentLimit(15)
-                    .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(2).setAcceptableDuration(2).endTemporaryLimit()
-                    .beginTemporaryLimit().setName("name").ensureNameUnicity().setValue(1).setAcceptableDuration(4).endTemporaryLimit()
-                    .add();
-            service.flush(network);
-        }
-
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Map<UUID, String> networkIds = service.getNetworkIds();
-            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
-            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
-            Line line = network.getLine("LINE1");
-            assertTrue(line.getOperationalLimitsGroup1(groupId).isPresent());
-            line.removeOperationalLimitsGroup1(groupId);
-            service.flush(network);
-        }
-
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Map<UUID, String> networkIds = service.getNetworkIds();
-            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
-            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
-            Line line = network.getLine("LINE1");
-            assertFalse(line.getOperationalLimitsGroup1(groupId).isPresent());
-        }
-    }
 }

@@ -1674,6 +1674,7 @@ public class NetworkStoreRepository {
 
     public void updateTwoWindingsTransformers(UUID networkUuid, List<Resource<TwoWindingsTransformerAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getTwoWindingsTransformerMappings());
+
         limitsHandler.updateOperationalLimitsGroups(networkUuid, resources);
         updateTapChangerSteps(networkUuid, resources);
         updateRegulatingPoints(networkUuid, resources, ResourceType.TWO_WINDINGS_TRANSFORMER, getRegulatingPointFromTwoWindingTransformers(networkUuid, resources));
@@ -1860,6 +1861,7 @@ public class NetworkStoreRepository {
 
     public void updateLines(UUID networkUuid, List<Resource<LineAttributes>> resources) {
         updateIdentifiables(networkUuid, resources, mappings.getLineMappings());
+
         limitsHandler.updateOperationalLimitsGroups(networkUuid, resources);
     }
 
