@@ -4248,8 +4248,8 @@ class NetworkStoreIT {
             battery.getTerminal().setP(1400);
             battery.getTerminal().setQ(-1400);
             VoltageLevel voltageLevel = network.getVoltageLevel("VL1");
-            voltageLevel.getBusView();
-            voltageLevel.getBusBreakerView();
+            voltageLevel.getBusView().getBuses();
+            voltageLevel.getBusBreakerView().getBuses();
             service.flush(network);
         }
 
