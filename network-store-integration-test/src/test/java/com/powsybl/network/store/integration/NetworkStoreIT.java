@@ -4001,7 +4001,7 @@ class NetworkStoreIT {
     }
 
     @Test
-    void testIncrementalUpdate() {
+    void testsvUpdate() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             network.getBusView().getBuses(); // force storing calculated topology and connectivity
@@ -4205,7 +4205,8 @@ class NetworkStoreIT {
             service.flush(network);
         }
 
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+        var metrics = new RestClientMetrics();
+        try (NetworkStoreService service = createNetworkStoreService(metrics, randomServerPort)) {
             Map<UUID, String> networkIds = service.getNetworkIds();
             UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
             NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
@@ -4251,7 +4252,21 @@ class NetworkStoreIT {
             voltageLevel.getBusView().getBuses();
             voltageLevel.getBusBreakerView().getBuses();
             service.flush(network);
+            assertTrue(metrics.updatedUrls.containsAll(Set.of(
+            "/networks/" + networkUuid + "/static-var-compensators/sv",
+            "/networks/" + networkUuid + "/voltage-levels",
+            "/networks/" + networkUuid + "/shunt-compensators/sv",
+            "/networks/" + networkUuid + "/2-windings-transformers/sv",
+            "/networks/" + networkUuid + "/loads/sv",
+            "/networks/" + networkUuid + "/lines/sv",
+            "/networks/" + networkUuid + "/vsc-converter-stations/sv",
+            "/networks/" + networkUuid + "/dangling-lines/sv",
+            "/networks/" + networkUuid + "/lcc-converter-stations/sv",
+            "/networks/" + networkUuid + "/3-windings-transformers/sv",
+            "/networks/" + networkUuid + "/batteries/sv"
+            )));
         }
+
 
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Map<UUID, String> networkIds = service.getNetworkIds();
