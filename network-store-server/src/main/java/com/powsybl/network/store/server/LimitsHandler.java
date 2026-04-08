@@ -209,7 +209,7 @@ public class LimitsHandler {
         if (!resources.isEmpty()) {
             for (Resource<T> resource : resources) {
                 T equipment = resource.getAttributes();
-                if (LIMITS.isCoveredBy(resource.getFilter()) || equipment.hasOperationalLimitsGroups()) {
+                if (AttributeFilter.isCovering(LIMITS, resource.getFilter()) || equipment.hasOperationalLimitsGroups()) {
                     for (Integer side : equipment.getSideList()) {
                         Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupsForSide = equipment.getOperationalLimitsGroups(side);
                         for (Map.Entry<String, OperationalLimitsGroupAttributes> groupEntry : operationalLimitsGroupsForSide.entrySet()) {
