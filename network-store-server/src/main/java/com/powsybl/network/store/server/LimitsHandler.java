@@ -208,6 +208,7 @@ public class LimitsHandler {
         if (!resources.isEmpty()) {
             for (Resource<T> resource : resources) {
                 T equipment = resource.getAttributes();
+
                 for (Integer side : equipment.getSideList()) {
                     Map<String, OperationalLimitsGroupAttributes> operationalLimitsGroupsForSide = equipment.getOperationalLimitsGroups(side);
                     for (Map.Entry<String, OperationalLimitsGroupAttributes> groupEntry : operationalLimitsGroupsForSide.entrySet()) {
