@@ -4253,20 +4253,19 @@ class NetworkStoreIT {
             voltageLevel.getBusBreakerView().getBuses();
             service.flush(network);
             assertTrue(metrics.updatedUrls.containsAll(Set.of(
-            "/networks/" + networkUuid + "/static-var-compensators/sv",
-            "/networks/" + networkUuid + "/voltage-levels",
-            "/networks/" + networkUuid + "/shunt-compensators/sv",
-            "/networks/" + networkUuid + "/2-windings-transformers/sv",
-            "/networks/" + networkUuid + "/loads/sv",
-            "/networks/" + networkUuid + "/lines/sv",
-            "/networks/" + networkUuid + "/vsc-converter-stations/sv",
-            "/networks/" + networkUuid + "/dangling-lines/sv",
-            "/networks/" + networkUuid + "/lcc-converter-stations/sv",
-            "/networks/" + networkUuid + "/3-windings-transformers/sv",
-            "/networks/" + networkUuid + "/batteries/sv"
+                "/networks/" + networkUuid + "/static-var-compensators/sv",
+                "/networks/" + networkUuid + "/voltage-levels",
+                "/networks/" + networkUuid + "/shunt-compensators/sv",
+                "/networks/" + networkUuid + "/2-windings-transformers/sv",
+                "/networks/" + networkUuid + "/loads/sv",
+                "/networks/" + networkUuid + "/lines/sv",
+                "/networks/" + networkUuid + "/vsc-converter-stations/sv",
+                "/networks/" + networkUuid + "/dangling-lines/sv",
+                "/networks/" + networkUuid + "/lcc-converter-stations/sv",
+                "/networks/" + networkUuid + "/3-windings-transformers/sv",
+                "/networks/" + networkUuid + "/batteries/sv"
             )));
         }
-
 
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Map<UUID, String> networkIds = service.getNetworkIds();
