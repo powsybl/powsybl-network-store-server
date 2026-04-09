@@ -111,7 +111,7 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("connection node and connection bus are exclusives"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").add()).getMessage().contains("connectable bus is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(0).add())
-                .getMessage().contains("G is already connected to the node 0"));
+                .getMessage().contains("Generator 'G1': an equipment (G) is already connected to node 0 of voltage level VL1"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setEnergySource(null).add())
                 .getMessage().contains("energy source is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).add())
@@ -803,7 +803,7 @@ class NetworkStoreValidationTest {
         Substation s2 = network.newSubstation().setId("S2").setCountry(Country.FR).add();
         s2.newVoltageLevel().setId("VL3").setNominalV(225).setLowVoltageLimit(180).setHighVoltageLimit(250).setTopologyKind(TopologyKind.NODE_BREAKER).add();
 
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().add()).getMessage().contains("AC Line id is not set"));
+        assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().add()).getMessage().contains("AC line id is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().setId("Line").add())
                 .getMessage().contains("first voltage level is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().setId("Line").setVoltageLevel1("1").add())

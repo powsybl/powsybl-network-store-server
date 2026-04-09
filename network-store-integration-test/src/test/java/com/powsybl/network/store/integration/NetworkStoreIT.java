@@ -3437,7 +3437,7 @@ class NetworkStoreIT {
                 .getMessage().contains("temporary limit value is not set"));
             LoadingLimitsAdder.TemporaryLimitAdder<?> adder1 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(-2);
             assertTrue(assertThrows(ValidationException.class, adder1::endTemporaryLimit)
-                .getMessage().contains("AC Line 'LINE1': temporary limit value must be >= 0"));
+                .getMessage().contains("AC line 'LINE1': temporary limit value must be >= 0"));
             LoadingLimitsAdder.TemporaryLimitAdder<?> adder2 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2);
             assertTrue(assertThrows(ValidationException.class, adder2::endTemporaryLimit)
                 .getMessage().contains("acceptable duration is not set"));
