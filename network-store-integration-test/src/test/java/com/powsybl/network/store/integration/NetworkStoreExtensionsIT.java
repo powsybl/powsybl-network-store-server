@@ -1634,8 +1634,6 @@ class NetworkStoreExtensionsIT {
             assertNull(gen.getExtensionByName("activePowerControl"));
             assertNull(gen.getExtension(ActivePowerControl.class));
             service.flush(network);
-        } catch (Exception e) {
-            throw e;
         }
 
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
