@@ -1866,17 +1866,17 @@ public class NetworkStoreRepository {
         values.add(attributes.getQ2());
         values.add(attributes.getP3());
         values.add(attributes.getQ3());
-        values.add(getTapChangerSolvedPosition(attributes.getLeg1(), () -> attributes.getLeg1().getRatioTapChangerAttributes()));
-        values.add(getTapChangerSolvedPosition(attributes.getLeg1(), () -> attributes.getLeg1().getPhaseTapChangerAttributes()));
-        values.add(getTapChangerSolvedPosition(attributes.getLeg2(), () -> attributes.getLeg2().getRatioTapChangerAttributes()));
-        values.add(getTapChangerSolvedPosition(attributes.getLeg2(), () -> attributes.getLeg2().getPhaseTapChangerAttributes()));
-        values.add(getTapChangerSolvedPosition(attributes.getLeg3(), () -> attributes.getLeg3().getRatioTapChangerAttributes()));
-        values.add(getTapChangerSolvedPosition(attributes.getLeg3(), () -> attributes.getLeg3().getPhaseTapChangerAttributes()));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg1(), LegAttributes::getRatioTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg1(), LegAttributes::getPhaseTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg2(), LegAttributes::getRatioTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg2(), LegAttributes::getPhaseTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg3(), LegAttributes::getRatioTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg3(), LegAttributes::getPhaseTapChangerAttributes));
     }
 
-    static Integer getTapChangerSolvedPosition(LegAttributes legAttributes, Supplier<TapChangerAttributes> tapChangerAttributesSupplier) {
+    static Integer getTapChangerSolvedPosition(LegAttributes legAttributes, Function<LegAttributes, TapChangerAttributes> tapChangerAttributesSupplier) {
         if (legAttributes != null) {
-            TapChangerAttributes tapChangerAttributes = tapChangerAttributesSupplier.get();
+            TapChangerAttributes tapChangerAttributes = tapChangerAttributesSupplier.apply(legAttributes);
             if (tapChangerAttributes != null) {
                 return tapChangerAttributes.getSolvedTapPosition();
             }
@@ -1892,14 +1892,14 @@ public class NetworkStoreRepository {
         existingAttributes.setP3(newAttributes.getP3());
         existingAttributes.setQ3(newAttributes.getQ3());
         setSvSolvedTapPosition(existingAttributes.getLeg1(), existingAttributes::setLeg1, existingAttributes::getLeg1,
-                getTapChangerSolvedPosition(newAttributes.getLeg1(), () -> newAttributes.getLeg1().getRatioTapChangerAttributes()),
-                getTapChangerSolvedPosition(newAttributes.getLeg1(), () -> newAttributes.getLeg1().getPhaseTapChangerAttributes()));
+                getTapChangerSolvedPosition(newAttributes.getLeg1(), LegAttributes::getRatioTapChangerAttributes),
+                getTapChangerSolvedPosition(newAttributes.getLeg1(), LegAttributes::getPhaseTapChangerAttributes));
         setSvSolvedTapPosition(existingAttributes.getLeg2(), existingAttributes::setLeg2, existingAttributes::getLeg2,
-                getTapChangerSolvedPosition(newAttributes.getLeg2(), () -> newAttributes.getLeg2().getRatioTapChangerAttributes()),
-                getTapChangerSolvedPosition(newAttributes.getLeg2(), () -> newAttributes.getLeg2().getPhaseTapChangerAttributes()));
+                getTapChangerSolvedPosition(newAttributes.getLeg2(), LegAttributes::getRatioTapChangerAttributes),
+                getTapChangerSolvedPosition(newAttributes.getLeg2(), LegAttributes::getPhaseTapChangerAttributes));
         setSvSolvedTapPosition(existingAttributes.getLeg1(), existingAttributes::setLeg1, existingAttributes::getLeg3,
-                getTapChangerSolvedPosition(newAttributes.getLeg3(), () -> newAttributes.getLeg3().getRatioTapChangerAttributes()),
-                getTapChangerSolvedPosition(newAttributes.getLeg3(), () -> newAttributes.getLeg3().getPhaseTapChangerAttributes()));
+                getTapChangerSolvedPosition(newAttributes.getLeg3(), LegAttributes::getRatioTapChangerAttributes),
+                getTapChangerSolvedPosition(newAttributes.getLeg3(), LegAttributes::getPhaseTapChangerAttributes));
     }
 
     static void setSvSolvedTapPosition(LegAttributes existingLegAttributes,
