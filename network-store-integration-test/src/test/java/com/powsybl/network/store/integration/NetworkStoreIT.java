@@ -4132,7 +4132,6 @@ class NetworkStoreIT {
             // for voltage level it is not /voltage-levels/sv because the network has a node breaker topology and has other attributes when getting the buse view
             // it should be corrected to ensure the loadflow send sv attributes at the end of its computation
             // attributes nodeToCalculatedBusForBusBreakerView and nodeToCalculatedBusForBusView are missing from sv view
-            System.out.println(metrics.updatedUrls);
             assertTrue(metrics.updatedUrls.containsAll(Set.of(
                     "/networks/" + networkUuid + "/static-var-compensators/sv",
                     "/networks/" + networkUuid + "/voltage-levels/sv",
