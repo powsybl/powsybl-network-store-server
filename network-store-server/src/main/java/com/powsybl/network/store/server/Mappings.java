@@ -221,6 +221,7 @@ public class Mappings {
         generatorMappings.addColumnMapping("targetP", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetP, GeneratorAttributes::setTargetP));
         generatorMappings.addColumnMapping("targetQ", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetQ, GeneratorAttributes::setTargetQ));
         generatorMappings.addColumnMapping("targetV", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetV, GeneratorAttributes::setTargetV));
+        generatorMappings.addColumnMapping("equivalentLocalTargetV", new ColumnMapping<>(Double.class, GeneratorAttributes::getEquivalentLocalTargetV, GeneratorAttributes::setEquivalentLocalTargetV));
         generatorMappings.addColumnMapping(RATED_S, new ColumnMapping<>(Double.class, GeneratorAttributes::getRatedS, GeneratorAttributes::setRatedS));
         generatorMappings.addColumnMapping(MINQ, new ColumnMapping<>(Double.class,
             (GeneratorAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits()).getMinQ() : null,

@@ -32,16 +32,13 @@ import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -60,19 +57,20 @@ import static org.mockito.Mockito.*;
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
-@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreIT {
-    @DynamicPropertySource
-    private static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
 
     private static final double ESP = 0.000001;
 
     @LocalServerPort
     private int randomServerPort;
     private static Properties properties;
+
+    @AfterEach
+    void tearDown() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            service.deleteAllNetworks();
+        }
+    }
 
     @BeforeAll
     static void setUp() {
@@ -1565,20 +1563,20 @@ class NetworkStoreIT {
             Map<String, Integer> nbInternalConnectionsPerVL = new HashMap();
             readNetwork.getVoltageLevels().forEach(vl -> nbInternalConnectionsPerVL.put(vl.getId(), vl.getNodeBreakerView().getInternalConnectionCount()));
 
-            assertEquals(9, nbInternalConnectionsPerVL.get("b2707f00-2554-41d2-bde2-7dd80a669e50"), .0001);
-            assertEquals(11, nbInternalConnectionsPerVL.get("8d4a8238-5b31-4c16-8692-0265dae5e132"), .0001);
-            assertEquals(23, nbInternalConnectionsPerVL.get("0d68ac81-124d-4d21-afa8-6c503feef5b8"), .0001);
-            assertEquals(9, nbInternalConnectionsPerVL.get("6f8ef715-bc0a-47d7-a74e-27f17234f590"), .0001);
-            assertEquals(29, nbInternalConnectionsPerVL.get("347fb7af-642f-4c60-97d9-c03d440b6a82"), .0001);
-            assertEquals(22, nbInternalConnectionsPerVL.get("051b93ae-9c15-4490-8cea-33395298f031"), .0001);
-            assertEquals(22, nbInternalConnectionsPerVL.get("5d9d9d87-ce6b-4213-b4ec-d50de9790a59"), .0001);
-            assertEquals(16, nbInternalConnectionsPerVL.get("93778e52-3fd5-456d-8b10-987c3e6bc47e"), .0001);
-            assertEquals(50, nbInternalConnectionsPerVL.get("a43d15db-44a6-4fda-a525-2402ff43226f"), .0001);
-            assertEquals(36, nbInternalConnectionsPerVL.get("cd28a27e-8b17-4f23-b9f5-03b6de15203f"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("b2707f00-2554-41d2-bde2-7dd80a669e50"), .0001);
+            assertEquals(3, nbInternalConnectionsPerVL.get("8d4a8238-5b31-4c16-8692-0265dae5e132"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("0d68ac81-124d-4d21-afa8-6c503feef5b8"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("6f8ef715-bc0a-47d7-a74e-27f17234f590"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("347fb7af-642f-4c60-97d9-c03d440b6a82"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("051b93ae-9c15-4490-8cea-33395298f031"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("5d9d9d87-ce6b-4213-b4ec-d50de9790a59"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("93778e52-3fd5-456d-8b10-987c3e6bc47e"), .0001);
+            assertEquals(1, nbInternalConnectionsPerVL.get("a43d15db-44a6-4fda-a525-2402ff43226f"), .0001);
+            assertEquals(0, nbInternalConnectionsPerVL.get("cd28a27e-8b17-4f23-b9f5-03b6de15203f"), .0001);
 
             VoltageLevel.NodeBreakerView.InternalConnection ic = readNetwork.getVoltageLevel("b2707f00-2554-41d2-bde2-7dd80a669e50").getNodeBreakerView().getInternalConnections().iterator().next();
-            assertEquals(4, ic.getNode1());
-            assertEquals(0, ic.getNode2());
+            assertEquals(0, ic.getNode1());
+            assertEquals(4, ic.getNode2());
         }
     }
 
@@ -3439,7 +3437,7 @@ class NetworkStoreIT {
                 .getMessage().contains("temporary limit value is not set"));
             LoadingLimitsAdder.TemporaryLimitAdder<?> adder1 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(-2);
             assertTrue(assertThrows(ValidationException.class, adder1::endTemporaryLimit)
-                .getMessage().contains("AC Line 'LINE1': temporary limit value must be >= 0"));
+                .getMessage().contains("AC line 'LINE1': temporary limit value must be >= 0"));
             LoadingLimitsAdder.TemporaryLimitAdder<?> adder2 = readNetwork.getLine("LINE1").getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits().setPermanentLimit(15).beginTemporaryLimit().setValue(2);
             assertTrue(assertThrows(ValidationException.class, adder2::endTemporaryLimit)
                 .getMessage().contains("acceptable duration is not set"));
@@ -4002,8 +4000,9 @@ class NetworkStoreIT {
         }
     }
 
+    // this network has real buses in the busview but not all kind of equipments
     @Test
-    void testIncrementalUpdate() {
+    void testSvUpdateWithBusView() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             network.getBusView().getBuses(); // force storing calculated topology and connectivity
@@ -4067,6 +4066,130 @@ class NetworkStoreIT {
             assertEquals(25, nload.getV(), 0);
             TwoWindingsTransformer twt1 = network.getTwoWindingsTransformer("NGEN_NHV1");
             assertEquals(100, twt1.getTerminal2().getP(), 0);
+        }
+    }
+
+    // this network has all kind of equipment, but no switches => no bus in busview
+    @Test
+    void testAllEquipmentWithSv() {
+        // this test check when updating only sv attributes that element are well updated
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = NetworkStorageTestCaseFactory.create(service.getNetworkFactory());
+            service.flush(network);
+        }
+
+        var metrics = new RestClientMetrics();
+        try (NetworkStoreService service = createNetworkStoreService(metrics, randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
+            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
+            ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT1");
+            shuntCompensator.getTerminal().setP(100);
+            shuntCompensator.getTerminal().setQ(-100);
+            Load load = network.getLoad("load1");
+            load.getTerminal().setP(200);
+            load.getTerminal().setQ(-200);
+            TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("TwoWT1");
+            twoWindingsTransformer.getTerminal1().setP(300);
+            twoWindingsTransformer.getTerminal1().setQ(-300);
+            twoWindingsTransformer.getTerminal2().setP(400);
+            twoWindingsTransformer.getTerminal2().setQ(-400);
+            VscConverterStation vscConverterStation = network.getVscConverterStation("VSC1");
+            vscConverterStation.getTerminal().setP(500);
+            vscConverterStation.getTerminal().setQ(-500);
+            LccConverterStation lccConverterStation = network.getLccConverterStation("LCC2");
+            lccConverterStation.getTerminal().setP(600);
+            lccConverterStation.getTerminal().setQ(-600);
+            DanglingLine danglingLine = network.getDanglingLine("DL1");
+            danglingLine.getTerminal().setP(700);
+            danglingLine.getTerminal().setQ(-700);
+            StaticVarCompensator svc = network.getStaticVarCompensator("SVC2");
+            svc.getTerminal().setP(800);
+            svc.getTerminal().setQ(-800);
+            Line line = network.getLine("LINE1");
+            line.getTerminal1().setP(900);
+            line.getTerminal1().setQ(-900);
+            line.getTerminal2().setP(1000);
+            line.getTerminal2().setQ(-1000);
+            ThreeWindingsTransformer threeWindingsTransformer = network.getThreeWindingsTransformer("TWT1");
+            threeWindingsTransformer.getLeg1().getTerminal().setP(1100);
+            threeWindingsTransformer.getLeg1().getTerminal().setQ(-1100);
+            threeWindingsTransformer.getLeg2().getTerminal().setP(1200);
+            threeWindingsTransformer.getLeg2().getTerminal().setQ(-1200);
+            threeWindingsTransformer.getLeg3().getTerminal().setP(1300);
+            threeWindingsTransformer.getLeg3().getTerminal().setQ(-1300);
+            Battery battery = network.getBattery("battery");
+            battery.getTerminal().setP(1400);
+            battery.getTerminal().setQ(-1400);
+            VoltageLevel voltageLevel = network.getVoltageLevel("VL1");
+            voltageLevel.getBusView().getBuses();
+            voltageLevel.getBusBreakerView().getBuses();
+            service.flush(network);
+            // for voltage level it is not /voltage-levels/sv because the network has a node breaker topology and has other attributes when getting the buse view
+            // it should be corrected to ensure the loadflow send sv attributes at the end of its computation
+            // attributes nodeToCalculatedBusForBusBreakerView and nodeToCalculatedBusForBusView are missing from sv view
+            assertTrue(metrics.updatedUrls.containsAll(Set.of(
+                    "/networks/" + networkUuid + "/static-var-compensators/sv",
+                    "/networks/" + networkUuid + "/voltage-levels",
+                    "/networks/" + networkUuid + "/shunt-compensators/sv",
+                    "/networks/" + networkUuid + "/2-windings-transformers/sv",
+                    "/networks/" + networkUuid + "/loads/sv",
+                    "/networks/" + networkUuid + "/lines/sv",
+                    "/networks/" + networkUuid + "/vsc-converter-stations/sv",
+                    "/networks/" + networkUuid + "/dangling-lines/sv",
+                    "/networks/" + networkUuid + "/lcc-converter-stations/sv",
+                    "/networks/" + networkUuid + "/3-windings-transformers/sv",
+                    "/networks/" + networkUuid + "/batteries/sv"
+            )));
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
+            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
+            ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT1");
+            assertEquals(100, shuntCompensator.getTerminal().getP());
+            assertEquals(-100, shuntCompensator.getTerminal().getQ());
+            Load load = network.getLoad("load1");
+            assertEquals(200, load.getTerminal().getP());
+            assertEquals(-200, load.getTerminal().getQ());
+            TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("TwoWT1");
+            assertEquals(300, twoWindingsTransformer.getTerminal1().getP());
+            assertEquals(-300, twoWindingsTransformer.getTerminal1().getQ());
+            assertEquals(400, twoWindingsTransformer.getTerminal2().getP());
+            assertEquals(-400, twoWindingsTransformer.getTerminal2().getQ());
+            VscConverterStation vscConverterStation = network.getVscConverterStation("VSC1");
+            assertEquals(500, vscConverterStation.getTerminal().getP());
+            assertEquals(-500, vscConverterStation.getTerminal().getQ());
+            LccConverterStation lccConverterStation = network.getLccConverterStation("LCC2");
+            assertEquals(600, lccConverterStation.getTerminal().getP());
+            assertEquals(-600, lccConverterStation.getTerminal().getQ());
+            DanglingLine danglingLine = network.getDanglingLine("DL1");
+            assertEquals(700, danglingLine.getTerminal().getP());
+            assertEquals(-700, danglingLine.getTerminal().getQ());
+            StaticVarCompensator svc = network.getStaticVarCompensator("SVC2");
+            assertEquals(800, svc.getTerminal().getP());
+            assertEquals(-800, svc.getTerminal().getQ());
+            Line line = network.getLine("LINE1");
+            assertEquals(900, line.getTerminal1().getP());
+            assertEquals(-900, line.getTerminal1().getQ());
+            assertEquals(1000, line.getTerminal2().getP());
+            assertEquals(-1000, line.getTerminal2().getQ());
+            ThreeWindingsTransformer threeWindingsTransformer = network.getThreeWindingsTransformer("TWT1");
+            assertEquals(1100, threeWindingsTransformer.getLeg1().getTerminal().getP());
+            assertEquals(-1100, threeWindingsTransformer.getLeg1().getTerminal().getQ());
+            assertEquals(1200, threeWindingsTransformer.getLeg2().getTerminal().getP());
+            assertEquals(-1200, threeWindingsTransformer.getLeg2().getTerminal().getQ());
+            assertEquals(1300, threeWindingsTransformer.getLeg3().getTerminal().getP());
+            assertEquals(-1300, threeWindingsTransformer.getLeg3().getTerminal().getQ());
+            Battery battery = network.getBattery("battery");
+            assertEquals(1400, battery.getTerminal().getP());
+            assertEquals(-1400, battery.getTerminal().getQ());
+            VoltageLevel voltageLevel = network.getVoltageLevel("VL1");
+            List<String> buseBreakerViewIds = voltageLevel.getBusBreakerView().getBusStream().map(Bus::getId).toList();
+            assertTrue(buseBreakerViewIds.containsAll(List.of("VL1_5", "VL1_0", "VL1_1", "VL1_2", "VL1_3", "VL1_4")));
+            List<String> buseIds = voltageLevel.getBusView().getBusStream().map(Bus::getId).toList();
+            assertTrue(buseIds.isEmpty());
         }
     }
 
@@ -4175,6 +4298,27 @@ class NetworkStoreIT {
             network.getVariantManager().setWorkingVariant("v2");
             networkAttributes = network.getResource().getAttributes();
             assertEquals(0, networkAttributes.getFullVariantNum());
+        }
+    }
+
+    @Test
+    void testEquivalentLocalTargetV() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            UUID networkUuid = networkIds.keySet().stream().findFirst().orElseThrow();
+            NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
+            Generator generator = network.getGenerator("GEN");
+            assertNotNull(generator);
+            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
+            generator.setTargetV(200, 20);
+            assertEquals(20, generator.getEquivalentLocalTargetV());
+            generator.setTargetV(220);
+            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
         }
     }
 }

@@ -9,19 +9,19 @@ package com.powsybl.network.store.server;
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * @author Etienne Lesot <etienne.lesot at rte-france.com>
+ */
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class NetworkStoreRepositoryTest {
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
@@ -29,10 +29,9 @@ class NetworkStoreRepositoryTest {
     @Autowired
     private NetworkStoreRepository networkStoreRepository;
 
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
+    @AfterEach
+    void tearDown() {
+        networkStoreRepository.deleteNetwork(NETWORK_UUID);
     }
 
     @Test
@@ -1675,5 +1674,25 @@ class NetworkStoreRepositoryTest {
         assertNotNull(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes());
         assertTrue(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().isLoadTapChangingCapabilities());
         assertEquals(2, retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
+    }
+
+    @Test
+    void testLineWithoutSelectedOlgShouldNotThrow() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String lineId = "line1";
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+                .id(lineId)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line1));
+
+        assertNotNull(networkStoreRepository.getLine(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId));
+        assertTrue(networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.LINE).isEmpty());
     }
 }

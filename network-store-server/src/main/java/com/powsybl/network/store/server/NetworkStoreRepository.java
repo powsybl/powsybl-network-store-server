@@ -270,9 +270,9 @@ public class NetworkStoreRepository {
 
     public void deleteNetwork(UUID uuid) {
         try (var connection = dataSource.getConnection()) {
-            deleteNetwork(uuid, connection);
             deleteIdentifiables(uuid, connection);
             deleteExternalAttributes(uuid, connection);
+            deleteNetwork(uuid, connection);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -328,9 +328,9 @@ public class NetworkStoreRepository {
             throw new IllegalArgumentException("Cannot delete initial variant");
         }
         try (var connection = dataSource.getConnection()) {
-            deleteNetworkVariant(uuid, variantNum, connection);
             deleteIdentifiablesVariant(uuid, variantNum, connection);
             deleteExternalAttributesVariant(uuid, variantNum, connection);
+            deleteNetworkVariant(uuid, variantNum, connection);
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }

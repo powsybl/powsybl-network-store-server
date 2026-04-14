@@ -429,12 +429,17 @@ public class LimitsHandler {
     }
 
     private Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getSelectedOperationalLimitsGroupsForVariant(Connection connection, UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups, int variantNumOverride) {
-        if (selectedOperationalLimitsGroups.isEmpty()) {
+        List<SelectedOperationalLimitsGroupIdentifiers> branchesWithSelectedLimitGroups =
+                selectedOperationalLimitsGroups.stream()
+                        .filter(ids -> ids.operationalLimitsGroupId1() != null || ids.operationalLimitsGroupId2() != null)
+                        .toList();
+
+        if (branchesWithSelectedLimitGroups.isEmpty()) {
             return Collections.emptyMap();
         }
 
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> results = new HashMap<>();
-        for (List<SelectedOperationalLimitsGroupIdentifiers> subSelectedOperationalLimitsGroups : Lists.partition(selectedOperationalLimitsGroups, BATCH_SIZE)) {
+        for (List<SelectedOperationalLimitsGroupIdentifiers> subSelectedOperationalLimitsGroups : Lists.partition(branchesWithSelectedLimitGroups, BATCH_SIZE)) {
             int conditionCount = subSelectedOperationalLimitsGroups.stream()
                     .mapToInt(identifiers ->
                             (identifiers.operationalLimitsGroupId1() != null ? 1 : 0) +

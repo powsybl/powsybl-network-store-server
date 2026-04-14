@@ -13,18 +13,15 @@ import com.powsybl.iidm.network.test.FourSubstationsNodeBreakerFactory;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.RestClientImpl;
 import com.powsybl.network.store.server.NetworkStoreApplication;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.List;
-import java.util.UUID;
 
 import static com.powsybl.network.store.integration.TestUtils.createNetworkStoreService;
 
@@ -33,12 +30,13 @@ import static com.powsybl.network.store.integration.TestUtils.createNetworkStore
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 class OperationalLimitsGroupIT {
-    @DynamicPropertySource
-    private static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
+
+    @AfterEach
+    void tearDown() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            service.deleteAllNetworks();
+        }
     }
 
     @LocalServerPort
