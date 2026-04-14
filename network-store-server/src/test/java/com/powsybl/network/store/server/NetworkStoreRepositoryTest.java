@@ -1523,6 +1523,7 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testBindAttributesForThreeWindingsTransformer() {
+        RatioTapChangerAttributes ratioTapChangerAttributes1 = new RatioTapChangerAttributes();
         ThreeWindingsTransformerSvAttributes attributes = ThreeWindingsTransformerSvAttributes.builder()
                 .p1(10.0)
                 .p2(20.0)
@@ -1530,17 +1531,38 @@ class NetworkStoreRepositoryTest {
                 .q1(5.0)
                 .q2(10.0)
                 .q3(15.0)
+                .leg1(createLegAttributesWithSolvedTapPosition(1, 2))
+                .leg2(createLegAttributesWithSolvedTapPosition(3, 4))
+                .leg3(createLegAttributesWithSolvedTapPosition(5, 6))
                 .build();
         List<Object> values = new ArrayList<>();
         NetworkStoreRepository.bindThreeWindingsTransformerSvAttributes(attributes, values);
 
-        assertEquals(6, values.size());
+        assertEquals(12, values.size());
         assertEquals(10.0, values.get(0));
         assertEquals(5.0, values.get(1));
         assertEquals(20.0, values.get(2));
         assertEquals(10.0, values.get(3));
         assertEquals(30.0, values.get(4));
         assertEquals(15.0, values.get(5));
+        assertEquals(1, values.get(6));
+        assertEquals(2, values.get(7));
+        assertEquals(3, values.get(8));
+        assertEquals(4, values.get(9));
+        assertEquals(5, values.get(10));
+        assertEquals(6, values.get(11));
+    }
+
+    private LegAttributes createLegAttributesWithSolvedTapPosition(Integer ratioTapChangerSolvedTapPosition, Integer phaseTapChangerSolvedTapPosition) {
+        LegAttributes legAttributes = new LegAttributes();
+        legAttributes.setRatioTapChangerAttributes((RatioTapChangerAttributes) setSolvedValue(new RatioTapChangerAttributes(), ratioTapChangerSolvedTapPosition));
+        legAttributes.setPhaseTapChangerAttributes((PhaseTapChangerAttributes) setSolvedValue(new PhaseTapChangerAttributes(), phaseTapChangerSolvedTapPosition));
+        return legAttributes;
+    }
+
+    private TapChangerAttributes setSolvedValue(TapChangerAttributes tapChangerAttributes, Integer solvedTapPosition) {
+        tapChangerAttributes.setSolvedTapPosition(solvedTapPosition);
+        return tapChangerAttributes;
     }
 
     @Test

@@ -242,6 +242,31 @@ public final class QueryCatalog {
                 ID_COLUMN + " = ?";
     }
 
+    public static String buildUpdateShuntCompensatorSvQuery() {
+        return "update " +
+                SHUNT_COMPENSATOR_TABLE +
+                " set p = ?" +
+                ", q = ?" +
+                ", solvedsectioncount = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
+    public static String buildUpdateTwoWindingsTransformerSvQuery() {
+        return "update " +
+                TWO_WINDINGS_TRANSFORMER_TABLE +
+                " set p1 = ?" +
+                ", q1 = ?" +
+                ", p2 = ?" +
+                ", q2 = ?" +
+                ", phasetapchangersolvedtapposition = ?" +
+                ", ratiotapchangersolvedtapposition = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
     public static String buildUpdateThreeWindingsTransformerSvQuery() {
         return "update " +
                 THREE_WINDINGS_TRANSFORMER_TABLE +
@@ -251,6 +276,12 @@ public final class QueryCatalog {
                 ", q2 = ?" +
                 ", p3 = ?" +
                 ", q3 = ?" +
+                ", ratiotapchangersolvedtapposition1 = ?" +
+                ", phasetapchangersolvedtapposition1 = ?" +
+                ", ratiotapchangersolvedtapposition2 = ?" +
+                ", phasetapchangersolvedtapposition2 = ?" +
+                ", ratiotapchangersolvedtapposition3 = ?" +
+                ", phasetapchangersolvedtapposition3 = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";

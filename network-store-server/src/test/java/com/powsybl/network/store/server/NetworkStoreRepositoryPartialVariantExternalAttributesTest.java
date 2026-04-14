@@ -701,7 +701,17 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             .q1(6.6)
             .build();
         Resource<BranchSvAttributes> updatedSvLine = Resource.create(ResourceType.LINE, lineId, 1, branchSvAttributes);
-        Resource<BranchSvAttributes> updatedSvTwoWT = Resource.create(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, branchSvAttributes);
+        RatioTapChangerAttributes ratioTapChangerAttributes = new RatioTapChangerAttributes();
+        ratioTapChangerAttributes.setSolvedTapPosition(0);
+        PhaseTapChangerAttributes phaseTapChangerAttributes = new PhaseTapChangerAttributes();
+        phaseTapChangerAttributes.setSolvedTapPosition(1);
+        TwoWindingsTransformerSvAttributes twoWindingsTransformerSvAttributes = TwoWindingsTransformerSvAttributes.builder()
+                .p1(5.6)
+                .q1(6.6)
+                .phaseTapChangerAttributes(phaseTapChangerAttributes)
+                .ratioTapChangerAttributes(ratioTapChangerAttributes)
+                .build();
+        Resource<TwoWindingsTransformerSvAttributes> updatedSvTwoWT = Resource.create(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, twoWindingsTransformerSvAttributes);
         InjectionSvAttributes injectionSvAttributes = InjectionSvAttributes.builder()
             .p(5.6)
             .q(6.6)
