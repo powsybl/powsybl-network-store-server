@@ -1559,7 +1559,9 @@ public class NetworkStoreController {
     public ResponseEntity<Map<String, Map<String, ExtensionAttributes>>> getAllExtensionsAttributesByResourceType(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
                                                                                                   @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                   @Parameter(description = "Resource type", required = true) @PathVariable("type") ResourceType type) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(repository.getAllExtensionsAttributesByResourceType(networkId, variantNum, type));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
+            networkStoreObserver.observeExtensions("get.all.extensions", type,
+                () -> repository.getAllExtensionsAttributesByResourceType(networkId, variantNum, type)));
     }
 
     @DeleteMapping(value = "{networkId}/{variantNum}/identifiables/{identifiableId}/extensions/{extensionName}")
@@ -1603,7 +1605,8 @@ public class NetworkStoreController {
                                                                                                                      @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                      @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
-            repository.getAllOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type));
+            networkStoreObserver.observeLimitsGroups("get.all.limits.groups", type,
+                () -> repository.getAllOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type)));
     }
 
     @GetMapping(value = "{networkId}/{variantNum}/branch/types/{resourceType}/operationalLimitsGroup/selected")
@@ -1613,7 +1616,8 @@ public class NetworkStoreController {
                                                                                                                                                                       @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
                                                                                                                                                                       @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(
-            repository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type));
+            networkStoreObserver.observeLimitsGroups("get.all.limits.groups.selected", type,
+                () -> repository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type)));
     }
 
     @GetMapping(value = "{networkId}/{variantNum}/branch/{branchId}/types/{resourceType}/side/{side}/operationalLimitsGroup")
