@@ -19,6 +19,7 @@ import io.micrometer.observation.ObservationRegistry;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
@@ -113,6 +114,29 @@ public class NetworkStoreObserver {
                     recordPerResourceMetric(observation, name, resourceType, results.size());
                     return results;
                 });
+    }
+
+    public <K, K2, V, E extends Throwable> Map<K, Map<K2, V>> observeExtensions(String name, ResourceType resourceType, Observation.CheckedCallable<Map<K, Map<K2, V>>, E> callable) throws E {
+        Observation observation = createObservation(name, resourceType);
+        return observation
+            .observeChecked(() -> {
+                Map<K, Map<K2, V>> results = callable.call();
+                int size = results.values().stream().mapToInt(Map::size).sum();
+                recordPerResourceMetric(observation, name, resourceType, size);
+                return results;
+            });
+    }
+
+    public <K, K2, K3, V, E extends Throwable> Map<K, Map<K2, Map<K3, V>>> observeLimitsGroups(String name, ResourceType resourceType, Observation.CheckedCallable<Map<K, Map<K2, Map<K3, V>>>, E> callable) throws E {
+        Observation observation = createObservation(name, resourceType);
+        return observation
+            .observeChecked(() -> {
+                Map<K, Map<K2, Map<K3, V>>> results = callable.call();
+                int size = results.values().stream()
+                    .mapToInt(m -> m.values().stream().mapToInt(Map::size).sum()).sum();
+                recordPerResourceMetric(observation, name, resourceType, size);
+                return results;
+            });
     }
 
     public <T extends Attributes, E extends Throwable> Optional<Resource<T>> observeOne(String name, Observation.CheckedCallable<Optional<Resource<T>>, E> callable) throws E {
