@@ -80,4 +80,34 @@
             <column name="active_power_limits_properties" type="TEXT"/>
         </addColumn>
     </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-16">
+        <update tableName="extension">
+            <column name="equipmenttype" value="BOUNDARY_LINE"/>
+            <where>equipmenttype = 'DANGLING_LINE'</where>
+        </update>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-17">
+        <update tableName="operationallimitsgroup">
+            <column name="equipmenttype" value="BOUNDARY_LINE"/>
+            <where>equipmenttype = 'DANGLING_LINE'</where>
+        </update>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-18">
+        <update tableName="regulatingpoint">
+            <column name="regulatedequipmenttype" value="BOUNDARY_LINE"/>
+            <where>regulatedequipmenttype = 'DANGLING_LINE'</where>
+        </update>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-19">
+        <update tableName="regulatingpoint">
+            <column name="regulatingequipmenttype" value="BOUNDARY_LINE"/>
+            <where>regulatingequipmenttype = 'DANGLING_LINE'</where>
+        </update>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-20">
+        <update tableName="tombstonedoperationallimitsgroup">
+            <column name="equipmenttype" value="BOUNDARY_LINE"/>
+            <where>equipmenttype = 'DANGLING_LINE'</where>
+        </update>
+    </changeSet>
 </databaseChangeLog>
