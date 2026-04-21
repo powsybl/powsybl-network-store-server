@@ -59,6 +59,9 @@ class LoadIT extends AbstractLoadTest {
         Assertions.assertTrue(load.getOptionalName().isEmpty());
         load.setName("FOO");
         Assertions.assertEquals("FOO", load.getOptionalName().orElseThrow());
+        // The following line is overrided from AbstractLoadTest::setNameTest due to a difference in
+        // the variantId ergument of onUpdate method :
+        // null in AbstractLoadTest and "InitialState" in network store
         Mockito.verify(mockedListener, Mockito.times(1)).onUpdate(load, "name", "InitialState", null, "FOO");
     }
 
