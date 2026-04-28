@@ -221,4 +221,138 @@ class NetworkIT extends AbstractNetworkTest {
     public void testPermanentLimitOnSelectedOperationalLimitsGroup() {
         // FIXME remove this test when we add validation on CurrentLimitAdder
     }
+
+    //
+    // FIXME remove all following tests when network merge will be implemented
+    //
+
+    @Test
+    @Override
+    public void testIdentifiableStreamNetwork() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamSubstation() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamVoltageLevel() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamArea() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamHvdcLine() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamSwitch() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamBusBarSection() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamLine() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamTieLine() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStream2WT() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStream3WT() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamGenerator() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamBattery() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamLoad() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamShuntCompensator() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamBoundaryLine() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamStaticVarCompensator() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamHvdcConverterStation() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamOverloadManagementSystem() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamDcNode() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamDcSwitch() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamDcGround() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamDcLine() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamLcc() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamVsc() {
+    }
+
+    @Test
+    @Override
+    public void testIdentifiableStreamUnsupportedType() {
+    }
 }

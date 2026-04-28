@@ -6,7 +6,7 @@
  */
 package com.powsybl.network.store.tck;
 
-import com.powsybl.iidm.network.tck.AbstractDanglingLineTest;
+import com.powsybl.iidm.network.tck.AbstractBoundaryLineTest;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,7 +15,7 @@ import org.springframework.test.context.ContextHierarchy;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = {"spring.config.location=classpath:application.yaml"})
 @ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class})})
-class DanglingLineIT extends AbstractDanglingLineTest {
+class BoundaryLineIT extends AbstractBoundaryLineTest {
 
     @Override
     @Test

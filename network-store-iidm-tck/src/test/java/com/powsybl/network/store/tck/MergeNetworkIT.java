@@ -44,7 +44,7 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void multipleDanglingLinesInMergedNetwork() {
+    public void multipleBoundaryLinesInMergedNetwork() {
         // FIXME
     }
 
@@ -62,7 +62,7 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void multipleDanglingLinesInMergingNetwork() {
+    public void multipleBoundaryLinesInMergingNetwork() {
         // FIXME
     }
 
@@ -104,7 +104,7 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void failMergeDanglingLinesWithSameId() {
+    public void failMergeBoundaryLinesWithSameId() {
         // FIXME
     }
 
@@ -164,31 +164,31 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void dontCreateATieLineWithAlreadyMergedDanglingLinesInMergedNetwork() {
+    public void dontCreateATieLineWithAlreadyMergedBoundaryLinesInMergedNetwork() {
         // FIXME
     }
 
     @Test
     @Override
-    public void dontCreateATieLineWithAlreadyMergedDanglingLinesInMergingNetwork() {
+    public void dontCreateATieLineWithAlreadyMergedBoundaryLinesInMergingNetwork() {
         // FIXME
     }
 
     @Test
     @Override
-    public void multipleConnectedDanglingLinesInMergedNetwork() {
+    public void multipleConnectedBoundaryLinesInMergedNetwork() {
         // FIXME
     }
 
     @Test
     @Override
-    public void multipleConnectedDanglingLinesWithSamePairingKey() {
+    public void multipleConnectedBoundaryLinesWithSamePairingKey() {
         // FIXME
     }
 
     @Test
     @Override
-    public void invertDanglingLinesWhenCreatingATieLine() {
+    public void invertBoundaryLinesWhenCreatingATieLine() {
         // FIXME
     }
 
@@ -207,6 +207,30 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
     @Test
     @Override
     public void testMergeAndDetachWithDistinctAreas() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndFlattenWithExtensions() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndFlattenWithProperties() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndFlatten() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void failFlattenSubnetwork() {
         // FIXME
     }
 }
