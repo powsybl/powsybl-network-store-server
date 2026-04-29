@@ -91,8 +91,8 @@ class NetworkStoreExtensionsIT {
                     .withPlannedActivePowerSetpoint(1.0)
                     .withStartupCost(2.0)
                     .withMarginalCost(3.0)
-                    .withPlannedOutageRate(4.0)
-                    .withForcedOutageRate(5.0)
+                    .withPlannedOutageRate(0.4)
+                    .withForcedOutageRate(0.5)
                     .add();
             service.flush(network);
         }
@@ -102,11 +102,11 @@ class NetworkStoreExtensionsIT {
             Generator gen = network.getGenerator("GEN");
             GeneratorStartup generatorStartup = gen.getExtension(GeneratorStartup.class);
             assertNotNull(generatorStartup);
-            assertEquals(1.0f, generatorStartup.getPlannedActivePowerSetpoint(), 0f);
-            assertEquals(2.0f, generatorStartup.getStartupCost(), 0f);
-            assertEquals(3.0f, generatorStartup.getMarginalCost(), 0f);
-            assertEquals(4.0f, generatorStartup.getPlannedOutageRate(), 0f);
-            assertEquals(5.0f, generatorStartup.getForcedOutageRate(), 0f);
+            assertEquals(1.0, generatorStartup.getPlannedActivePowerSetpoint(), 0);
+            assertEquals(2.0, generatorStartup.getStartupCost(), 0);
+            assertEquals(3.0, generatorStartup.getMarginalCost(), 0);
+            assertEquals(0.4, generatorStartup.getPlannedOutageRate(), 0);
+            assertEquals(0.5, generatorStartup.getForcedOutageRate(), 0);
             assertNotNull(gen.getExtensionByName(GeneratorStartup.NAME));
         }
     }
@@ -1057,7 +1057,7 @@ class NetworkStoreExtensionsIT {
     }
 
     @Test
-    void cgmesControlAreaDanglingLineTest() {
+    void cgmesControlAreaBoundaryLineTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1Catalog.microGridBaseCaseBE().dataSource());
@@ -1084,7 +1084,7 @@ class NetworkStoreExtensionsIT {
                 .setAc(true)
                 .add();
             cgmesControlArea.newAreaBoundary()
-                .setBoundary(network.getDanglingLine("a16b4a6c-70b1-4abf-9a9d-bd0fa47f9fe4").getBoundary())
+                .setBoundary(network.getBoundaryLine("a16b4a6c-70b1-4abf-9a9d-bd0fa47f9fe4").getBoundary())
                 .setAc(true)
                 .add();
             assertEquals(2, cgmesControlArea.getAreaBoundaryStream().toList().size());
@@ -1190,7 +1190,7 @@ class NetworkStoreExtensionsIT {
             Area cgmesControlArea = network.newArea()
                     .setId("ca2")
                     .setInterchangeTarget(800)
-                    .addAreaBoundary(network.getTieLine("b18cd1aa-7808-49b9-a7cf-605eaf07b006 + e8acf6b6-99cb-45ad-b8dc-16c7866a4ddc").getDanglingLine1().getBoundary(),
+                    .addAreaBoundary(network.getTieLine("b18cd1aa-7808-49b9-a7cf-605eaf07b006 + e8acf6b6-99cb-45ad-b8dc-16c7866a4ddc").getBoundaryLine1().getBoundary(),
                         true)
                     .add();
             cgmesControlArea.addAlias("code2", CgmesNames.ENERGY_IDENT_CODE_EIC);
@@ -1271,7 +1271,7 @@ class NetworkStoreExtensionsIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Line line = network.getLine("NHV1_NHV2_1");
-            DanglingLine danglingLine = network.getVoltageLevel("VLGEN").newDanglingLine().setId("D_LINE")
+            BoundaryLine boundaryLine = network.getVoltageLevel("VLGEN").newBoundaryLine().setId("D_LINE")
                     .setB(33.4)
                     .setP0(66.9)
                     .setQ0(55.0)
@@ -1282,7 +1282,7 @@ class NetworkStoreExtensionsIT {
                     .add();
 
             line.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D))).add();
-            danglingLine.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D))).add();
+            boundaryLine.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D))).add();
             assertThrows(PowsyblException.class, () -> network.getVoltageLevel("VLGEN").newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D))).add());
             service.flush(network);
         }
@@ -1295,9 +1295,9 @@ class NetworkStoreExtensionsIT {
             assertNotNull(linePosition);
             assertEquals(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D)), linePosition.getCoordinates());
 
-            LinePosition<DanglingLine> danglingLinePosition = network.getDanglingLine("D_LINE").getExtension(LinePosition.class);
-            assertNotNull(danglingLinePosition);
-            assertEquals(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D)), danglingLinePosition.getCoordinates());
+            LinePosition<BoundaryLine> boundaryLinePosition = network.getBoundaryLine("D_LINE").getExtension(LinePosition.class);
+            assertNotNull(boundaryLinePosition);
+            assertEquals(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D)), boundaryLinePosition.getCoordinates());
         }
     }
 

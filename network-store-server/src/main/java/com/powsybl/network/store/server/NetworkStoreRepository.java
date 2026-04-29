@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.sql.DataSource;
 import java.io.UncheckedIOException;
@@ -620,7 +621,7 @@ public class NetworkStoreRepository {
                 completeThreeWindingsTransformerInfos(resource, networkUuid, variantNum, equipmentId);
             case VSC_CONVERTER_STATION ->
                 completeVscConverterStationInfos(resource, networkUuid, variantNum, equipmentId);
-            case DANGLING_LINE -> completeDanglingLineInfos(resource, networkUuid, variantNum, equipmentId);
+            case BOUNDARY_LINE -> completeBoundaryLineInfos(resource, networkUuid, variantNum, equipmentId);
             case STATIC_VAR_COMPENSATOR -> completeStaticVarCompensatorInfos(resource, networkUuid, variantNum, equipmentId);
             case SHUNT_COMPENSATOR -> completeShuntCompensatorInfos(resource, networkUuid, variantNum, equipmentId);
             case AREA -> completeAreaInfos(resource, networkUuid, variantNum, equipmentId);
@@ -676,9 +677,9 @@ public class NetworkStoreRepository {
         return resource;
     }
 
-    private <T extends IdentifiableAttributes> Resource<T> completeDanglingLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
+    private <T extends IdentifiableAttributes> Resource<T> completeBoundaryLineInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, List.of((Resource<DanglingLineAttributes>) resource), operationalLimitsGroups);
+        limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, List.of((Resource<BoundaryLineAttributes>) resource), operationalLimitsGroups);
         return resource;
     }
 
@@ -1907,54 +1908,54 @@ public class NetworkStoreRepository {
         deleteIdentifiables(networkUuid, variantNum, hvdcLineIds, HVDC_LINE_TABLE);
     }
 
-    // Dangling line
-    public void createDanglingLines(UUID networkUuid, List<Resource<DanglingLineAttributes>> resources) {
-        createIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings());
+    // Boundary line
+    public void createBoundaryLines(UUID networkUuid, List<Resource<BoundaryLineAttributes>> resources) {
+        createIdentifiables(networkUuid, resources, mappings.getBoundaryLineMappings());
 
-        // Now that the dangling lines are created, we will insert in the database the corresponding operational limits groups.
+        // Now that the boundary lines are created, we will insert in the database the corresponding operational limits groups.
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsFromEquipments(networkUuid, resources);
         limitsHandler.insertOperationalLimitsGroups(operationalLimitsGroups);
     }
 
-    public Optional<Resource<DanglingLineAttributes>> getDanglingLine(UUID networkUuid, int variantNum, String danglingLineId) {
-        return getIdentifiable(networkUuid, variantNum, danglingLineId, mappings.getDanglingLineMappings());
+    public Optional<Resource<BoundaryLineAttributes>> getBoundaryLine(UUID networkUuid, int variantNum, String boundaryLineId) {
+        return getIdentifiable(networkUuid, variantNum, boundaryLineId, mappings.getBoundaryLineMappings());
     }
 
-    public List<Resource<DanglingLineAttributes>> getDanglingLines(UUID networkUuid, int variantNum) {
-        List<Resource<DanglingLineAttributes>> danglingLines = getIdentifiables(networkUuid, variantNum, mappings.getDanglingLineMappings());
+    public List<Resource<BoundaryLineAttributes>> getBoundaryLines(UUID networkUuid, int variantNum) {
+        List<Resource<BoundaryLineAttributes>> boundaryLines = getIdentifiables(networkUuid, variantNum, mappings.getBoundaryLineMappings());
 
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.DANGLING_LINE.toString());
-        limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, danglingLines, operationalLimitsGroups);
-        setRegulatingEquipments(danglingLines, networkUuid, variantNum, ResourceType.DANGLING_LINE);
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsAttributes(networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.BOUNDARY_LINE.toString());
+        limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, boundaryLines, operationalLimitsGroups);
+        setRegulatingEquipments(boundaryLines, networkUuid, variantNum, ResourceType.BOUNDARY_LINE);
 
-        return danglingLines;
+        return boundaryLines;
     }
 
-    public List<Resource<DanglingLineAttributes>> getVoltageLevelDanglingLines(UUID networkUuid, int variantNum, String voltageLevelId) {
-        List<Resource<DanglingLineAttributes>> danglingLines = getIdentifiablesInVoltageLevel(networkUuid, variantNum, voltageLevelId, mappings.getDanglingLineMappings());
+    public List<Resource<BoundaryLineAttributes>> getVoltageLevelBoundaryLines(UUID networkUuid, int variantNum, String voltageLevelId) {
+        List<Resource<BoundaryLineAttributes>> boundaryLines = getIdentifiablesInVoltageLevel(networkUuid, variantNum, voltageLevelId, mappings.getBoundaryLineMappings());
 
-        List<String> equipmentsIds = danglingLines.stream().map(Resource::getId).collect(Collectors.toList());
+        List<String> equipmentsIds = boundaryLines.stream().map(Resource::getId).collect(Collectors.toList());
 
         Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOperationalLimitsGroupsWithInClause(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentsIds);
-        limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, danglingLines, operationalLimitsGroups);
+        limitsHandler.insertOperationalLimitsGroupsInEquipments(networkUuid, boundaryLines, operationalLimitsGroups);
 
-        setRegulatingEquipmentsWithIds(danglingLines, networkUuid, variantNum, ResourceType.DANGLING_LINE, equipmentsIds);
-        return danglingLines;
+        setRegulatingEquipmentsWithIds(boundaryLines, networkUuid, variantNum, ResourceType.BOUNDARY_LINE, equipmentsIds);
+        return boundaryLines;
     }
 
-    public void deleteDanglingLines(UUID networkUuid, int variantNum, List<String> danglingLineIds) {
-        deleteIdentifiables(networkUuid, variantNum, danglingLineIds, DANGLING_LINE_TABLE);
-        limitsHandler.deleteOperationalLimitsGroups(networkUuid, variantNum, danglingLineIds);
+    public void deleteBoundaryLines(UUID networkUuid, int variantNum, List<String> boundaryLineIds) {
+        deleteIdentifiables(networkUuid, variantNum, boundaryLineIds, BOUNDARY_LINE_TABLE);
+        limitsHandler.deleteOperationalLimitsGroups(networkUuid, variantNum, boundaryLineIds);
     }
 
-    public void updateDanglingLines(UUID networkUuid, List<Resource<DanglingLineAttributes>> resources) {
-        updateIdentifiables(networkUuid, resources, mappings.getDanglingLineMappings(), VOLTAGE_LEVEL_ID_COLUMN);
+    public void updateBoundaryLines(UUID networkUuid, List<Resource<BoundaryLineAttributes>> resources) {
+        updateIdentifiables(networkUuid, resources, mappings.getBoundaryLineMappings(), VOLTAGE_LEVEL_ID_COLUMN);
 
         limitsHandler.updateOperationalLimitsGroups(networkUuid, resources);
     }
 
-    public void updateDanglingLinesSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
-        updateInjectionsSv(networkUuid, resources, DANGLING_LINE_TABLE, mappings.getDanglingLineMappings());
+    public void updateBoundaryLinesSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
+        updateInjectionsSv(networkUuid, resources, BOUNDARY_LINE_TABLE, mappings.getBoundaryLineMappings());
     }
 
     // Grounds
@@ -2347,14 +2348,14 @@ public class NetworkStoreRepository {
     public void insertReactiveCapabilityCurvePoints(Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertReactiveCapabilityCurvePointsQuery())) {
-                List<Object> values = new ArrayList<>(7);
+                List<Object> values = new ArrayList<>(8);
                 List<Map.Entry<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>>> list = new ArrayList<>(reactiveCapabilityCurvePoints.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> myPair : subUnit) {
                         for (ReactiveCapabilityCurvePointAttributes reactiveCapabilityCurvePoint : myPair.getValue()) {
                             values.clear();
                             // In order, from the QueryCatalog.buildInsertReactiveCapabilityCurvePointsQuery SQL query :
-                            // equipmentId, equipmentType, networkUuid, variantNum, minQ, maxQ, p
+                            // equipmentId, equipmentType, networkUuid, variantNum, minQ, maxQ, p, properties
                             values.add(myPair.getKey().getEquipmentId());
                             values.add(myPair.getKey().getEquipmentType().toString());
                             values.add(myPair.getKey().getNetworkUuid());
@@ -2362,6 +2363,7 @@ public class NetworkStoreRepository {
                             values.add(reactiveCapabilityCurvePoint.getMinQ());
                             values.add(reactiveCapabilityCurvePoint.getMaxQ());
                             values.add(reactiveCapabilityCurvePoint.getP());
+                            values.add(reactiveCapabilityCurvePoint.getProperties());
                             bindValues(preparedStmt, values, mapper);
                             preparedStmt.addBatch();
                         }
@@ -2439,7 +2441,7 @@ public class NetworkStoreRepository {
                 OwnerInfo owner = new OwnerInfo();
                 ReactiveCapabilityCurvePointAttributes reactiveCapabilityCurvePoint = new ReactiveCapabilityCurvePointAttributes();
                 // In order, from the QueryCatalog.buildReactiveCapabilityCurvePointQuery SQL query :
-                // equipmentId, equipmentType, networkUuid, variantNum, minQ, maxQ, p
+                // equipmentId, equipmentType, networkUuid, variantNum, minQ, maxQ, p, properties
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
@@ -2447,11 +2449,16 @@ public class NetworkStoreRepository {
                 reactiveCapabilityCurvePoint.setMinQ(resultSet.getDouble(5));
                 reactiveCapabilityCurvePoint.setMaxQ(resultSet.getDouble(6));
                 reactiveCapabilityCurvePoint.setP(resultSet.getDouble(7));
-
+                if (!StringUtils.isEmpty(resultSet.getString(8))) {
+                    Map<String, String> pointProperties = mapper.readValue(resultSet.getString(8), Map.class);
+                    reactiveCapabilityCurvePoint.setProperties(pointProperties);
+                }
                 map.computeIfAbsent(owner, k -> new ArrayList<>());
                 map.get(owner).add(reactiveCapabilityCurvePoint);
             }
             return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
         }
     }
 
@@ -2466,18 +2473,18 @@ public class NetworkStoreRepository {
     public void insertAreaBoundaries(Map<OwnerInfo, List<AreaBoundaryAttributes>> areaBoundaries) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertAreaBoundariesQuery())) {
-                List<Object> values = new ArrayList<>(7);
+                List<Object> values = new ArrayList<>(8);
                 List<Map.Entry<OwnerInfo, List<AreaBoundaryAttributes>>> list = new ArrayList<>(areaBoundaries.entrySet());
                 for (List<Map.Entry<OwnerInfo, List<AreaBoundaryAttributes>>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OwnerInfo, List<AreaBoundaryAttributes>> myPair : subUnit) {
                         for (AreaBoundaryAttributes areaBoundary : myPair.getValue()) {
                             values.clear();
                             // In order, from the QueryCatalog.buildInsertAreaBoundariesQuery SQL query :
-                            // equipmentId (areaId), networkUuid, variantNum, boundarydanglinglineid, terminal connectable id, terminal side, ac
+                            // equipmentId (areaId), networkUuid, variantNum, boundaryboundarylineid, terminal connectable id, terminal side, ac
                             values.add(myPair.getKey().getEquipmentId());
                             values.add(myPair.getKey().getNetworkUuid());
                             values.add(myPair.getKey().getVariantNum());
-                            values.add(areaBoundary.getBoundaryDanglingLineId());
+                            values.add(areaBoundary.getBoundaryBoundaryLineId());
                             if (areaBoundary.getTerminal() != null) {
                                 values.add(areaBoundary.getTerminal().getConnectableId());
                                 values.add(areaBoundary.getTerminal().getSide());
@@ -2486,6 +2493,7 @@ public class NetworkStoreRepository {
                                 values.add(null);
                             }
                             values.add(areaBoundary.getAc());
+                            values.add(areaBoundary.getProperties());
                             bindValues(preparedStmt, values, mapper);
                             preparedStmt.addBatch();
                         }
@@ -2562,21 +2570,27 @@ public class NetworkStoreRepository {
                 OwnerInfo owner = new OwnerInfo();
                 AreaBoundaryAttributes areaBoundary = new AreaBoundaryAttributes();
                 // In order, from the QueryCatalog.buildAreaBoundariesQuery SQL query :
-                // areaId, networkUuid, boundarydanglinglineid, terminalconnectableid, terminalside, ac
+                // areaId, networkUuid, boundaryboundarylineid, terminalconnectableid, terminalside, ac
                 owner.setEquipmentId(resultSet.getString(1));
                 areaBoundary.setAreaId(resultSet.getString(1));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(2)));
                 owner.setVariantNum(variantNumOverride);
-                areaBoundary.setBoundaryDanglingLineId(resultSet.getString(3));
+                areaBoundary.setBoundaryBoundaryLineId(resultSet.getString(3));
                 Optional<String> connectableId = Optional.ofNullable(resultSet.getString(4));
                 if (connectableId.isPresent()) {
                     areaBoundary.setTerminal(new TerminalRefAttributes(connectableId.get(), resultSet.getString(5)));
                 }
                 areaBoundary.setAc(resultSet.getBoolean(6));
+                if (!StringUtils.isEmpty(resultSet.getString(7))) {
+                    Map<String, String> areaBoundaryProperties = mapper.readValue(resultSet.getString(7), Map.class);
+                    areaBoundary.setProperties(areaBoundaryProperties);
+                }
                 map.computeIfAbsent(owner, k -> new ArrayList<>());
                 map.get(owner).add(areaBoundary);
             }
             return map;
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

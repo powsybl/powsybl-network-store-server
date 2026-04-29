@@ -13,6 +13,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Map;
+
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
  */
@@ -30,6 +32,7 @@ public class TapChangerStepSqlData {
     private Double alpha;
     private Integer index;
     private Integer side;
+    private Map<String, String> properties;
 
     public TapChangerStepSqlData() {
         // empty constructor for Jackson
@@ -45,6 +48,7 @@ public class TapChangerStepSqlData {
             .alpha(tapChangerStepAttributes.getAlpha())
             .index(tapChangerStepAttributes.getIndex())
             .side(tapChangerStepAttributes.getSide())
+            .properties(tapChangerStepAttributes.getProperties())
             .build();
     }
 
@@ -59,6 +63,7 @@ public class TapChangerStepSqlData {
             .index(index)
             .side(side)
             .type(type)
+            .properties(properties)
             .build();
     }
 }

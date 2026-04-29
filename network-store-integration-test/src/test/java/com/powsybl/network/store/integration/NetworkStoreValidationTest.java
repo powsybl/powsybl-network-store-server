@@ -328,73 +328,73 @@ class NetworkStoreValidationTest {
     }
 
     @Test
-    void testDanglingLine() {
+    void testBoundaryLine() {
         Network network = service.getNetworkFactory().createNetwork("Validation network", "test");
         Substation s1 = network.newSubstation().setId("S1").setCountry(Country.FR).add();
         VoltageLevel vl1 = s1.newVoltageLevel().setId("VL1").setNominalV(380).setLowVoltageLimit(320).setHighVoltageLimit(420).setTopologyKind(TopologyKind.NODE_BREAKER).add();
-        DanglingLineAdder adder = vl1.newDanglingLine();
-        assertTrue(assertThrows(PowsyblException.class, adder::add).getMessage().contains("Dangling line id is not set"));
-        DanglingLineAdder adder1 = vl1.newDanglingLine().setId("DL1").setBus("b1").setConnectableBus("B1");
+        BoundaryLineAdder adder = vl1.newBoundaryLine();
+        assertTrue(assertThrows(PowsyblException.class, adder::add).getMessage().contains("Boundary line id is not set"));
+        BoundaryLineAdder adder1 = vl1.newBoundaryLine().setId("BL1").setBus("b1").setConnectableBus("B1");
         assertTrue(assertThrows(PowsyblException.class, adder1::add)
                 .getMessage().contains("connection bus is different to connectable bus"));
-        DanglingLineAdder adder2 = vl1.newDanglingLine().setId("DL1").setNode(1).setConnectableBus("B1");
+        BoundaryLineAdder adder2 = vl1.newBoundaryLine().setId("BL1").setNode(1).setConnectableBus("B1");
         assertTrue(assertThrows(PowsyblException.class, adder2::add)
                 .getMessage().contains("connection node and connection bus are exclusives"));
-        DanglingLineAdder adder3 = vl1.newDanglingLine().setId("DL1");
+        BoundaryLineAdder adder3 = vl1.newBoundaryLine().setId("BL1");
         assertTrue(assertThrows(PowsyblException.class, adder3::add)
                 .getMessage().contains("connectable bus is not set"));
-        DanglingLineAdder adder4 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1);
+        BoundaryLineAdder adder4 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1);
         assertTrue(assertThrows(PowsyblException.class, adder4::add)
                 .getMessage().contains("r is invalid"));
-        DanglingLineAdder adder5 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1);
+        BoundaryLineAdder adder5 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1);
         assertTrue(assertThrows(PowsyblException.class, adder5::add)
                 .getMessage().contains("x is invalid"));
-        DanglingLineAdder adder6 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(Double.NaN);
+        BoundaryLineAdder adder6 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(Double.NaN);
         assertTrue(assertThrows(PowsyblException.class, adder6::add)
                 .getMessage().contains("g is invalid"));
-        DanglingLineAdder adder7 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(Double.NaN);
+        BoundaryLineAdder adder7 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(Double.NaN);
         assertTrue(assertThrows(PowsyblException.class, adder7::add)
                 .getMessage().contains("b is invalid"));
 
-        DanglingLine danglingLine1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
+        BoundaryLine boundaryLine1 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
 
-        DanglingLineAdder.GenerationAdder dlAdder = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+        BoundaryLineAdder.GenerationAdder blAdder = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
             .newGeneration().setMinP(200).setMaxP(100);
-        assertTrue(assertThrows(PowsyblException.class, dlAdder::add)
+        assertTrue(assertThrows(PowsyblException.class, blAdder::add)
                 .getMessage().contains("invalid active limits"));
-        DanglingLineAdder.GenerationAdder dlAdder1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+        BoundaryLineAdder.GenerationAdder blAdder1 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
             .newGeneration().setMinP(100).setMaxP(200);
-        assertTrue(assertThrows(PowsyblException.class, dlAdder1::add)
+        assertTrue(assertThrows(PowsyblException.class, blAdder1::add)
                 .getMessage().contains("active power setpoint"));
-        DanglingLineAdder.GenerationAdder dlAdder2 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+        BoundaryLineAdder.GenerationAdder blAdder2 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
             .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(true);
-        assertTrue(assertThrows(PowsyblException.class, dlAdder2::add)
+        assertTrue(assertThrows(PowsyblException.class, blAdder2::add)
                 .getMessage().contains("voltage setpoint"));
-        DanglingLineAdder.GenerationAdder dlAdder3 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+        BoundaryLineAdder.GenerationAdder blAdder3 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
             .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300);
-        assertTrue(assertThrows(PowsyblException.class, dlAdder3::add)
+        assertTrue(assertThrows(PowsyblException.class, blAdder3::add)
                 .getMessage().contains("reactive power setpoint"));
-        CurrentLimitsAdder currentLimitsAdder = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(-5);
+        CurrentLimitsAdder currentLimitsAdder = boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(-5);
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder::add)
                 .getMessage().contains("permanent limit must be >= 0"));
-        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder1 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder1 = boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
             .beginTemporaryLimit();
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder1::endTemporaryLimit)
                 .getMessage().contains("temporary limit value is not set"));
-        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder2 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder2 = boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
             .beginTemporaryLimit().setValue(-1);
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder2::endTemporaryLimit)
                 .getMessage().contains("temporary limit value must be >= 0"));
-        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder3 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder3 = boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
             .beginTemporaryLimit().setValue(10).setAcceptableDuration(-1);
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder3::endTemporaryLimit)
                 .getMessage().contains("acceptable duration must be >= 0"));
-        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder4 = danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
+        CurrentLimitsAdder.TemporaryLimitAdder<?> currentLimitsAdder4 = boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(10)
             .beginTemporaryLimit().setValue(10).setAcceptableDuration(20);
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder4::endTemporaryLimit)
                 .getMessage().contains("name is not set"));
 
-        danglingLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
+        boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(256)
                 .beginTemporaryLimit()
                 .setName("TL1")
@@ -410,17 +410,17 @@ class NetworkStoreValidationTest {
                 .endTemporaryLimit()
                 .add();
 
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine1.getCurrentLimits().orElseThrow().setPermanentLimit(-50)).getMessage().contains("permanent limit must be >= 0"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine1.getCurrentLimits().orElseThrow().setPermanentLimit(-50)).getMessage().contains("permanent limit must be >= 0"));
 
-        DanglingLine danglingLine2 = vl1.newDanglingLine().setId("DL2").setNode(2).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
+        BoundaryLine boundaryLine2 = vl1.newBoundaryLine().setId("BL2").setNode(2).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
                 .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300).setTargetQ(100).add()
                 .add();
 
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine2.getGeneration().setMinP(300)).getMessage().contains("invalid active limits"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine2.getGeneration().setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine2.getGeneration().setTargetP(Double.NaN)).getMessage().contains("active power setpoint"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine2.getGeneration().setVoltageRegulationOn(true).setTargetV(-100)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> danglingLine2.getGeneration().setVoltageRegulationOn(false).setTargetQ(Double.NaN)).getMessage().matches("(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setMinP(300)).getMessage().contains("invalid active limits"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetP(Double.NaN)).getMessage().contains("active power setpoint"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setVoltageRegulationOn(true).setTargetV(-100)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setVoltageRegulationOn(false).setTargetQ(Double.NaN)).getMessage().matches("(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
     }
 
     @Test
@@ -668,24 +668,24 @@ class NetworkStoreValidationTest {
         TieLineAdder adder2 = network.newTieLine().setId("TL");
         assertTrue(assertThrows(PowsyblException.class, adder1::add).getMessage().contains("Tie line id is not set"));
         assertTrue(assertThrows(PowsyblException.class, adder2::add)
-                .getMessage().contains("Tie line 'TL': undefined dangling line"));
+                .getMessage().contains("Tie line 'TL': undefined boundary line"));
 
-        DanglingLine danglingLine1 = vl1.newDanglingLine().setId("DL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
-        DanglingLine danglingLine2 = vl2.newDanglingLine().setId("DL2").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
+        BoundaryLine boundaryLine1 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
+        BoundaryLine boundaryLine2 = vl2.newBoundaryLine().setId("BL2").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1).add();
 
         TieLine tl = network.newTieLine()
                 .setId("NewTieLineId")
-                .setDanglingLine1(danglingLine1.getId())
-                .setDanglingLine2(danglingLine2.getId())
+                .setBoundaryLine1(boundaryLine1.getId())
+                .setBoundaryLine2(boundaryLine2.getId())
                 .add();
 
         assertEquals("NewTieLineId", tl.getId());
-        assertEquals("DL1", tl.getDanglingLine1().getId());
-        assertEquals("DL2", tl.getDanglingLine2().getId());
-        tl.getDanglingLine1().remove();
-        assertThrows(NoSuchElementException.class, tl::getDanglingLine1);
-        tl.getDanglingLine2().remove();
-        assertThrows(NoSuchElementException.class, tl::getDanglingLine2);
+        assertEquals("BL1", tl.getBoundaryLine1().getId());
+        assertEquals("BL2", tl.getBoundaryLine2().getId());
+        tl.getBoundaryLine1().remove();
+        assertThrows(NoSuchElementException.class, tl::getBoundaryLine1);
+        tl.getBoundaryLine2().remove();
+        assertThrows(NoSuchElementException.class, tl::getBoundaryLine2);
     }
 
     @Test

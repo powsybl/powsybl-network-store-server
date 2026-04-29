@@ -132,8 +132,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         networkStoreRepository.insertReactiveCapabilityCurvePoints(Map.of(ownerInfoGen, List.of(curvePointA, curvePointB)));
         // area boundaries
         List<AreaBoundaryAttributes> areaBoundaries = new ArrayList<>();
-        areaBoundaries.add(AreaBoundaryAttributes.builder().areaId(areaId).boundaryDanglingLineId("danglingLine1").build());
-        areaBoundaries.add(AreaBoundaryAttributes.builder().areaId(areaId).boundaryDanglingLineId("danglingLine2").build());
+        areaBoundaries.add(AreaBoundaryAttributes.builder().areaId(areaId).boundaryBoundaryLineId("boundaryLine1").properties(Map.of("property1", "value1")).build());
+        areaBoundaries.add(AreaBoundaryAttributes.builder().areaId(areaId).boundaryBoundaryLineId("boundaryLine2").properties(Map.of("property2", "value2")).build());
         networkStoreRepository.insertAreaBoundaries(Map.of(ownerArea, areaBoundaries));
         // Extensions
         Map<String, ExtensionAttributes> extensionAttributes = Map.of("activePowerControl", ActivePowerControlAttributes.builder().droop(6.0).participate(true).participationFactor(1.5).build(),
@@ -261,18 +261,20 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         List<AreaBoundaryAttributes> areaBoundaries = networkStoreRepository.getAreaBoundaries(networkUuid, variantNum, AREA_ID_COLUMN, areaId).get(ownerInfoArea);
         assertEquals(2, areaBoundaries.size());
         assertEquals(areaId, areaBoundaries.get(0).getAreaId());
-        assertEquals("danglingLine1", areaBoundaries.get(0).getBoundaryDanglingLineId());
+        assertEquals("boundaryLine1", areaBoundaries.get(0).getBoundaryBoundaryLineId());
         assertFalse(areaBoundaries.get(0).getAc());
+        assertEquals(Map.of("property1", "value1"), areaBoundaries.get(0).getProperties());
         assertEquals(areaId, areaBoundaries.get(1).getAreaId());
-        assertEquals("danglingLine2", areaBoundaries.get(1).getBoundaryDanglingLineId());
+        assertEquals("boundaryLine2", areaBoundaries.get(1).getBoundaryBoundaryLineId());
         assertFalse(areaBoundaries.get(1).getAc());
+        assertEquals(Map.of("property2", "value2"), areaBoundaries.get(1).getProperties());
         areaBoundaries = networkStoreRepository.getAreaBoundariesWithInClause(networkUuid, variantNum, AREA_ID_COLUMN, List.of(areaId)).get(ownerInfoArea);
         assertEquals(2, areaBoundaries.size());
         assertEquals(areaId, areaBoundaries.get(0).getAreaId());
-        assertEquals("danglingLine1", areaBoundaries.get(0).getBoundaryDanglingLineId());
+        assertEquals("boundaryLine1", areaBoundaries.get(0).getBoundaryBoundaryLineId());
         assertFalse(areaBoundaries.get(0).getAc());
         assertEquals(areaId, areaBoundaries.get(1).getAreaId());
-        assertEquals("danglingLine2", areaBoundaries.get(1).getBoundaryDanglingLineId());
+        assertEquals("boundaryLine2", areaBoundaries.get(1).getBoundaryBoundaryLineId());
         assertFalse(areaBoundaries.get(1).getAc());
 
         // Regulating Points
