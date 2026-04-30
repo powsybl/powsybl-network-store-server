@@ -14,6 +14,7 @@ import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import com.powsybl.network.store.server.json.JsonTemporaryLimitsAttributes;
 import com.powsybl.network.store.server.json.OperationalLimitsGroupAttributesSqlData;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -195,12 +196,8 @@ public class LimitsHandler {
         double permanentLimit = hasPermanentLimit ? permanentLimitData : Double.NaN;
         TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = null;
         if (hasTemporaryLimits) {
-            List<TemporaryLimitAttributes> temporaryLimitsList = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
-            temporaryLimits = new TreeMap<>();
-            for (TemporaryLimitAttributes temporaryLimit : temporaryLimitsList) {
-                int duration = temporaryLimit.getAcceptableDuration();
-                temporaryLimits.put(duration, temporaryLimit);
-            }
+            JsonTemporaryLimitsAttributes jsonTemporaryLimitsAttributes = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
+            temporaryLimits = jsonTemporaryLimitsAttributes.convertToTemporaryLimitAttributes();
         }
 
         Map<String, String> properties = null;
