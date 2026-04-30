@@ -53,7 +53,7 @@ public class JsonTemporaryLimitsAttributes {
     }
 
     private void setProperties(Map<String, String>[] properties) {
-        if(properties == null) {
+        if (properties == null) {
             this.p = null;
             return;
         }
