@@ -22,12 +22,11 @@ public class DoubleArrayDeserializer extends JsonDeserializer<Double[]> {
     @Override
     public Double[] deserialize(JsonParser jsonParser, DeserializationContext ctxt) throws IOException {
         if (!jsonParser.isExpectedStartArrayToken()) {
-            return null; // ou lance une exception
+            return null;
         }
 
         List<Double> tempList = new ArrayList<>();
 
-        // Parcours du tableau JSON
         while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
             if (jsonParser.currentToken() == JsonToken.VALUE_NULL) {
                 tempList.add(null); // gérer les nulls
@@ -39,8 +38,6 @@ public class DoubleArrayDeserializer extends JsonDeserializer<Double[]> {
                 tempList.add(jsonParser.getDoubleValue());
             }
         }
-
-        // Convertit la liste en tableau
         return tempList.toArray(new Double[0]);
     }
 }

@@ -27,7 +27,6 @@ public class IntegerArrayDeserializer extends JsonDeserializer<Integer[]> {
 
         List<Integer> tempList = new ArrayList<>();
 
-        // Parcours du tableau JSON
         while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
             if (jsonParser.currentToken() == JsonToken.VALUE_NULL) {
                 tempList.add(null); // gérer les nulls
@@ -37,8 +36,6 @@ public class IntegerArrayDeserializer extends JsonDeserializer<Integer[]> {
                 tempList.add(jsonParser.getIntValue());
             }
         }
-
-        // Convertit la liste en tableau
         return tempList.toArray(new Integer[0]);
     }
 }

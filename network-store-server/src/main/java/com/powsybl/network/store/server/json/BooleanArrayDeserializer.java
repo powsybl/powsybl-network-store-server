@@ -22,21 +22,18 @@ public class BooleanArrayDeserializer extends JsonDeserializer<Boolean[]> {
     @Override
     public Boolean[] deserialize(JsonParser jsonParser, DeserializationContext ctxt) throws IOException {
         if (!jsonParser.isExpectedStartArrayToken()) {
-            return null; // ou lance une exception
+            return null;
         }
 
         List<Boolean> tempList = new ArrayList<>();
 
-        // Parcours du tableau JSON
         while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
             if (jsonParser.currentToken() == JsonToken.VALUE_NULL) {
-                tempList.add(null); // gérer les nulls
+                tempList.add(null);
             } else {
                 tempList.add(jsonParser.getIntValue() != 0);
             }
         }
-
-        // Convertit la liste en tableau
         return tempList.toArray(new Boolean[0]);
     }
 }
