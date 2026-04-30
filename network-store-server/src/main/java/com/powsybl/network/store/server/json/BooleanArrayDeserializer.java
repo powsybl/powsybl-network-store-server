@@ -22,7 +22,7 @@ public class BooleanArrayDeserializer extends JsonDeserializer<Boolean[]> {
     @Override
     public Boolean[] deserialize(JsonParser jsonParser, DeserializationContext ctxt) throws IOException {
         if (!jsonParser.isExpectedStartArrayToken()) {
-            return null;
+            return new Boolean[0];
         }
 
         List<Boolean> tempList = new ArrayList<>();

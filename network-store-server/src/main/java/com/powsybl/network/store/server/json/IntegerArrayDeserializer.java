@@ -22,14 +22,14 @@ public class IntegerArrayDeserializer extends JsonDeserializer<Integer[]> {
     @Override
     public Integer[] deserialize(JsonParser jsonParser, DeserializationContext ctxt) throws IOException {
         if (!jsonParser.isExpectedStartArrayToken()) {
-            return null; // ou lance une exception
+            return new Integer[0];
         }
 
         List<Integer> tempList = new ArrayList<>();
 
         while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
             if (jsonParser.currentToken() == JsonToken.VALUE_NULL) {
-                tempList.add(null); // gérer les nulls
+                tempList.add(null);
             } else if (jsonParser.currentToken() == JsonToken.VALUE_STRING && jsonParser.getText().equals("MAX")) {
                 tempList.add(Integer.MAX_VALUE);
             } else {

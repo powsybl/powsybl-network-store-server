@@ -10,26 +10,28 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
+import lombok.Getter;
 
 import java.util.*;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
  */
+@Getter
 public class JsonTemporaryLimitsAttributes {
-    public String[] n;
+    private final String[] n;
     @JsonSerialize(using = IntegerArraySerializer.class)
     @JsonDeserialize(using = IntegerArrayDeserializer.class)
-    public Integer[] d;
+    private final Integer[] d;
     @JsonSerialize(using = DoubleArraySerializer.class)
     @JsonDeserialize(using = DoubleArrayDeserializer.class)
-    public Double[] v;
+    private final Double[] v;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     @JsonSerialize(using = BooleanArraySerializer.class)
     @JsonDeserialize(using = BooleanArrayDeserializer.class)
-    public Boolean[] f;
+    private Boolean[] f;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Map<String, String>[] p;
+    private Map<String, String>[] p;
 
     public JsonTemporaryLimitsAttributes(String[] names, Integer[] acceptableDurations, Double[] values, Boolean[] fictitious, Map<String, String>[] properties) {
         this.n = names;

@@ -197,7 +197,7 @@ public class LimitsHandler {
             }
             // FIXME : clean when all temporary limits are migrated to new column
             if (!olgToMigrate.isEmpty()) {
-                UUID networkUuid = olgToMigrate.keySet().stream().findFirst().get().getNetworkUuid();
+                UUID networkUuid = olgToMigrate.keySet().stream().findFirst().orElseThrow().getNetworkUuid();
                 deleteOperationalLimitsGroups(networkUuid, olgToMigrate.keySet().stream().toList());
                 insertOperationalLimitsGroups(olgToMigrate);
             }

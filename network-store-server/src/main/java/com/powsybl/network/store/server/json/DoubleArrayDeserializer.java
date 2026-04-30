@@ -22,14 +22,14 @@ public class DoubleArrayDeserializer extends JsonDeserializer<Double[]> {
     @Override
     public Double[] deserialize(JsonParser jsonParser, DeserializationContext ctxt) throws IOException {
         if (!jsonParser.isExpectedStartArrayToken()) {
-            return null;
+            return new Double[0];
         }
 
         List<Double> tempList = new ArrayList<>();
 
         while (jsonParser.nextToken() != JsonToken.END_ARRAY) {
             if (jsonParser.currentToken() == JsonToken.VALUE_NULL) {
-                tempList.add(null); // gérer les nulls
+                tempList.add(null);
             } else if (jsonParser.currentToken() == JsonToken.VALUE_STRING && jsonParser.getText().equals("MAXD")) {
                 tempList.add(Double.MAX_VALUE);
             } else if (jsonParser.currentToken() == JsonToken.VALUE_STRING && jsonParser.getText().equals("MAXF")) {
