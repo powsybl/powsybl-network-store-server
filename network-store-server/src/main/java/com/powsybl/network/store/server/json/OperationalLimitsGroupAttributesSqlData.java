@@ -11,7 +11,9 @@ import com.powsybl.network.store.model.OperationalLimitsGroupAttributes;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
 import lombok.*;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -24,26 +26,26 @@ import java.util.*;
 @Setter
 public class OperationalLimitsGroupAttributesSqlData {
     private Double currentLimitsPermanentLimit;
-    private List<TemporaryLimitAttributes> currentLimitsTemporaryLimits;
+    private JsonTemporaryLimitsAttributes currentLimitsTemporaryLimits;
     private Map<String, String> currentLimitsProperties;
     private Double apparentPowerLimitsPermanentLimit;
-    private List<TemporaryLimitAttributes> apparentPowerLimitsTemporaryLimits;
+    private JsonTemporaryLimitsAttributes apparentPowerLimitsTemporaryLimits;
     private Map<String, String> apparentPowerLimitsProperties;
     private Double activePowerLimitsPermanentLimit;
-    private List<TemporaryLimitAttributes> activePowerLimitsTemporaryLimits;
+    private JsonTemporaryLimitsAttributes activePowerLimitsTemporaryLimits;
     private Map<String, String> activePowerLimitsProperties;
     private Map<String, String> properties;
 
     public static OperationalLimitsGroupAttributesSqlData of(OperationalLimitsGroupAttributes operationalLimitsGroup) {
         return OperationalLimitsGroupAttributesSqlData.builder()
                 .currentLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getCurrentLimits()))
-                .currentLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getCurrentLimits()))
+                .currentLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getCurrentLimits()))
                 .currentLimitsProperties(extractLimitProperties(operationalLimitsGroup.getCurrentLimits()))
                 .apparentPowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getApparentPowerLimits()))
-                .apparentPowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getApparentPowerLimits()))
+                .apparentPowerLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getApparentPowerLimits()))
                 .apparentPowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getActivePowerLimits()))
-                .activePowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getActivePowerLimits()))
+                .activePowerLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
                 .properties(operationalLimitsGroup.getProperties())
                 .build();
@@ -57,19 +59,25 @@ public class OperationalLimitsGroupAttributesSqlData {
         return limitsAttributes != null ? limitsAttributes.getProperties() : null;
     }
 
-    private static List<TemporaryLimitAttributes> convertToTemporaryLimitAttributes(LimitsAttributes limitsAttributes) {
+    private static JsonTemporaryLimitsAttributes convertToJsonTemporaryLimitsAttributes(LimitsAttributes limitsAttributes) {
         if (limitsAttributes == null || limitsAttributes.getTemporaryLimits() == null) {
             return null;
         }
 
-        return limitsAttributes.getTemporaryLimits().values().stream()
-                .map(temporaryLimit -> TemporaryLimitAttributes.builder()
-                        .acceptableDuration(temporaryLimit.getAcceptableDuration())
-                        .name(temporaryLimit.getName())
-                        .value(temporaryLimit.getValue())
-                        .fictitious(temporaryLimit.isFictitious())
-                        .properties(temporaryLimit.getProperties())
-                        .build())
-                .toList();
+        List<String> names = new ArrayList<>();
+        List<Double> values = new ArrayList<>();
+        List<Integer> acceptableDurations = new ArrayList<>();
+        List<Boolean> fictitious = new ArrayList<>();
+        List<Map<String, String>> properties = new ArrayList<>();
+
+        for (TemporaryLimitAttributes temporaryLimit : limitsAttributes.getTemporaryLimits().values()) {
+            names.add(temporaryLimit.getName());
+            values.add(temporaryLimit.getValue());
+            acceptableDurations.add(temporaryLimit.getAcceptableDuration());
+            fictitious.add(temporaryLimit.isFictitious());
+            properties.add(temporaryLimit.getProperties());
+        }
+
+        return new JsonTemporaryLimitsAttributes(names.toArray(String[]::new), acceptableDurations.toArray(Integer[]::new), values.toArray(Double[]::new), fictitious.toArray(Boolean[]::new), properties.toArray(Map[]::new));
     }
 }
