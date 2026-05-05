@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="1777974395000-1" author="bouhoursant">
+        <sql>
+            UPDATE voltagelevel
+            SET calculatedbusesforbusview = REPLACE(calculatedbusesforbusview, '"connectableType":"DANGLING_LINE"', '"connectableType":"BOUNDARY_LINE"')
+            WHERE calculatedbusesforbusview LIKE '%"connectableType":"DANGLING_LINE"%';
+
+            UPDATE voltagelevel
+            SET calculatedbusesforbusbreakerview = REPLACE(calculatedbusesforbusbreakerview, '"connectableType":"DANGLING_LINE"', '"connectableType":"BOUNDARY_LINE"')
+            WHERE calculatedbusesforbusbreakerview LIKE '%"connectableType":"DANGLING_LINE"%';
+        </sql>
+        <rollback>
+            <sql>
+                UPDATE voltagelevel
+                SET calculatedbusesforbusview = REPLACE(calculatedbusesforbusview, '"connectableType":"BOUNDARY_LINE"', '"connectableType":"DANGLING_LINE"')
+                WHERE calculatedbusesforbusview LIKE '%"connectableType":"BOUNDARY_LINE"%';
+
+                UPDATE voltagelevel
+                SET calculatedbusesforbusbreakerview = REPLACE(calculatedbusesforbusbreakerview, '"connectableType":"BOUNDARY_LINE"', '"connectableType":"DANGLING_LINE"')
+                WHERE calculatedbusesforbusbreakerview LIKE '%"connectableType":"BOUNDARY_LINE"%';
+            </sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
