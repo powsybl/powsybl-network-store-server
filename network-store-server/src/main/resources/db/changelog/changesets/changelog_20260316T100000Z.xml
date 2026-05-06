@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet author="lecuyerfra" id="300000000000-1">
+        <renameTable newTableName="boundaryline" oldTableName="danglingline"/>
+        <rollback>
+            <renameTable newTableName="danglingline" oldTableName="boundaryline"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-2">
+        <renameColumn
+                newColumnName="boundaryboundarylineid"
+                oldColumnName="boundarydanglinglineid"
+                tableName="areaboundary"/>
+        <rollback>
+            <renameColumn
+                    newColumnName="boundarydanglinglineid"
+                    oldColumnName="boundaryboundarylineid"
+                    tableName="areaboundary"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-3">
+        <renameColumn
+                newColumnName="boundaryline1id"
+                oldColumnName="danglingline1id"
+                tableName="tieline"/>
+        <rollback>
+            <renameColumn
+                    newColumnName="danglingline1id"
+                    oldColumnName="boundaryline1id"
+                    tableName="tieline"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-4">
+        <renameColumn
+                newColumnName="boundaryline2id"
+                oldColumnName="danglingline2id"
+                tableName="tieline"/>
+        <rollback>
+            <renameColumn
+                    newColumnName="danglingline2id"
+                    oldColumnName="boundaryline2id"
+                    tableName="tieline"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-5">
+        <addColumn tableName="areaboundary">
+            <column name="properties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="areaboundary" columnName="properties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-6">
+        <addColumn tableName="battery">
+            <column name="minmaxreactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="battery" columnName="minmaxreactivelimitsproperties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-7">
+        <addColumn tableName="battery">
+            <column name="curvereactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="battery" columnName="curvereactivelimitsproperties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-8">
+        <addColumn tableName="generator">
+            <column name="minmaxreactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="generator" columnName="minmaxreactivelimitsproperties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-9">
+        <addColumn tableName="generator">
+            <column name="curvereactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="generator" columnName="curvereactivelimitsproperties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-10">
+        <addColumn tableName="vscconverterstation">
+            <column name="minmaxreactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="vscconverterstation" columnName="minmaxreactivelimitsproperties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-11">
+        <addColumn tableName="vscconverterstation">
+            <column name="curvereactivelimitsproperties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="vscconverterstation" columnName="curvereactivelimitsproperties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-12">
+        <addColumn tableName="reactivecapabilitycurvepoint">
+            <column name="properties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="reactivecapabilitycurvepoint" columnName="properties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-13">
+        <addColumn tableName="operationallimitsgroup">
+            <column name="current_limits_properties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="operationallimitsgroup" columnName="current_limits_properties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-14">
+        <addColumn tableName="operationallimitsgroup">
+            <column name="apparent_power_limits_properties" type="TEXT"/>
+        </addColumn>
+       <rollback>
+            <dropColumn tableName="operationallimitsgroup" columnName="apparent_power_limits_properties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-15">
+        <addColumn tableName="operationallimitsgroup">
+            <column name="active_power_limits_properties" type="TEXT"/>
+        </addColumn>
+        <rollback>
+            <dropColumn tableName="operationallimitsgroup" columnName="active_power_limits_properties"/>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-16">
+        <update tableName="extension">
+            <column name="equipmenttype" value="BOUNDARY_LINE"/>
+            <where>equipmenttype = 'DANGLING_LINE'</where>
+        </update>
+        <rollback>
+            <update tableName="extension">
+                <column name="equipmenttype" value="DANGLING_LINE"/>
+                <where>equipmenttype = 'BOUNDARY_LINE'</where>
+            </update>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-17">
+        <update tableName="operationallimitsgroup">
+            <column name="equipmenttype" value="BOUNDARY_LINE"/>
+            <where>equipmenttype = 'DANGLING_LINE'</where>
+        </update>
+        <rollback>
+            <update tableName="operationallimitsgroup">
+                <column name="equipmenttype" value="DANGLING_LINE"/>
+                <where>equipmenttype = 'BOUNDARY_LINE'</where>
+            </update>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-18">
+        <update tableName="regulatingpoint">
+            <column name="regulatedequipmenttype" value="BOUNDARY_LINE"/>
+            <where>regulatedequipmenttype = 'DANGLING_LINE'</where>
+        </update>
+        <rollback>
+            <update tableName="regulatingpoint">
+                <column name="regulatedequipmenttype" value="DANGLING_LINE"/>
+                <where>regulatedequipmenttype = 'BOUNDARY_LINE'</where>
+            </update>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-19">
+        <update tableName="regulatingpoint">
+            <column name="regulatingequipmenttype" value="BOUNDARY_LINE"/>
+            <where>regulatingequipmenttype = 'DANGLING_LINE'</where>
+        </update>
+        <rollback>
+            <update tableName="regulatingpoint">
+                <column name="regulatingequipmenttype" value="DANGLING_LINE"/>
+                <where>regulatingequipmenttype = 'BOUNDARY_LINE'</where>
+            </update>
+        </rollback>
+    </changeSet>
+    <changeSet author="lecuyerfra" id="300000000000-20">
+        <update tableName="tombstonedoperationallimitsgroup">
+            <column name="equipmenttype" value="BOUNDARY_LINE"/>
+            <where>equipmenttype = 'DANGLING_LINE'</where>
+        </update>
+        <rollback>
+            <update tableName="tombstonedoperationallimitsgroup">
+                <column name="equipmenttype" value="DANGLING_LINE"/>
+                <where>equipmenttype = 'BOUNDARY_LINE'</where>
+            </update>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

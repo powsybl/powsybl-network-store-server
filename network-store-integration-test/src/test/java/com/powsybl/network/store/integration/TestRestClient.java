@@ -48,8 +48,8 @@ class TestRestClient extends AbstractForwardingRestClient {
     }
 
     @Override
-    public <T extends Attributes> void updateAll(String url, List<Resource<T>> resources, Object... uriVariables) {
+    public <T extends Attributes> void updateAll(String url, List<Resource<T>> resources, Class<?> viewClass, Object... uriVariables) {
         metrics.updatedUrls.add(UriComponentsBuilder.fromUriString(url).buildAndExpand(uriVariables).toString());
-        super.updateAll(url, resources, uriVariables);
+        super.updateAll(url, resources, viewClass, uriVariables);
     }
 }

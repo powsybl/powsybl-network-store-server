@@ -609,7 +609,7 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .p(5.6)
                 .q(6.6)
                 .build();
-        Resource<InjectionSvAttributes> updatedSvLoad = new Resource<>(ResourceType.LOAD, loadId, 1, AttributeFilter.SV, injectionSvAttributes);
+        Resource<InjectionSvAttributes> updatedSvLoad = Resource.create(ResourceType.LOAD, loadId, 1, injectionSvAttributes);
         networkStoreRepository.updateLoadsSv(NETWORK_UUID, List.of(updatedSvLoad));
 
         Resource<LoadAttributes> expUpdatedLoad = Resource.loadBuilder()
@@ -707,14 +707,14 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .p(5.6)
                 .q(6.6)
                 .build();
-        Resource<InjectionSvAttributes> updatedSvLoad = new Resource<>(ResourceType.LOAD, loadId, 1, AttributeFilter.SV, injectionSvAttributes);
+        Resource<InjectionSvAttributes> updatedSvLoad = Resource.create(ResourceType.LOAD, loadId, 1, injectionSvAttributes);
         networkStoreRepository.updateLoadsSv(NETWORK_UUID, List.of(updatedSvLoad));
 
         injectionSvAttributes = InjectionSvAttributes.builder()
                 .p(8.1)
                 .q(5.9)
                 .build();
-        updatedSvLoad = new Resource<>(ResourceType.LOAD, loadId, 1, AttributeFilter.SV, injectionSvAttributes);
+        updatedSvLoad = Resource.create(ResourceType.LOAD, loadId, 1, injectionSvAttributes);
         networkStoreRepository.updateLoadsSv(NETWORK_UUID, List.of(updatedSvLoad));
 
         Resource<LoadAttributes> expUpdatedSvLoad = Resource.loadBuilder()
@@ -842,19 +842,19 @@ class NetworkStoreRepositoryPartialVariantIdentifiablesTest {
                 .p(5.6)
                 .q(6.6)
                 .build();
-        Resource<InjectionSvAttributes> updatedSvLoad2 = new Resource<>(ResourceType.LOAD, loadId2, 1, AttributeFilter.SV, injectionSvAttributes);
+        Resource<InjectionSvAttributes> updatedSvLoad2 = Resource.create(ResourceType.LOAD, loadId2, 1, injectionSvAttributes);
         networkStoreRepository.updateLoadsSv(NETWORK_UUID, List.of(updatedSvLoad2));
 
         injectionSvAttributes = InjectionSvAttributes.builder()
                 .p(2.1)
                 .q(3.3)
                 .build();
-        Resource<InjectionSvAttributes> updatedSvLoad1 = new Resource<>(ResourceType.LOAD, loadId1, 1, AttributeFilter.SV, injectionSvAttributes);
+        Resource<InjectionSvAttributes> updatedSvLoad1 = Resource.create(ResourceType.LOAD, loadId1, 1, injectionSvAttributes);
         injectionSvAttributes = InjectionSvAttributes.builder()
                 .p(8.1)
                 .q(6.6)
                 .build();
-        updatedSvLoad2 = new Resource<>(ResourceType.LOAD, loadId2, 1, AttributeFilter.SV, injectionSvAttributes);
+        updatedSvLoad2 = Resource.create(ResourceType.LOAD, loadId2, 1, injectionSvAttributes);
         networkStoreRepository.updateLoadsSv(NETWORK_UUID, List.of(updatedSvLoad1, updatedSvLoad2));
 
         Resource<LoadAttributes> expLoad1 = Resource.loadBuilder()
