@@ -78,6 +78,6 @@ public class OperationalLimitsGroupAttributesSqlData {
             properties.add(temporaryLimit.getProperties());
         }
 
-        return new JsonTemporaryLimitsAttributes(names.toArray(String[]::new), acceptableDurations.toArray(Integer[]::new), values.toArray(Double[]::new), fictitious.toArray(Boolean[]::new), properties.toArray(Map[]::new));
+        return new JsonTemporaryLimitsAttributes(names.toArray(String[]::new), acceptableDurations, values, fictitious, properties);
     }
 }
