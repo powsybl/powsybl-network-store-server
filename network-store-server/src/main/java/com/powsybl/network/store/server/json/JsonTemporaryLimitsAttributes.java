@@ -66,7 +66,7 @@ public class JsonTemporaryLimitsAttributes {
             return;
         }
         boolean areAllFictitiousFalse = fictitious.stream().allMatch(m -> m != null && !m);
-        this.f = areAllFictitiousFalse ? null : fictitious.stream().map(m -> m ? 1 : 0).toArray(Integer[]::new);
+        this.f = areAllFictitiousFalse ? null : fictitious.stream().map(m -> Boolean.TRUE.equals(m) ? 1 : 0).toArray(Integer[]::new);
     }
 
     private void setProperties(List<Map<String, String>> properties) {
