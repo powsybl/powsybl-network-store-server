@@ -41,13 +41,7 @@ public class JsonTemporaryLimitsAttributes {
             this.d = null;
             return;
         }
-        this.d = acceptableDurations.stream().map(acceptableDuration -> {
-            if (acceptableDuration == Integer.MAX_VALUE) {
-                return "MAX";
-            } else {
-                return acceptableDuration;
-            }
-        }).toArray();
+        this.d = acceptableDurations.stream().map(acceptableDuration -> acceptableDuration == Integer.MAX_VALUE ? "MAX" : acceptableDuration).toArray();
     }
 
     private void setValues(List<Double> values) {
@@ -72,11 +66,7 @@ public class JsonTemporaryLimitsAttributes {
             return;
         }
         boolean areAllFictitiousFalse = fictitious.stream().allMatch(m -> m != null && !m);
-        if (areAllFictitiousFalse) {
-            this.f = null;
-        } else {
-            this.f = fictitious.stream().map(m -> m ? 1 : 0).toArray(Integer[]::new);
-        }
+        this.f = areAllFictitiousFalse ? null : fictitious.stream().map(m -> m ? 1 : 0).toArray(Integer[]::new);
     }
 
     private void setProperties(List<Map<String, String>> properties) {
@@ -85,11 +75,7 @@ public class JsonTemporaryLimitsAttributes {
             return;
         }
         boolean hasNoProperties = properties.stream().allMatch(m -> m != null && m.isEmpty());
-        if (hasNoProperties) {
-            this.p = null;
-        } else {
-            this.p = properties.toArray(Map[]::new);
-        }
+        this.p = hasNoProperties ? null : properties.toArray(Map[]::new);
     }
 
     public TreeMap<Integer, TemporaryLimitAttributes> convertToTemporaryLimitAttributes() {
