@@ -771,7 +771,7 @@ public class NetworkStoreController {
     @Operation(summary = "Update shunt compensators SV")
     @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update shunt compensators SV"))
     public ResponseEntity<Void> updateShuntCompensatorsSv(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                          @Parameter(description = "shunt compensator SV resources", required = true) @RequestBody List<Resource<InjectionSvAttributes>> shuntCompensatorResources) {
+                                                          @Parameter(description = "shunt compensator SV resources", required = true) @RequestBody List<Resource<ShuntCompensatorSvAttributes>> shuntCompensatorResources) {
 
         return updateAll(resources -> repository.updateShuntCompensatorsSv(networkId, resources), shuntCompensatorResources, ResourceType.SHUNT_COMPENSATOR);
     }
@@ -1127,7 +1127,7 @@ public class NetworkStoreController {
     @Operation(summary = "Update 2 windings transformers SV")
     @ApiResponses(@ApiResponse(responseCode = "201", description = "Successfully update 2 windings transformers SV"))
     public ResponseEntity<Void> updateTwoWindingsTransformersSv(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                                                @Parameter(description = "2 windings transformer SV resources", required = true) @RequestBody List<Resource<BranchSvAttributes>> twoWindingsTransformerResources) {
+                                                                @Parameter(description = "2 windings transformer SV resources", required = true) @RequestBody List<Resource<TwoWindingsTransformerSvAttributes>> twoWindingsTransformerResources) {
 
         return updateAll(resources -> repository.updateTwoWindingsTransformersSv(networkId, resources), twoWindingsTransformerResources, ResourceType.TWO_WINDINGS_TRANSFORMER);
     }

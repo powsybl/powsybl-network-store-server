@@ -4099,6 +4099,7 @@ class NetworkStoreIT {
             ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT1");
             shuntCompensator.getTerminal().setP(100);
             shuntCompensator.getTerminal().setQ(-100);
+            shuntCompensator.setSolvedSectionCount(1);
             Load load = network.getLoad("load1");
             load.getTerminal().setP(200);
             load.getTerminal().setQ(-200);
@@ -4107,6 +4108,8 @@ class NetworkStoreIT {
             twoWindingsTransformer.getTerminal1().setQ(-300);
             twoWindingsTransformer.getTerminal2().setP(400);
             twoWindingsTransformer.getTerminal2().setQ(-400);
+            twoWindingsTransformer.getPhaseTapChanger().setSolvedTapPosition(1);
+            twoWindingsTransformer.getRatioTapChanger().setSolvedTapPosition(0);
             VscConverterStation vscConverterStation = network.getVscConverterStation("VSC1");
             vscConverterStation.getTerminal().setP(500);
             vscConverterStation.getTerminal().setQ(-500);
@@ -4131,6 +4134,7 @@ class NetworkStoreIT {
             threeWindingsTransformer.getLeg2().getTerminal().setQ(-1200);
             threeWindingsTransformer.getLeg3().getTerminal().setP(1300);
             threeWindingsTransformer.getLeg3().getTerminal().setQ(-1300);
+            threeWindingsTransformer.getLeg1().getPhaseTapChanger().setSolvedTapPosition(1);
             Battery battery = network.getBattery("battery");
             battery.getTerminal().setP(1400);
             battery.getTerminal().setQ(-1400);
@@ -4143,7 +4147,7 @@ class NetworkStoreIT {
             // attributes nodeToCalculatedBusForBusBreakerView and nodeToCalculatedBusForBusView are missing from sv view
             assertTrue(metrics.updatedUrls.containsAll(Set.of(
                     "/networks/" + networkUuid + "/static-var-compensators/sv",
-                    "/networks/" + networkUuid + "/voltage-levels",
+                    "/networks/" + networkUuid + "/voltage-levels/sv",
                     "/networks/" + networkUuid + "/shunt-compensators/sv",
                     "/networks/" + networkUuid + "/2-windings-transformers/sv",
                     "/networks/" + networkUuid + "/loads/sv",
@@ -4163,6 +4167,7 @@ class NetworkStoreIT {
             ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT1");
             assertEquals(100, shuntCompensator.getTerminal().getP());
             assertEquals(-100, shuntCompensator.getTerminal().getQ());
+            assertEquals(1, shuntCompensator.getSolvedSectionCount());
             Load load = network.getLoad("load1");
             assertEquals(200, load.getTerminal().getP());
             assertEquals(-200, load.getTerminal().getQ());
@@ -4171,6 +4176,8 @@ class NetworkStoreIT {
             assertEquals(-300, twoWindingsTransformer.getTerminal1().getQ());
             assertEquals(400, twoWindingsTransformer.getTerminal2().getP());
             assertEquals(-400, twoWindingsTransformer.getTerminal2().getQ());
+            assertEquals(0, twoWindingsTransformer.getPhaseTapChanger().getSolvedTapPosition());
+            assertEquals(1, twoWindingsTransformer.getRatioTapChanger().getSolvedTapPosition());
             VscConverterStation vscConverterStation = network.getVscConverterStation("VSC1");
             assertEquals(500, vscConverterStation.getTerminal().getP());
             assertEquals(-500, vscConverterStation.getTerminal().getQ());
@@ -4195,6 +4202,7 @@ class NetworkStoreIT {
             assertEquals(-1200, threeWindingsTransformer.getLeg2().getTerminal().getQ());
             assertEquals(1300, threeWindingsTransformer.getLeg3().getTerminal().getP());
             assertEquals(-1300, threeWindingsTransformer.getLeg3().getTerminal().getQ());
+            assertEquals(1, threeWindingsTransformer.getLeg1().getPhaseTapChanger().getSolvedTapPosition());
             Battery battery = network.getBattery("battery");
             assertEquals(1400, battery.getTerminal().getP());
             assertEquals(-1400, battery.getTerminal().getQ());

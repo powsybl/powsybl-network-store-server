@@ -44,7 +44,9 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.powsybl.network.store.model.TapChangerType.PHASE;
@@ -972,6 +974,34 @@ public class NetworkStoreRepository {
         existingAttributes.setQ2(newAttributes.getQ2());
     }
 
+    static void bindTwoWindingsTransformersSvAttributes(TwoWindingsTransformerSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getP1());
+        values.add(attributes.getQ1());
+        values.add(attributes.getP2());
+        values.add(attributes.getQ2());
+        values.add(attributes.getRatioTapChangerAttributes() == null ? null : attributes.getRatioTapChangerAttributes().getSolvedTapPosition());
+        values.add(attributes.getPhaseTapChangerAttributes() == null ? null : attributes.getPhaseTapChangerAttributes().getSolvedTapPosition());
+    }
+
+    static void updateTwoWindingsTransformersSvAttributes(TwoWindingsTransformerAttributes existingAttributes, TwoWindingsTransformerSvAttributes newAttributes) {
+        existingAttributes.setP1(newAttributes.getP1());
+        existingAttributes.setQ1(newAttributes.getQ1());
+        existingAttributes.setP2(newAttributes.getP2());
+        existingAttributes.setQ2(newAttributes.getQ2());
+        if (newAttributes.getPhaseTapChangerAttributes() != null && newAttributes.getPhaseTapChangerAttributes().getSolvedTapPosition() != null) {
+            if (existingAttributes.getPhaseTapChangerAttributes() == null) {
+                existingAttributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+            }
+            existingAttributes.getPhaseTapChangerAttributes().setTapPosition(newAttributes.getPhaseTapChangerAttributes().getSolvedTapPosition());
+        }
+        if (newAttributes.getRatioTapChangerAttributes() != null && newAttributes.getRatioTapChangerAttributes().getSolvedTapPosition() != null) {
+            if (existingAttributes.getRatioTapChangerAttributes() == null) {
+                existingAttributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+            }
+            existingAttributes.getRatioTapChangerAttributes().setTapPosition(newAttributes.getRatioTapChangerAttributes().getSolvedTapPosition());
+        }
+    }
+
     private <T extends IdentifiableAttributes> void processUpdateIdentifiables(Connection connection, UUID networkUuid, List<Resource<T>> resources,
                                                                        TableMapping tableMapping) throws SQLException {
         try (var preparedStmt = connection.prepareStatement(QueryCatalog.buildUpdateIdentifiableQuery(tableMapping.getTable(), tableMapping.getColumnsMapping().keySet(), null))) {
@@ -1436,8 +1466,28 @@ public class NetworkStoreRepository {
         updateRegulatingPoints(networkUuid, resources, ResourceType.SHUNT_COMPENSATOR, getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
-    public void updateShuntCompensatorsSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
-        updateInjectionsSv(networkUuid, resources, SHUNT_COMPENSATOR_TABLE, mappings.getShuntCompensatorMappings());
+    public void updateShuntCompensatorsSv(UUID networkUuid, List<Resource<ShuntCompensatorSvAttributes>> resources) {
+        updateIdentifiablesSv(
+                networkUuid,
+                resources,
+                mappings.getShuntCompensatorMappings(),
+                buildUpdateShuntCompensatorSvQuery(),
+                NetworkStoreRepository::updateShuntCompensatorSvAttributes,
+                NetworkStoreRepository::bindShuntCompensatorSvAttributes
+
+        );
+    }
+
+    static void bindShuntCompensatorSvAttributes(ShuntCompensatorSvAttributes attributes, List<Object> values) {
+        values.add(attributes.getP());
+        values.add(attributes.getQ());
+        values.add(attributes.getSolvedSectionCount());
+    }
+
+    static void updateShuntCompensatorSvAttributes(ShuntCompensatorAttributes existingAttributes, ShuntCompensatorSvAttributes newAttributes) {
+        existingAttributes.setP(newAttributes.getP());
+        existingAttributes.setQ(newAttributes.getQ());
+        existingAttributes.setSolvedSectionCount(newAttributes.getSolvedSectionCount());
     }
 
     public void deleteShuntCompensators(UUID networkUuid, int variantNum, List<String> shuntCompensatorIds) {
@@ -1729,8 +1779,15 @@ public class NetworkStoreRepository {
         return externalAttributesToTombstoneFromEquipment;
     }
 
-    public void updateTwoWindingsTransformersSv(UUID networkUuid, List<Resource<BranchSvAttributes>> resources) {
-        updateBranchesSv(networkUuid, resources, TWO_WINDINGS_TRANSFORMER_TABLE, mappings.getTwoWindingsTransformerMappings());
+    public void updateTwoWindingsTransformersSv(UUID networkUuid, List<Resource<TwoWindingsTransformerSvAttributes>> resources) {
+        updateIdentifiablesSv(
+                networkUuid,
+                resources,
+                mappings.getTwoWindingsTransformerMappings(),
+                buildUpdateTwoWindingsTransformerSvQuery(),
+                NetworkStoreRepository::updateTwoWindingsTransformersSvAttributes,
+                NetworkStoreRepository::bindTwoWindingsTransformersSvAttributes
+        );
     }
 
     public void deleteTwoWindingsTransformers(UUID networkUuid, int variantNum, List<String> twoWindingsTransformerIds) {
@@ -1810,6 +1867,22 @@ public class NetworkStoreRepository {
         values.add(attributes.getQ2());
         values.add(attributes.getP3());
         values.add(attributes.getQ3());
+        values.add(getTapChangerSolvedPosition(attributes.getLeg1(), LegAttributes::getRatioTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg1(), LegAttributes::getPhaseTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg2(), LegAttributes::getRatioTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg2(), LegAttributes::getPhaseTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg3(), LegAttributes::getRatioTapChangerAttributes));
+        values.add(getTapChangerSolvedPosition(attributes.getLeg3(), LegAttributes::getPhaseTapChangerAttributes));
+    }
+
+    static Integer getTapChangerSolvedPosition(LegAttributes legAttributes, Function<LegAttributes, TapChangerAttributes> tapChangerAttributesSupplier) {
+        if (legAttributes != null) {
+            TapChangerAttributes tapChangerAttributes = tapChangerAttributesSupplier.apply(legAttributes);
+            if (tapChangerAttributes != null) {
+                return tapChangerAttributes.getSolvedTapPosition();
+            }
+        }
+        return null;
     }
 
     static void updateThreeWindingsTransformerSvAttributes(ThreeWindingsTransformerAttributes existingAttributes, ThreeWindingsTransformerSvAttributes newAttributes) {
@@ -1819,6 +1892,40 @@ public class NetworkStoreRepository {
         existingAttributes.setQ2(newAttributes.getQ2());
         existingAttributes.setP3(newAttributes.getP3());
         existingAttributes.setQ3(newAttributes.getQ3());
+        setSvSolvedTapPosition(existingAttributes.getLeg1(), existingAttributes::setLeg1, existingAttributes::getLeg1,
+                getTapChangerSolvedPosition(newAttributes.getLeg1(), LegAttributes::getRatioTapChangerAttributes),
+                getTapChangerSolvedPosition(newAttributes.getLeg1(), LegAttributes::getPhaseTapChangerAttributes));
+        setSvSolvedTapPosition(existingAttributes.getLeg2(), existingAttributes::setLeg2, existingAttributes::getLeg2,
+                getTapChangerSolvedPosition(newAttributes.getLeg2(), LegAttributes::getRatioTapChangerAttributes),
+                getTapChangerSolvedPosition(newAttributes.getLeg2(), LegAttributes::getPhaseTapChangerAttributes));
+        setSvSolvedTapPosition(existingAttributes.getLeg1(), existingAttributes::setLeg1, existingAttributes::getLeg3,
+                getTapChangerSolvedPosition(newAttributes.getLeg3(), LegAttributes::getRatioTapChangerAttributes),
+                getTapChangerSolvedPosition(newAttributes.getLeg3(), LegAttributes::getPhaseTapChangerAttributes));
+    }
+
+    static void setSvSolvedTapPosition(LegAttributes existingLegAttributes,
+                                       Consumer<LegAttributes> setLeg,
+                                       Supplier<LegAttributes> getLeg,
+                                       Integer ratioTapChangerSolvedTapPosition,
+                                       Integer phaseTapChangerSolvedTapPosition) {
+        if (ratioTapChangerSolvedTapPosition != null || phaseTapChangerSolvedTapPosition != null) {
+            if (existingLegAttributes == null) {
+                setLeg.accept(new LegAttributes());
+            }
+            LegAttributes legAttributes = getLeg.get();
+            if (phaseTapChangerSolvedTapPosition != null) {
+                if (legAttributes.getPhaseTapChangerAttributes() == null) {
+                    legAttributes.setPhaseTapChangerAttributes(new PhaseTapChangerAttributes());
+                }
+                legAttributes.getPhaseTapChangerAttributes().setSolvedTapPosition(phaseTapChangerSolvedTapPosition);
+            }
+            if (ratioTapChangerSolvedTapPosition != null) {
+                if (legAttributes.getRatioTapChangerAttributes() == null) {
+                    legAttributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
+                }
+                legAttributes.getRatioTapChangerAttributes().setSolvedTapPosition(ratioTapChangerSolvedTapPosition);
+            }
+        }
     }
 
     public void deleteThreeWindingsTransformers(UUID networkUuid, int variantNum, List<String> threeWindingsTransformerIds) {
