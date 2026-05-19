@@ -3588,4 +3588,13 @@ public class NetworkStoreRepository {
     public Optional<Resource<NetworkAttributes>> getNetwork(UUID uuid, int variantNum) {
         return Utils.getNetwork(uuid, variantNum, dataSource, mappings, mapper);
     }
+
+    // FIXME : to revert when migration 2.36 is done
+    public void deleteOperationalLimitsGroups(UUID networkUuid, int variantNum, List<String> equipmentIds) {
+        limitsHandler.deleteOperationalLimitsGroups(networkUuid, variantNum, equipmentIds);
+    }
+
+    public void insertOperationalLimitsGroups(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups) {
+        limitsHandler.insertOperationalLimitsGroups(operationalLimitsGroups);
+    }
 }
