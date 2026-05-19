@@ -132,7 +132,6 @@ public class LimitsHandler {
             Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map = new HashMap<>();
             Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> olgToMigrate = new HashMap<>();
             while (resultSet.next()) {
-                boolean migrate = false;
                 OperationalLimitsGroupOwnerInfo owner = new OperationalLimitsGroupOwnerInfo();
                 // In order, from the QueryCatalog.buildOperationalLimitsGroupQuery SQL query :
                 // 1 equipmentId, 2 equipmentType, 3 networkUuid, 4 variantNum, 5 side, 6 operationallimitgroupid,
@@ -159,7 +158,6 @@ public class LimitsHandler {
                             resultSet.getString(8),
                             resultSet.getString(9)
                     );
-                    migrate = true;
                 } else {
                     currentLimits = createLimitsAttributes(
                             resultSet.getObject(7, Double.class),
@@ -188,18 +186,7 @@ public class LimitsHandler {
                     });
                     operationalLimitsGroupAttributes.setProperties(properties);
                 }
-                // FIXME : clean when all temporary limits are migrated to new column
-                if (migrate) {
-                    OperationalLimitsGroupOwnerInfo olgOwnerInfoToDelete = new OperationalLimitsGroupOwnerInfo(owner.getEquipmentId(), owner.getEquipmentType(), owner.getNetworkUuid(), variantNum, owner.getOperationalLimitsGroupId(), owner.getSide());
-                    olgToMigrate.put(olgOwnerInfoToDelete, operationalLimitsGroupAttributes);
-                }
                 map.put(owner, operationalLimitsGroupAttributes);
-            }
-            // FIXME : clean when all temporary limits are migrated to new column
-            if (!olgToMigrate.isEmpty()) {
-                UUID networkUuid = olgToMigrate.keySet().stream().findFirst().orElseThrow().getNetworkUuid();
-                deleteOperationalLimitsGroups(networkUuid, olgToMigrate.keySet().stream().toList());
-                insertOperationalLimitsGroups(olgToMigrate);
             }
             return map;
         } catch (JsonProcessingException e) {
