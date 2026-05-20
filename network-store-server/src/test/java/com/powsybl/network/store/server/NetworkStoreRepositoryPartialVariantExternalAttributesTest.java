@@ -1775,4 +1775,54 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             throw new UncheckedSqlException(e);
         }
     }
+
+    @Test
+    void testOperationalLimitGroupWithDuplicatedTemporaryLimits() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testNetwork").build()));
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = new TreeMap<>(Map.of(
+                60, TemporaryLimitAttributes.builder()
+                        .name("DUPLICATED")
+                        .value(1000)
+                        .acceptableDuration(60)
+                        .fictitious(false)
+                        .build(),
+                120, TemporaryLimitAttributes.builder()
+                        .name("DUPLICATED#0")
+                        .value(1100)
+                        .acceptableDuration(120)
+                        .fictitious(false)
+                        .build()));
+
+        String lineId = "line1";
+        String groupId = "group1";
+        OperationalLimitsGroupAttributes group = OperationalLimitsGroupAttributes.builder()
+                .id(groupId)
+                .currentLimits(LimitsAttributes.builder()
+                        .permanentLimit(300)
+                        .temporaryLimits(temporaryLimits)
+                        .build())
+                .build();
+
+        Resource<LineAttributes> line = Resource.lineBuilder()
+                .id(lineId)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .selectedOperationalLimitsGroupId1(groupId)
+                        .operationalLimitsGroups1(Map.of(groupId, group))
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line));
+
+        OperationalLimitsGroupAttributes result = networkStoreRepository
+                .getOperationalLimitsGroupAttributes(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId, ResourceType.LINE, groupId, 1)
+                .orElseThrow();
+
+        Map<Integer, TemporaryLimitAttributes> temporaryLimitAttributes = result.getCurrentLimits().getTemporaryLimits();
+        assertEquals(2, temporaryLimitAttributes.size());
+        assertEquals("DUPLICATED", temporaryLimitAttributes.get(60).getName());
+        assertEquals("DUPLICATED#0", temporaryLimitAttributes.get(120).getName());
+    }
 }

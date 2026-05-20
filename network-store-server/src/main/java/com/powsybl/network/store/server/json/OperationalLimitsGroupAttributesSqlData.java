@@ -57,19 +57,38 @@ public class OperationalLimitsGroupAttributesSqlData {
         return limitsAttributes != null ? limitsAttributes.getProperties() : null;
     }
 
+    private static String checkAndGetUniqueName(String name, List<TemporaryLimitAttributes> existing) {
+        if (name != null) {
+            String uniqueName = name;
+            int i = 0;
+            while (i < Integer.MAX_VALUE && nameExistsIn(uniqueName, existing)) {
+                uniqueName = name + "#" + i;
+                i++;
+            }
+            return uniqueName;
+        }
+        return null;
+    }
+
     private static List<TemporaryLimitAttributes> convertToTemporaryLimitAttributes(LimitsAttributes limitsAttributes) {
         if (limitsAttributes == null || limitsAttributes.getTemporaryLimits() == null) {
             return null;
         }
 
-        return limitsAttributes.getTemporaryLimits().values().stream()
-                .map(temporaryLimit -> TemporaryLimitAttributes.builder()
-                        .acceptableDuration(temporaryLimit.getAcceptableDuration())
-                        .name(temporaryLimit.getName())
-                        .value(temporaryLimit.getValue())
-                        .fictitious(temporaryLimit.isFictitious())
-                        .properties(temporaryLimit.getProperties())
-                        .build())
-                .toList();
+        List<TemporaryLimitAttributes> result = new ArrayList<>();
+        for (TemporaryLimitAttributes temporaryLimit : limitsAttributes.getTemporaryLimits().values()) {
+            result.add(TemporaryLimitAttributes.builder()
+                    .acceptableDuration(temporaryLimit.getAcceptableDuration())
+                    .name(checkAndGetUniqueName(temporaryLimit.getName(), result))
+                    .value(temporaryLimit.getValue())
+                    .fictitious(temporaryLimit.isFictitious())
+                    .properties(temporaryLimit.getProperties())
+                    .build());
+        }
+        return result;
+    }
+
+    private static boolean nameExistsIn(String name, List<TemporaryLimitAttributes> existing) {
+        return existing.stream().anyMatch(t -> t.getName().equals(name));
     }
 }
