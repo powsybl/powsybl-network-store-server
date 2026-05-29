@@ -1283,7 +1283,8 @@ class NetworkStoreExtensionsIT {
 
             line.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D))).add();
             boundaryLine.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D))).add();
-            assertThrows(PowsyblException.class, () -> network.getVoltageLevel("VLGEN").newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D))).add());
+            assertThrows(PowsyblException.class, () -> network.getVoltageLevel("VLGEN").newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D,
+                    3.0D))).add());
             service.flush(network);
         }
 

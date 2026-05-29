@@ -186,12 +186,14 @@ public final class QueryLimitsCatalog {
 
     // Tombstoned
     public static String buildInsertTombstonedOperationalLimitsGroupQuery() {
-        return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ") " +
+        return "insert into " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " (" + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", "
+                + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ") " +
             "values (?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildGetTombstonedOperationalLimitsGroupQuery() {
-        return "select " + EQUIPMENT_ID_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + " FROM " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ?";
+        return "select " + EQUIPMENT_ID_COLUMN + ", " + SIDE_COLUMN + ", " + GROUP_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + " FROM " + TOMBSTONED_OPERATIONAL_LIMITS_GROUP_TABLE + " WHERE "
+                + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildDeleteTombstonedOperationalLimitsGroupQuery() {

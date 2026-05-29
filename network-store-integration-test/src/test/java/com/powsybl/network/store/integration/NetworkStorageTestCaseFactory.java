@@ -21,6 +21,7 @@ final class NetworkStorageTestCaseFactory {
         throw new IllegalStateException("Utility class");
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     public static Network create(NetworkFactory networkFactory) {
         Objects.requireNonNull(networkFactory);
 
