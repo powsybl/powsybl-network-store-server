@@ -10,6 +10,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.OperatingStatus;
 import com.powsybl.network.store.model.*;
+import com.powsybl.network.store.model.svattributes.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
@@ -702,8 +703,13 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             .p1(5.6)
             .q1(6.6)
             .build();
+        TwoWindingsTransformerSvAttributes twoWindingsTransformerSvAttributes = TwoWindingsTransformerSvAttributes.builder()
+                .p1(5.6)
+                .q1(6.6)
+                .ratioTapChangerAttributes(TapChangerSvAttributes.builder().solvedTapPosition(1).build())
+                .build();
         Resource<BranchSvAttributes> updatedSvLine = Resource.create(ResourceType.LINE, lineId, 1, branchSvAttributes);
-        Resource<BranchSvAttributes> updatedSvTwoWT = Resource.create(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, branchSvAttributes);
+        Resource<TwoWindingsTransformerSvAttributes> updatedSvTwoWT = Resource.create(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, twoWindingsTransformerSvAttributes);
         InjectionSvAttributes injectionSvAttributes = InjectionSvAttributes.builder()
             .p(5.6)
             .q(6.6)
