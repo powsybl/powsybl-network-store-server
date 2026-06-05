@@ -706,7 +706,6 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         TwoWindingsTransformerSvAttributes twoWindingsTransformerSvAttributes = TwoWindingsTransformerSvAttributes.builder()
                 .p1(5.6)
                 .q1(6.6)
-                .ratioTapChangerAttributes(TapChangerSvAttributes.builder().solvedTapPosition(1).build())
                 .build();
         Resource<BranchSvAttributes> updatedSvLine = Resource.create(ResourceType.LINE, lineId, 1, branchSvAttributes);
         Resource<TwoWindingsTransformerSvAttributes> updatedSvTwoWT = Resource.create(ResourceType.TWO_WINDINGS_TRANSFORMER, twoWTId, 1, twoWindingsTransformerSvAttributes);

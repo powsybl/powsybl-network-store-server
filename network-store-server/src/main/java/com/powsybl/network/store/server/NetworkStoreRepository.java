@@ -996,12 +996,8 @@ public class NetworkStoreRepository {
         existingAttributes.setQ1(newAttributes.getQ1());
         existingAttributes.setP2(newAttributes.getP2());
         existingAttributes.setQ2(newAttributes.getQ2());
-        if (newAttributes.getRatioTapChangerAttributes() != null) {
-            existingAttributes.getRatioTapChangerAttributes().setSolvedTapPosition(newAttributes.getRatioTapChangerAttributes().getSolvedTapPosition());
-        }
-        if (newAttributes.getPhaseTapChangerAttributes() != null) {
-            existingAttributes.getPhaseTapChangerAttributes().setSolvedTapPosition(newAttributes.getPhaseTapChangerAttributes().getSolvedTapPosition());
-        }
+        setTapChangerSolvedValue(existingAttributes.getRatioTapChangerAttributes(), newAttributes.getRatioTapChangerAttributes());
+        setTapChangerSolvedValue(existingAttributes.getPhaseTapChangerAttributes(), newAttributes.getPhaseTapChangerAttributes());
     }
 
     private void updateBranchesSv(UUID networkUuid, List<Resource<BranchSvAttributes>> resources, String tableName, TableMapping tableMapping) {
@@ -1889,22 +1885,22 @@ public class NetworkStoreRepository {
         existingAttributes.setQ2(newAttributes.getQ2());
         existingAttributes.setP3(newAttributes.getP3());
         existingAttributes.setQ3(newAttributes.getQ3());
-        if (newAttributes.getLeg1() != null) {
+        if (newAttributes.getLeg1() != null && existingAttributes.getLeg1() != null) {
             setTapChangerSolvedValue(existingAttributes.getLeg1().getPhaseTapChangerAttributes(), newAttributes.getLeg1().getPhaseTapChangerAttributes());
             setTapChangerSolvedValue(existingAttributes.getLeg1().getRatioTapChangerAttributes(), newAttributes.getLeg1().getRatioTapChangerAttributes());
         }
-        if (newAttributes.getLeg2() != null) {
+        if (newAttributes.getLeg2() != null && existingAttributes.getLeg2() != null) {
             setTapChangerSolvedValue(existingAttributes.getLeg2().getPhaseTapChangerAttributes(), newAttributes.getLeg2().getPhaseTapChangerAttributes());
             setTapChangerSolvedValue(existingAttributes.getLeg2().getRatioTapChangerAttributes(), newAttributes.getLeg2().getRatioTapChangerAttributes());
         }
-        if (newAttributes.getLeg3() != null) {
+        if (newAttributes.getLeg3() != null && existingAttributes.getLeg3() != null) {
             setTapChangerSolvedValue(existingAttributes.getLeg3().getPhaseTapChangerAttributes(), newAttributes.getLeg3().getPhaseTapChangerAttributes());
             setTapChangerSolvedValue(existingAttributes.getLeg3().getRatioTapChangerAttributes(), newAttributes.getLeg3().getRatioTapChangerAttributes());
         }
     }
 
     private static void setTapChangerSolvedValue(TapChangerAttributes tapChangerAttributes, TapChangerSvAttributes tapChangerSvAttributes) {
-        if (tapChangerSvAttributes != null) {
+        if (tapChangerSvAttributes != null && tapChangerAttributes != null) {
             tapChangerAttributes.setSolvedTapPosition(tapChangerSvAttributes.getSolvedTapPosition());
         }
     }

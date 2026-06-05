@@ -8,10 +8,7 @@ package com.powsybl.network.store.server;
 
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.network.store.model.*;
-import com.powsybl.network.store.model.svattributes.BranchSvAttributes;
-import com.powsybl.network.store.model.svattributes.InjectionSvAttributes;
-import com.powsybl.network.store.model.svattributes.ThreeWindingsTransformerSvAttributes;
-import com.powsybl.network.store.model.svattributes.VoltageLevelSvAttributes;
+import com.powsybl.network.store.model.svattributes.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -1534,17 +1531,24 @@ class NetworkStoreRepositoryTest {
                 .q1(5.0)
                 .q2(10.0)
                 .q3(15.0)
+                .leg1(LegSvAttributes.builder().ratioTapChangerAttributes(TapChangerSvAttributes.builder().solvedTapPosition(2).build()).build())
                 .build();
         List<Object> values = new ArrayList<>();
         NetworkStoreRepository.bindThreeWindingsTransformerSvAttributes(attributes, values);
 
-        assertEquals(6, values.size());
+        assertEquals(12, values.size());
         assertEquals(10.0, values.get(0));
         assertEquals(5.0, values.get(1));
         assertEquals(20.0, values.get(2));
         assertEquals(10.0, values.get(3));
         assertEquals(30.0, values.get(4));
         assertEquals(15.0, values.get(5));
+        assertEquals(2, values.get(6));
+        assertNull(values.get(7));
+        assertNull(values.get(8));
+        assertNull(values.get(9));
+        assertNull(values.get(10));
+        assertNull(values.get(11));
     }
 
     @Test
@@ -1583,15 +1587,13 @@ class NetworkStoreRepositoryTest {
         VoltageLevelSvAttributes attributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)
                 .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
-                .calculatedBusesValid(true)
                 .build();
         List<Object> values = new ArrayList<>();
         NetworkStoreRepository.bindVoltageLevelSvAttributes(attributes, values);
 
-        assertEquals(3, values.size());
+        assertEquals(2, values.size());
         assertEquals(calculatedBusAttributesBv, values.get(0));
         assertEquals(nodeToCalculatedBusForBusView, values.get(1));
-        assertTrue((Boolean) values.get(2));
     }
 
     @Test
@@ -1601,18 +1603,15 @@ class NetworkStoreRepositoryTest {
         VoltageLevelAttributes existingAttributes = VoltageLevelAttributes.builder()
                 .calculatedBusesForBusView(new ArrayList<>())
                 .nodeToCalculatedBusForBusBreakerView(new HashMap<>())
-                .calculatedBusesValid(false)
                 .build();
         VoltageLevelSvAttributes newAttributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)
                 .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
-                .calculatedBusesValid(true)
                 .build();
 
         NetworkStoreRepository.updateVoltageLevelSvAttributes(existingAttributes, newAttributes);
 
         assertEquals(calculatedBusAttributesBv, existingAttributes.getCalculatedBusesForBusView());
-        assertTrue(existingAttributes.isCalculatedBusesValid());
         assertEquals(nodeToCalculatedBusForBusView, existingAttributes.getNodeToCalculatedBusForBusView());
     }
 
