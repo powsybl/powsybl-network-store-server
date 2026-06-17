@@ -24,6 +24,7 @@ import com.powsybl.iidm.network.test.*;
 import com.powsybl.math.graph.TraverseResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.RestClientImpl;
+import com.powsybl.network.store.iidm.impl.CalculatedBus;
 import com.powsybl.network.store.iidm.impl.ConfiguredBusImpl;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
 import com.powsybl.network.store.iidm.impl.NetworkImpl;
@@ -4137,6 +4138,8 @@ class NetworkStoreIT {
             VoltageLevel voltageLevel = network.getVoltageLevel("VL1");
             voltageLevel.getBusView().getBuses();
             voltageLevel.getBusBreakerView().getBuses();
+            CalculatedBus bus = (CalculatedBus) voltageLevel.getBusBreakerView().getBusStream().findFirst().orElseThrow();
+            bus.setSynchronousComponentNum(1);
             service.flush(network);
             // for voltage level it is not /voltage-levels/sv because the network has a node breaker topology and has other attributes when getting the buse view
             // it should be corrected to ensure the loadflow send sv attributes at the end of its computation
