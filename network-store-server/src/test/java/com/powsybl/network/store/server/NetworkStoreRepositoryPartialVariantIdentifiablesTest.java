@@ -9,6 +9,7 @@ package com.powsybl.network.store.server;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.network.store.model.*;
+import com.powsybl.network.store.model.svattributes.*;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
