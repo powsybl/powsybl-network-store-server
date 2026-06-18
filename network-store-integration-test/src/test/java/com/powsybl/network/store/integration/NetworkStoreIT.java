@@ -24,10 +24,7 @@ import com.powsybl.iidm.network.test.*;
 import com.powsybl.math.graph.TraverseResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.RestClientImpl;
-import com.powsybl.network.store.iidm.impl.CalculatedBus;
-import com.powsybl.network.store.iidm.impl.ConfiguredBusImpl;
-import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
-import com.powsybl.network.store.iidm.impl.NetworkImpl;
+import com.powsybl.network.store.iidm.impl.*;
 import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
 import com.powsybl.ucte.converter.UcteImporter;
@@ -4206,6 +4203,11 @@ class NetworkStoreIT {
             assertTrue(buseBreakerViewIds.containsAll(List.of("VL1_5", "VL1_0", "VL1_1", "VL1_2", "VL1_3", "VL1_4")));
             List<String> buseIds = voltageLevel.getBusView().getBusStream().map(Bus::getId).toList();
             assertTrue(buseIds.isEmpty());
+            CalculatedBus bus = (CalculatedBus) voltageLevel.getBusBreakerView().getBusStream().findFirst().orElseThrow();
+            // Force synchronous components to be considered valid so that getSynchronousComponentNum() on buses does not trigger
+            // a full graph traversal and component recalculation
+            network.getResource().getAttributes().setSynchronousComponentsValid(true);
+            assertEquals(1, bus.getSynchronousComponent().getNum());
         }
     }
 

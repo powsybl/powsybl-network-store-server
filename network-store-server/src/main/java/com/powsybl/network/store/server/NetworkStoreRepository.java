@@ -1143,11 +1143,13 @@ public class NetworkStoreRepository {
 
     static void bindVoltageLevelSvAttributes(VoltageLevelSvAttributes attributes, List<Object> values) {
         values.add(attributes.getCalculatedBusesForBusView());
+        values.add(attributes.getCalculatedBusesForBusBreakerView());
         values.add(attributes.getNodeToCalculatedBusForBusView());
     }
 
     static void updateVoltageLevelSvAttributes(VoltageLevelAttributes existingAttributes, VoltageLevelSvAttributes newAttributes) {
         existingAttributes.setCalculatedBusesForBusView(newAttributes.getCalculatedBusesForBusView());
+        existingAttributes.setCalculatedBusesForBusBreakerView(newAttributes.getCalculatedBusesForBusBreakerView());
         existingAttributes.setNodeToCalculatedBusForBusView(newAttributes.getNodeToCalculatedBusForBusView());
     }
 

@@ -288,6 +288,7 @@ public final class QueryCatalog {
                 VOLTAGE_LEVEL_TABLE +
                 " set calculatedbusesforbusview = ?" +
                 ", calculatedbusesforbusbreakerview = ?" +
+                ", nodetocalculatedbusforbusview = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";
