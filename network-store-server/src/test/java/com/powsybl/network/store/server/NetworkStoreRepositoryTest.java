@@ -1706,4 +1706,37 @@ class NetworkStoreRepositoryTest {
         assertNotNull(networkStoreRepository.getLine(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId));
         assertTrue(networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.LINE).isEmpty());
     }
+
+    @Test
+    void testBindAttributesForShuntCompensatorSv() {
+        ShuntCompensatorSvAttributes attributes = ShuntCompensatorSvAttributes.builder()
+                .p(3)
+                .q(2)
+                .solvedSectionCount(1)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindShuntCompensatorSvAttributes(attributes, values);
+
+        assertEquals(3, values.size());
+        assertEquals(3.0, values.get(0));
+        assertEquals(2.0, values.get(1));
+        assertEquals(1, values.get(2));
+    }
+
+    @Test
+    void testUpdateAttributesForShuntCompensatorSv() {
+        ShuntCompensatorAttributes existingAttributes = ShuntCompensatorAttributes.builder()
+                .build();
+        ShuntCompensatorSvAttributes newAttributes = ShuntCompensatorSvAttributes.builder()
+                .p(3)
+                .q(2)
+                .solvedSectionCount(1)
+                .build();
+
+        NetworkStoreRepository.updateShuntCompensatorSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(3.0, existingAttributes.getP());
+        assertEquals(2.0, existingAttributes.getQ());
+        assertEquals(1, existingAttributes.getSolvedSectionCount());
+    }
 }
