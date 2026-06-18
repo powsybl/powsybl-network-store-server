@@ -1739,4 +1739,69 @@ class NetworkStoreRepositoryTest {
         assertEquals(2.0, existingAttributes.getQ());
         assertEquals(1, existingAttributes.getSolvedSectionCount());
     }
+
+    @Test
+    void testUpdateAttributesForShuntCompensatorThreeWindingsTransformer() {
+        ThreeWindingsTransformerAttributes existingAttributes = ThreeWindingsTransformerAttributes.builder()
+                .leg1(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .leg2(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .leg3(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .build();
+        ThreeWindingsTransformerSvAttributes newAttributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(1)
+                .q1(2)
+                .p2(3)
+                .q2(4)
+                .p3(5)
+                .q3(6)
+                .leg1(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(7)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(8)
+                                .build())
+                        .build())
+                .leg2(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(9)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(10)
+                                .build())
+                        .build())
+                .leg3(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(11)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(12)
+                                .build())
+                        .build())
+                .build();
+
+        NetworkStoreRepository.updateThreeWindingsTransformerSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(1.0, existingAttributes.getP1());
+        assertEquals(2.0, existingAttributes.getQ1());
+        assertEquals(3.0, existingAttributes.getP2());
+        assertEquals(4.0, existingAttributes.getQ2());
+        assertEquals(5.0, existingAttributes.getP3());
+        assertEquals(6.0, existingAttributes.getQ3());
+        assertEquals(7, existingAttributes.getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(8, existingAttributes.getLeg1().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(9, existingAttributes.getLeg2().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(10, existingAttributes.getLeg2().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(11, existingAttributes.getLeg3().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(12, existingAttributes.getLeg3().getRatioTapChangerAttributes().getSolvedTapPosition());
+    }
 }
