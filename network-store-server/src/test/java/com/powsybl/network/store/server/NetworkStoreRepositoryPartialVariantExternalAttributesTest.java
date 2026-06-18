@@ -28,6 +28,7 @@ import java.util.*;
 
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.QueryLimitsCatalog.buildOperationalLimitsGroupQuery;
 import static com.powsybl.network.store.server.utils.PartialVariantTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -393,7 +394,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             assertTrue(networkStoreRepository.getTapChangerStepsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, twoWTId, variantNum).isEmpty());
 
             // Operational Limits
-            assertTrue(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroupsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId, variantNum).isEmpty());
+            assertTrue(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroupsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId, variantNum, buildOperationalLimitsGroupQuery(EQUIPMENT_ID_COLUMN)).isEmpty());
 
             // Reactive Capability Curve Points
             assertTrue(networkStoreRepository.getReactiveCapabilityCurvePointsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, generatorId, variantNum).isEmpty());

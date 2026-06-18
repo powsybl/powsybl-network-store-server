@@ -134,6 +134,30 @@ public final class QueryLimitsCatalog {
             columnNameForWhereClause + " = ?";
     }
 
+    public static String buildOldOperationalLimitsGroupQuery(String columnNameForWhereClause) {
+        return "select " + EQUIPMENT_ID_COLUMN + ", " +
+                EQUIPMENT_TYPE_COLUMN + ", " +
+                NETWORK_UUID_COLUMN + ", " +
+                VARIANT_NUM_COLUMN + ", " +
+                SIDE_COLUMN + "," +
+                GROUP_ID_COLUMN + "," +
+                CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+                PROPERTIES_COLUMN + ", " +
+                NEW_CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN +
+                " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
+                NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                columnNameForWhereClause + " = ? and " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + " is not null";
+    }
+
     public static String buildOperationalLimitsGroupWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);

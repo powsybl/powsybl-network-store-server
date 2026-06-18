@@ -107,9 +107,14 @@ public class V237LimitsMigration implements CustomTaskChange {
     }
 
     private static void migrateOlgForEquipmentType(NetworkStoreRepository repository, UUID networkId, int variantNum, ResourceType resourceType) {
-        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap = repository.getAllOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, resourceType);
+        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap = repository.getAllOldOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, resourceType);
+        if (operationalLimitsGroupsMap.isEmpty()) {
+            LOGGER.info("all operational limits groups were already migrated there is no migration.");
+            return;
+        }
         repository.deleteOperationalLimitsGroups(networkId, variantNum, operationalLimitsGroupsMap.keySet().stream().toList());
         repository.insertOperationalLimitsGroups(convertOlgMap(networkId, variantNum, resourceType, operationalLimitsGroupsMap));
+        LOGGER.info("{} operational limits groups were migrated.", operationalLimitsGroupsMap.size());
     }
 
     private static Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> convertOlgMap(UUID networkId, int variantNum, ResourceType resourceType, Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap) {

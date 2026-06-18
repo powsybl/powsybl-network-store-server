@@ -56,7 +56,21 @@ public class LimitsHandler {
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
                 variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
-                    columnNameForWhereClause, valueForWhereClause, variantNum));
+                    columnNameForWhereClause, valueForWhereClause, variantNum, buildOperationalLimitsGroupQuery(columnNameForWhereClause)));
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOldOperationalLimitsGroupsAttributes(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
+                    variantNum,
+                    getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
+                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
+                    variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
+                            columnNameForWhereClause, valueForWhereClause, variantNum, buildOldOperationalLimitsGroupQuery(columnNameForWhereClause)));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -98,8 +112,9 @@ public class LimitsHandler {
         }
     }
 
-    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
-        try (var preparedStmt = connection.prepareStatement(buildOperationalLimitsGroupQuery(columnNameForWhereClause))) {
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride, String query) {
+        // keep columnNameForWhereClause and query will be removed after migration
+        try (var preparedStmt = connection.prepareStatement(query)) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
