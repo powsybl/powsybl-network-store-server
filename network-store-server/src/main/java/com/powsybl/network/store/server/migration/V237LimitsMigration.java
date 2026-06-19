@@ -32,6 +32,9 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
+ *
+ * to remove after migration in 2.40
+ *
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
  */
 public class V237LimitsMigration implements CustomTaskChange {

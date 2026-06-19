@@ -62,6 +62,7 @@ public class LimitsHandler {
         }
     }
 
+    // to remove after migration in 2.40
     public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOldOperationalLimitsGroupsAttributes(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOperationalLimitsGroupsAttributes(

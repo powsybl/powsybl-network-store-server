@@ -3660,7 +3660,7 @@ public class NetworkStoreRepository {
                 ));
     }
 
-    // to remove after migration
+    // to remove after migration in 2.40
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOldOperationalLimitsGroupAttributesByResourceType(
             UUID networkId, int variantNum, ResourceType type) {
         Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups = limitsHandler.getOldOperationalLimitsGroupsAttributes(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());

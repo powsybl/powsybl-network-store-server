@@ -134,6 +134,8 @@ public final class QueryLimitsCatalog {
             columnNameForWhereClause + " = ?";
     }
 
+
+    // to remove after migration in 2.40
     public static String buildOldOperationalLimitsGroupQuery(String columnNameForWhereClause) {
         return "select " + EQUIPMENT_ID_COLUMN + ", " +
                 EQUIPMENT_TYPE_COLUMN + ", " +
