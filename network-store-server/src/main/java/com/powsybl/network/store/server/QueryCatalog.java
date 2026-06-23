@@ -244,8 +244,8 @@ public final class QueryCatalog {
                 ", q1 = ?" +
                 ", p2 = ?" +
                 ", q2 = ?" +
-                ", phasetapchangersolvedtapposition = ?" +
                 ", ratiotapchangersolvedtapposition = ?" +
+                ", phasetapchangersolvedtapposition = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";
