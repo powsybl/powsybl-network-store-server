@@ -231,7 +231,7 @@ public final class QueryCatalog {
     }
 
     public static String buildUpdateShuntCompensatorSvQuery() {
-        return "update shuntcompensator set p = ?" +
+        return "update " + SHUNT_COMPENSATOR_TABLE + " set p = ?" +
                 ", q = ?" +
                 ", solvedsectioncount = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
@@ -240,7 +240,7 @@ public final class QueryCatalog {
     }
 
     public static String buildUpdateTwoWindingsTransformerSvQuery() {
-        return "update twowindingstransformer set p1 = ?" +
+        return "update " + TWO_WINDINGS_TRANSFORMER_TABLE + " set p1 = ?" +
                 ", q1 = ?" +
                 ", p2 = ?" +
                 ", q2 = ?" +
