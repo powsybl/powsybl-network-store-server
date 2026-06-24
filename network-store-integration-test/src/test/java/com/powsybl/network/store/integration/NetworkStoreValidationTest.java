@@ -751,8 +751,9 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("min Q is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.newReactiveCapabilityCurve().beginPoint().setP(1).setMinQ(2).endPoint().add())
                 .getMessage().contains("max Q is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.newReactiveCapabilityCurve().beginPoint().setP(1).setMinQ(2).setMaxQ(5).endPoint().beginPoint().setP(1).setMinQ(
-                5).setMaxQ(5).endPoint().add())
+        ReactiveCapabilityCurveAdder.PointAdder pointAdder = vscConverterStation1.newReactiveCapabilityCurve()
+                .beginPoint().setP(1).setMinQ(2).setMaxQ(5).endPoint().beginPoint().setP(1).setMinQ(5).setMaxQ(5);
+        assertTrue(assertThrows(PowsyblException.class, pointAdder::endPoint)
                 .getMessage().matches("(.*)a point already exists for active power(.*)with a different reactive power range(.*)"));
 
         vscConverterStation1.newReactiveCapabilityCurve().beginPoint().setP(5).setMinQ(1).setMaxQ(10).endPoint().beginPoint().setP(10).setMinQ(-10).setMaxQ(1).endPoint().add();
