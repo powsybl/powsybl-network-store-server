@@ -159,3 +159,17 @@ databaseChangeLog:
   - include:
       file: changesets/changelog_20260505T094635Z.xml
       relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20260430T100000Z.xml
+      relativeToChangelogFile: true
+
+# Migration of V2.38 limits. To be added before tag v2.40.0 is deployed
+#  - include:
+#      file: changesets/changelog_20260430T110000Z.xml
+#      relativeToChangelogFile: true
+#
+# Deletion of old currentLimits column tables. To be added before tag v2.42.0 is deployed
+#  - include:
+#      file: changesets/changelog_20260430T120000Z.xml
+#      relativeToChangelogFile: true
