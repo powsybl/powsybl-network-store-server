@@ -138,8 +138,6 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setVoltageRegulatorOn(false)).getMessage().matches("(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setTargetP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)active power setpoint(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setTargetV(-100)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> gen.setVoltageRegulatorOn(false).setTargetQ(Double.NaN)).getMessage().matches(
-                "(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setRatedS(-1)).getMessage().contains("Invalid value of rated S"));
     }
 
@@ -284,7 +282,7 @@ class NetworkStoreValidationTest {
 
         assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setSectionCount(-5)).getMessage().matches(
                 "(.*)the current number of section(.*)should be greater than or equal to 0(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setTargetV(-50).setVoltageRegulatorOn(true)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"
+        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setTargetV(-50)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"
                 ));
         assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setTargetDeadband(Double.NaN)).getMessage().matches("(.*)Undefined value for target deadband of regulating(.*)"));
     }
@@ -426,9 +424,11 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setMinP(300)).getMessage().contains("invalid active limits"));
         assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetP(Double.NaN)).getMessage().contains("active power setpoint"));
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setVoltageRegulationOn(true).setTargetV(-100)).getMessage().matches(
+        boundaryLine2.getGeneration().setVoltageRegulationOn(true);
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetV(-100)).getMessage().matches(
                 "(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setVoltageRegulationOn(false).setTargetQ(Double.NaN)).getMessage().matches(
+        boundaryLine2.getGeneration().setVoltageRegulationOn(false);
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetQ(Double.NaN)).getMessage().matches(
                 "(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
     }
 
@@ -441,38 +441,38 @@ class NetworkStoreValidationTest {
         s1.newVoltageLevel().setId("VL2").setNominalV(225).setLowVoltageLimit(180).setHighVoltageLimit(250).setTopologyKind(TopologyKind.NODE_BREAKER).add();
         Substation s2 = network.newSubstation().setId("S2").setCountry(Country.FR).add();
         s2.newVoltageLevel().setId("VL3").setNominalV(225).setLowVoltageLimit(180).setHighVoltageLimit(250).setTopologyKind(TopologyKind.NODE_BREAKER).add();
-
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().add()).getMessage().contains("2 windings transformer id is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").add())
-                .getMessage().contains("first voltage level is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("1").add())
-                .getMessage().matches("(.*)first voltage level(.*)not found(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").add())
-                .getMessage().contains("second voltage level is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("2").add())
-                .getMessage().matches("(.*)second voltage level(.*)not found(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL3").add())
-                .getMessage().matches("(.*)the 2 windings of the transformer shall belong to the substation(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setBus1("b1").setConnectableBus1("B1").add())
-                .getMessage().contains("connection bus 1 is different to connectable bus 1"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setConnectableBus1("B1").add())
-                .getMessage().contains("connection node 1 and connection bus 1 are exclusives"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").add())
+        TwoWindingsTransformerAdder twtAdder = s1.newTwoWindingsTransformer();
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("2 windings transformer id is not set"));
+        twtAdder.setId("2WT");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("first voltage level is not set"));
+        twtAdder.setVoltageLevel1("1");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().matches("(.*)first voltage level(.*)not found(.*)"));
+        twtAdder.setVoltageLevel1("VL1");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("second voltage level is not set"));
+        twtAdder.setVoltageLevel2("2");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().matches("(.*)second voltage level(.*)not found(.*)"));
+        twtAdder.setVoltageLevel2("VL3");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().matches("(.*)the 2 windings of the transformer shall belong to the substation(.*)"));
+        twtAdder.setVoltageLevel2("VL2").setBus1("b1").setConnectableBus1("B1");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connection bus 1 is different to connectable bus 1"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setConnectableBus1("B1");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connection node 1 and connection bus 1 are exclusives"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add)
                 .getMessage().contains("connectable bus 1 is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setBus2("b2").setConnectableBus2(
-                "B2").add())
-                .getMessage().contains("connection bus 2 is different to connectable bus 2"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setConnectableBus2(
-                "B2").add())
-                .getMessage().contains("connection node 2 and connection bus 2 are exclusives"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).add())
-                .getMessage().contains("connectable bus 2 is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).add())
-                .getMessage().contains("r is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setR(1).add())
-                .getMessage().contains("x is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setR(1).setX(1).setG(
-                1).setB(1).setRatedU1(1).setRatedU2(1).setRatedS(0).add())
+        twtAdder.setNode1(1).setBus2("b2").setConnectableBus2("B2");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connection bus 2 is different to connectable bus 2"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setConnectableBus2("B2");
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connection node 2 and connection bus 2 are exclusives"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1);
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connectable bus 2 is not set"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1);
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("r is invalid"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setR(1);
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("x is invalid"));
+        twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setR(1).setX(1).setG(
+                1).setB(1).setRatedU1(1).setRatedU2(1).setRatedS(0);
+        assertTrue(assertThrows(PowsyblException.class, twtAdder::add)
                 .getMessage().contains("Invalid value of rated S"));
 
         TwoWindingsTransformer t2e = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setR(1).setX(1).setG(1).setB(1).setRatedU1(
@@ -762,33 +762,41 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("maximum reactive power is expected to be greater than or equal to minimum reactive power"));
 
         vscConverterStation2.newMinMaxReactiveLimits().setMaxQ(127).setMinQ(103).add();
-
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().add()).getMessage().contains("HVDC line id is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").add()).getMessage().contains("r is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).add())
+        HvdcLineAdder hvdcLineAdder = network.newHvdcLine();
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add).getMessage().contains("HVDC line id is not set"));
+        hvdcLineAdder.setId("HVDC1");
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add).getMessage().contains("r is invalid"));
+        hvdcLineAdder.setR(1);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().contains("converter mode is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add).getMessage().contains("nominal voltage is invalid"));
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(-10);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().contains("nominal voltage is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                -10).add())
-                .getMessage().contains("nominal voltage is invalid"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                100).add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
+                100);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().matches("(.*)active power setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                100).setActivePowerSetpoint(-10).add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
+                100).setActivePowerSetpoint(-10);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().matches("(.*)active power setpoint should not be negative(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                100).setActivePowerSetpoint(100).add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
+                100).setActivePowerSetpoint(100);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().contains("maximum P"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                100).setActivePowerSetpoint(100).setMaxP(-100).add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
+                100).setActivePowerSetpoint(100).setMaxP(-100);
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().contains("maximum P"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                100).setActivePowerSetpoint(100).setMaxP(100).setConverterStationId1("1").add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
+                100).setActivePowerSetpoint(100).setMaxP(100).setConverterStationId1("1");
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().matches("(.*)Side 1 converter station(.*)not found(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
-                100).setActivePowerSetpoint(100).setMaxP(100).setConverterStationId1("VSC1").setConverterStationId2("2").add())
+        hvdcLineAdder = network.newHvdcLine().setId("HVDC1").setR(1).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_INVERTER_SIDE_2_RECTIFIER).setNominalV(
+                100).setActivePowerSetpoint(100).setMaxP(100).setConverterStationId1("VSC1").setConverterStationId2("2");
+        assertTrue(assertThrows(PowsyblException.class, hvdcLineAdder::add)
                 .getMessage().matches("(.*)Side 2 converter station(.*)not found(.*)"));
 
         HvdcLine line = network.newHvdcLine().setId("HVDC1").setR(256).setConvertersMode(HvdcLine.ConvertersMode.SIDE_1_RECTIFIER_SIDE_2_INVERTER).setActivePowerSetpoint(330).setNominalV(335).setMaxP(
