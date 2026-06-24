@@ -421,14 +421,15 @@ class NetworkStoreValidationTest {
         BoundaryLine boundaryLine2 = vl1.newBoundaryLine().setId("BL2").setNode(2).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
                 .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300).setTargetQ(100).add()
                 .add();
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setMinP(300)).getMessage().contains("invalid active limits"));
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetP(Double.NaN)).getMessage().contains("active power setpoint"));
-        boundaryLine2.getGeneration().setVoltageRegulationOn(true);
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetV(-100)).getMessage().matches(
+        BoundaryLine.Generation boundaryGeneration = boundaryLine2.getGeneration();
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setMinP(300)).getMessage().contains("invalid active limits"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setTargetP(Double.NaN)).getMessage().contains("active power setpoint"));
+        boundaryGeneration.setVoltageRegulationOn(true);
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setTargetV(-100)).getMessage().matches(
                 "(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
         boundaryLine2.getGeneration().setVoltageRegulationOn(false);
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryLine2.getGeneration().setTargetQ(Double.NaN)).getMessage().matches(
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setTargetQ(Double.NaN)).getMessage().matches(
                 "(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
     }
 
@@ -659,7 +660,8 @@ class NetworkStoreValidationTest {
                 .add();
 
         assertTrue(assertThrows(PowsyblException.class, () -> phaseTapChanger.setRegulationMode(null)).getMessage().contains("phase regulation mode is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> phaseTapChanger.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL).setRegulationValue(Double.NaN)).getMessage()
+        phaseTapChanger.setRegulationMode(PhaseTapChanger.RegulationMode.ACTIVE_POWER_CONTROL);
+        assertTrue(assertThrows(PowsyblException.class, () -> phaseTapChanger.setRegulationValue(Double.NaN)).getMessage()
                 .contains("phase regulation is on and threshold/setpoint value is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> phaseTapChanger.setTargetDeadband(-10)).getMessage().contains("Unexpected value for target deadband"));
         assertTrue(assertThrows(PowsyblException.class, () -> phaseTapChanger.setTapPosition(-1)).getMessage().matches("(.*)incorrect tap position(.*)"));
@@ -733,10 +735,11 @@ class NetworkStoreValidationTest {
                 290).add();
         VscConverterStation vscConverterStation2 = vl2.newVscConverterStation().setId("VSC2").setNode(2).setLossFactor(17).setReactivePowerSetpoint(227).setVoltageRegulatorOn(false)
                 .setVoltageSetpoint(213).add();
-
-        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setVoltageRegulatorOn(true).setVoltageSetpoint(-50)).getMessage().matches(
-                "(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setVoltageRegulatorOn(false).setReactivePowerSetpoint(Double.NaN)).getMessage().matches(
+        vscConverterStation1.setVoltageRegulatorOn(true);
+        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setVoltageSetpoint(-50))
+                .getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
+        vscConverterStation1.setVoltageRegulatorOn(false);
+        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setReactivePowerSetpoint(Double.NaN)).getMessage().matches(
                 "(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setLossFactor(150)).getMessage().contains("loss factor must be >= 0 and <= 100"));
 
