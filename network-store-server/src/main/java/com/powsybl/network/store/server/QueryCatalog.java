@@ -340,7 +340,7 @@ public final class QueryCatalog {
                 ID_COLUMN + ", " +
                 "?" + ", " +
                 columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
-                " from network" + " " +
+                " from " + NETWORK_TABLE + " " +
                 "where uuid = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
