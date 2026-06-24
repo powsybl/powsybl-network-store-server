@@ -1588,8 +1588,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testBindAttributesForVoltageLevel() {
-        List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
-        List<CalculatedBusAttributes> calculatedBusAttributesForBusBv = List.of(CalculatedBusAttributes.builder().v(2.0).angle(180).build(), CalculatedBusAttributes.builder().v(1.0).angle(90).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesBv =
+                List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesForBusBv =
+                List.of(CalculatedBusAttributes.builder().v(2.0).angle(180).build(), CalculatedBusAttributes.builder().v(1.0).angle(90).build());
         Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
         VoltageLevelSvAttributes attributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)

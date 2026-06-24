@@ -35,7 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 
 import javax.sql.DataSource;
 import java.io.UncheckedIOException;
@@ -48,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+
 import static com.powsybl.network.store.model.TapChangerType.PHASE;
 import static com.powsybl.network.store.model.TapChangerType.RATIO;
 import static com.powsybl.network.store.server.Mappings.*;
