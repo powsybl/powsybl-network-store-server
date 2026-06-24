@@ -1603,19 +1603,23 @@ class NetworkStoreRepositoryTest {
     void testUpdateAttributesForVoltageLevel() {
         List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
         Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
+        List<CalculatedBusAttributes> calculatedBusAttributesBbv = List.of(CalculatedBusAttributes.builder().v(10.0).angle(3.9).build(), CalculatedBusAttributes.builder().v(6.0).angle(1.9).build());
         VoltageLevelAttributes existingAttributes = VoltageLevelAttributes.builder()
                 .calculatedBusesForBusView(new ArrayList<>())
                 .nodeToCalculatedBusForBusBreakerView(new HashMap<>())
+                .calculatedBusesForBusBreakerView(new ArrayList<>())
                 .build();
         VoltageLevelSvAttributes newAttributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)
                 .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
+                .calculatedBusesForBusBreakerView(calculatedBusAttributesBbv)
                 .build();
 
         NetworkStoreRepository.updateVoltageLevelSvAttributes(existingAttributes, newAttributes);
 
         assertEquals(calculatedBusAttributesBv, existingAttributes.getCalculatedBusesForBusView());
         assertEquals(nodeToCalculatedBusForBusView, existingAttributes.getNodeToCalculatedBusForBusView());
+        assertEquals(calculatedBusAttributesBbv, existingAttributes.getCalculatedBusesForBusBreakerView());
     }
 
     @Test
@@ -1741,7 +1745,7 @@ class NetworkStoreRepositoryTest {
     }
 
     @Test
-    void testUpdateAttributesForShuntCompensatorThreeWindingsTransformer() {
+    void testUpdateAttributesForThreeWindingsTransformerSvTapChangers() {
         ThreeWindingsTransformerAttributes existingAttributes = ThreeWindingsTransformerAttributes.builder()
                 .leg1(LegAttributes.builder()
                         .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
