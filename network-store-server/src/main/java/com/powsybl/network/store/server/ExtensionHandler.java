@@ -376,8 +376,8 @@ public class ExtensionHandler {
         }
     }
 
-    public void deleteAndTombstoneExtensions(Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName,
-            boolean isPartialVariant) throws SQLException {
+    public void deleteAndTombstoneExtensions(
+            Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> identifiableIdsByExtensionName, boolean isPartialVariant) throws SQLException {
         deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, identifiableIdsByExtensionName);
         if (isPartialVariant) {
             insertTombstonedExtensions(networkUuid, variantNum, identifiableIdsByExtensionName, connection);
@@ -443,8 +443,8 @@ public class ExtensionHandler {
                         .add(resource.getId());
             }
         }
-        identifiableIdsByExtensionNameByVariant.forEach((variantNum, identifiableIdsByExtensionName) -> deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum,
-                identifiableIdsByExtensionName));
+        identifiableIdsByExtensionNameByVariant.forEach((variantNum, identifiableIdsByExtensionName) ->
+                deleteExtensionsFromIdentifiables(connection, networkUuid, variantNum, identifiableIdsByExtensionName));
     }
 
     /**

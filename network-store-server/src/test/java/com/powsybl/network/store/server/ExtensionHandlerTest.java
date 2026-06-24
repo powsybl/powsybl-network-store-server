@@ -72,8 +72,8 @@ class ExtensionHandlerTest {
 
         extensionHandler.insertExtensions(connection, map1);
 
-        Map<String, ExtensionAttributes> extensionAttributesResults = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
-                IDENTIFIABLE_ID1);
+        Map<String, ExtensionAttributes> extensionAttributesResults =
+                extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, IDENTIFIABLE_ID1);
         assertEquals(2, extensionAttributesResults.size());
         assertNotNull(extensionAttributesResults.get("activePowerControl"));
         ActivePowerControlAttributes activePowerControl = (ActivePowerControlAttributes) extensionAttributesResults.get("activePowerControl");
@@ -226,8 +226,8 @@ class ExtensionHandlerTest {
                 "operatingStatus", OperatingStatusAttributes.builder().operatingStatus("test12").build());
         extensionHandler.insertExtensions(connection, Map.of(infoBattery1, extensionAttributesBattery1));
 
-        Map<String, ExtensionAttributes> extensionAttributes = extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
-                IDENTIFIABLE_ID1);
+        Map<String, ExtensionAttributes> extensionAttributes =
+                extensionHandler.getAllExtensionsAttributesByIdentifiableIdForVariant(connection, NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, IDENTIFIABLE_ID1);
         assertEquals(2, extensionAttributes.size());
         assertNotNull(extensionAttributes.get("activePowerControl"));
         ActivePowerControlAttributes activePowerControl = (ActivePowerControlAttributes) extensionAttributes.get("activePowerControl");

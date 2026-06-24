@@ -244,8 +244,8 @@ public final class PartialVariantUtils {
         return convertOperationalLimitsGroupsMap(operationalLimitsGroupAttributes);
     }
 
-    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupsMap(Map<OperationalLimitsGroupOwnerInfo,
-            OperationalLimitsGroupAttributes> map) {
+    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupsMap(
+            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map) {
         Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> result = new HashMap<>();
 
         map.forEach((ownerInfo, attributes) -> {

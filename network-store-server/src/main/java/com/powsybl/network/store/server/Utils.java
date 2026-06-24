@@ -108,8 +108,8 @@ public final class Utils {
 
     public static NetworkAttributes getNetworkAttributes(Connection connection, UUID networkUuid, int variantNum, Mappings mappings, ObjectMapper mapper) {
         try {
-            Resource<NetworkAttributes> networkAttributesResource = getNetwork(connection, networkUuid, variantNum, mappings,
-                    mapper).orElseThrow(() -> new PowsyblException("Cannot retrieve source network attributes uuid : " + networkUuid + ", variantNum : " + variantNum));
+            Resource<NetworkAttributes> networkAttributesResource = getNetwork(connection, networkUuid, variantNum, mappings, mapper)
+                    .orElseThrow(() -> new PowsyblException("Cannot retrieve source network attributes uuid : " + networkUuid + ", variantNum : " + variantNum));
             return networkAttributesResource.getAttributes();
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
