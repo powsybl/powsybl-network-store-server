@@ -230,6 +230,27 @@ public final class QueryCatalog {
                 ID_COLUMN + " = ?";
     }
 
+    public static String buildUpdateShuntCompensatorSvQuery() {
+        return "update " + SHUNT_COMPENSATOR_TABLE + " set p = ?" +
+                ", q = ?" +
+                ", solvedsectioncount = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
+    public static String buildUpdateTwoWindingsTransformerSvQuery() {
+        return "update " + TWO_WINDINGS_TRANSFORMER_TABLE + " set p1 = ?" +
+                ", q1 = ?" +
+                ", p2 = ?" +
+                ", q2 = ?" +
+                ", ratiotapchangersolvedtapposition = ?" +
+                ", phasetapchangersolvedtapposition = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
     public static String buildUpdateBranchSvQuery(String tableName) {
         return "update " +
                 tableName +
@@ -251,6 +272,12 @@ public final class QueryCatalog {
                 ", q2 = ?" +
                 ", p3 = ?" +
                 ", q3 = ?" +
+                ", ratiotapchangersolvedtapposition1 = ?" +
+                ", phasetapchangersolvedtapposition1 = ?" +
+                ", ratiotapchangersolvedtapposition2 = ?" +
+                ", phasetapchangersolvedtapposition2 = ?" +
+                ", ratiotapchangersolvedtapposition3 = ?" +
+                ", phasetapchangersolvedtapposition3 = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";
@@ -261,6 +288,7 @@ public final class QueryCatalog {
                 VOLTAGE_LEVEL_TABLE +
                 " set calculatedbusesforbusview = ?" +
                 ", calculatedbusesforbusbreakerview = ?" +
+                ", nodetocalculatedbusforbusview = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";
@@ -312,7 +340,7 @@ public final class QueryCatalog {
                 ID_COLUMN + ", " +
                 "?" + ", " +
                 columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
-                " from network" + " " +
+                " from " + NETWORK_TABLE + " " +
                 "where uuid = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
