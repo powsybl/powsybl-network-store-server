@@ -158,8 +158,10 @@ class NetworkIT extends AbstractNetworkTest {
 
         // FIXME-Override properties assertions ko busCalc, cause CalculatedBus is NOT AbstractIdentifiable in network-store
         /*NetworkListener exceptionListener = (NetworkListener) Mockito.mock(DefaultNetworkListener.class);
-        ((NetworkListener)Mockito.doThrow(new Throwable[]{new UnsupportedOperationException()}).when(exceptionListener)).onElementAdded((Identifiable)Mockito.any(), Mockito.anyString(), Mockito.any());
-        ((NetworkListener)Mockito.doThrow(new Throwable[]{new UnsupportedOperationException()}).when(exceptionListener)).onElementReplaced((Identifiable)Mockito.any(), Mockito.anyString(), Mockito.any(), Mockito.any());
+        ((NetworkListener)Mockito.doThrow(new Throwable[]{new UnsupportedOperationException()}).when(exceptionListener))
+                .onElementAdded((Identifiable)Mockito.any(), Mockito.anyString(), Mockito.any());
+        ((NetworkListener)Mockito.doThrow(new Throwable[]{new UnsupportedOperationException()}).when(exceptionListener))
+                .onElementReplaced((Identifiable)Mockito.any(), Mockito.anyString(), Mockito.any(), Mockito.any());
         NetworkListener mockedListener = (NetworkListener)Mockito.mock(DefaultNetworkListener.class);
         String key = "keyTest";
         String value = "ValueTest";

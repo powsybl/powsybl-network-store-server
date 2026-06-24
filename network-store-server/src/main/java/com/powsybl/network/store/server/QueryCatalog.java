@@ -394,7 +394,9 @@ public final class QueryCatalog {
     }
 
     public static String buildGetTombstonedExternalAttributesIdsQuery() {
-        return "select " + EQUIPMENT_ID_COLUMN + " FROM " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ? AND " + TYPE_COLUMN + " = ?";
+        return "select " + EQUIPMENT_ID_COLUMN +
+                " FROM " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE +
+                " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ? AND " + TYPE_COLUMN + " = ?";
     }
 
     public static String buildDeleteTombstonedExternalAttributesQuery() {

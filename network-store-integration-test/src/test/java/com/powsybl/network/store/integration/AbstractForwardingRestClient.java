@@ -19,7 +19,7 @@ abstract class AbstractForwardingRestClient implements RestClient {
     @Delegate
     private RestClient delegate;
 
-    public AbstractForwardingRestClient(RestClient delegate) {
+    AbstractForwardingRestClient(RestClient delegate) {
         this.delegate = Objects.requireNonNull(delegate);
     }
 }
