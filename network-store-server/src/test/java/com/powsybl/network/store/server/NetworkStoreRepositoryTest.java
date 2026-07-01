@@ -8,6 +8,7 @@ package com.powsybl.network.store.server;
 
 import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.network.store.model.*;
+import com.powsybl.network.store.model.svattributes.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -508,6 +509,7 @@ class NetworkStoreRepositoryTest {
 
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     @Test
     void insertTapChangerStepsInThreeWindingsTranformerTest() {
 
@@ -992,7 +994,8 @@ class NetworkStoreRepositoryTest {
             .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
 
-        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorCreation = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, staticVarCompensatorId);
+        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorCreation = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
+                staticVarCompensatorId);
         assertTrue(staticVarCompensatorCreation.isPresent());
         assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
         assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
@@ -1000,7 +1003,8 @@ class NetworkStoreRepositoryTest {
         assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
         assertEquals(1, staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().size());
-        assertTrue(staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(staticVarCompensatorId, ResourceType.STATIC_VAR_COMPENSATOR)));
+        assertTrue(staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(staticVarCompensatorId,
+                ResourceType.STATIC_VAR_COMPENSATOR)));
 
         // get vl svc
         List<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorList = networkStoreRepository.getVoltageLevelStaticVarCompensators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
@@ -1031,7 +1035,8 @@ class NetworkStoreRepositoryTest {
             .build();
         networkStoreRepository.updateStaticVarCompensators(NETWORK_UUID, List.of(updatedGen));
 
-        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorResult = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, staticVarCompensatorId);
+        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorResult = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
+                staticVarCompensatorId);
         assertTrue(staticVarCompensatorResult.isPresent());
         assertEquals(loadId, staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
         assertNull(staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
@@ -1257,8 +1262,10 @@ class NetworkStoreRepositoryTest {
         Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
         assertTrue(loadResult.isPresent());
         assertEquals(2, loadResult.get().getAttributes().getRegulatingEquipments().size());
-        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER, RegulatingTapChangerType.RATIO_TAP_CHANGER)));
-        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER, RegulatingTapChangerType.PHASE_TAP_CHANGER)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.RATIO_TAP_CHANGER)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.PHASE_TAP_CHANGER)));
 
         // delete
         networkStoreRepository.deleteTwoWindingsTransformers(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(twtId));
@@ -1530,17 +1537,24 @@ class NetworkStoreRepositoryTest {
                 .q1(5.0)
                 .q2(10.0)
                 .q3(15.0)
+                .leg1(LegSvAttributes.builder().ratioTapChangerAttributes(TapChangerSvAttributes.builder().solvedTapPosition(2).build()).build())
                 .build();
         List<Object> values = new ArrayList<>();
         NetworkStoreRepository.bindThreeWindingsTransformerSvAttributes(attributes, values);
 
-        assertEquals(6, values.size());
+        assertEquals(12, values.size());
         assertEquals(10.0, values.get(0));
         assertEquals(5.0, values.get(1));
         assertEquals(20.0, values.get(2));
         assertEquals(10.0, values.get(3));
         assertEquals(30.0, values.get(4));
         assertEquals(15.0, values.get(5));
+        assertEquals(2, values.get(6));
+        assertNull(values.get(7));
+        assertNull(values.get(8));
+        assertNull(values.get(9));
+        assertNull(values.get(10));
+        assertNull(values.get(11));
     }
 
     @Test
@@ -1574,36 +1588,45 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testBindAttributesForVoltageLevel() {
-        List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
-        List<CalculatedBusAttributes> calculatedBusAttributesBbv = List.of(CalculatedBusAttributes.builder().v(10.0).angle(3.9).build(), CalculatedBusAttributes.builder().v(6.0).angle(1.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesBv =
+                List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesForBusBv =
+                List.of(CalculatedBusAttributes.builder().v(2.0).angle(180).build(), CalculatedBusAttributes.builder().v(1.0).angle(90).build());
+        Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
         VoltageLevelSvAttributes attributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)
-                .calculatedBusesForBusBreakerView(calculatedBusAttributesBbv)
+                .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
+                .calculatedBusesForBusBreakerView(calculatedBusAttributesForBusBv)
                 .build();
         List<Object> values = new ArrayList<>();
         NetworkStoreRepository.bindVoltageLevelSvAttributes(attributes, values);
 
-        assertEquals(2, values.size());
+        assertEquals(3, values.size());
         assertEquals(calculatedBusAttributesBv, values.get(0));
-        assertEquals(calculatedBusAttributesBbv, values.get(1));
+        assertEquals(calculatedBusAttributesForBusBv, values.get(1));
+        assertEquals(nodeToCalculatedBusForBusView, values.get(2));
     }
 
     @Test
     void testUpdateAttributesForVoltageLevel() {
         List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
         List<CalculatedBusAttributes> calculatedBusAttributesBbv = List.of(CalculatedBusAttributes.builder().v(10.0).angle(3.9).build(), CalculatedBusAttributes.builder().v(6.0).angle(1.9).build());
         VoltageLevelAttributes existingAttributes = VoltageLevelAttributes.builder()
                 .calculatedBusesForBusView(new ArrayList<>())
+                .nodeToCalculatedBusForBusBreakerView(new HashMap<>())
                 .calculatedBusesForBusBreakerView(new ArrayList<>())
                 .build();
         VoltageLevelSvAttributes newAttributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)
+                .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
                 .calculatedBusesForBusBreakerView(calculatedBusAttributesBbv)
                 .build();
 
         NetworkStoreRepository.updateVoltageLevelSvAttributes(existingAttributes, newAttributes);
 
         assertEquals(calculatedBusAttributesBv, existingAttributes.getCalculatedBusesForBusView());
+        assertEquals(nodeToCalculatedBusForBusView, existingAttributes.getNodeToCalculatedBusForBusView());
         assertEquals(calculatedBusAttributesBbv, existingAttributes.getCalculatedBusesForBusBreakerView());
     }
 
@@ -1694,5 +1717,103 @@ class NetworkStoreRepositoryTest {
 
         assertNotNull(networkStoreRepository.getLine(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId));
         assertTrue(networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.LINE).isEmpty());
+    }
+
+    @Test
+    void testBindAttributesForShuntCompensatorSv() {
+        ShuntCompensatorSvAttributes attributes = ShuntCompensatorSvAttributes.builder()
+                .p(3)
+                .q(2)
+                .solvedSectionCount(1)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindShuntCompensatorSvAttributes(attributes, values);
+
+        assertEquals(3, values.size());
+        assertEquals(3.0, values.get(0));
+        assertEquals(2.0, values.get(1));
+        assertEquals(1, values.get(2));
+    }
+
+    @Test
+    void testUpdateAttributesForShuntCompensatorSv() {
+        ShuntCompensatorAttributes existingAttributes = ShuntCompensatorAttributes.builder()
+                .build();
+        ShuntCompensatorSvAttributes newAttributes = ShuntCompensatorSvAttributes.builder()
+                .p(3)
+                .q(2)
+                .solvedSectionCount(1)
+                .build();
+
+        NetworkStoreRepository.updateShuntCompensatorSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(3.0, existingAttributes.getP());
+        assertEquals(2.0, existingAttributes.getQ());
+        assertEquals(1, existingAttributes.getSolvedSectionCount());
+    }
+
+    @Test
+    void testUpdateAttributesForThreeWindingsTransformerSvTapChangers() {
+        ThreeWindingsTransformerAttributes existingAttributes = ThreeWindingsTransformerAttributes.builder()
+                .leg1(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .leg2(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .leg3(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .build();
+        ThreeWindingsTransformerSvAttributes newAttributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(1)
+                .q1(2)
+                .p2(3)
+                .q2(4)
+                .p3(5)
+                .q3(6)
+                .leg1(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(7)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(8)
+                                .build())
+                        .build())
+                .leg2(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(9)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(10)
+                                .build())
+                        .build())
+                .leg3(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(11)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(12)
+                                .build())
+                        .build())
+                .build();
+
+        NetworkStoreRepository.updateThreeWindingsTransformerSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(1.0, existingAttributes.getP1());
+        assertEquals(2.0, existingAttributes.getQ1());
+        assertEquals(3.0, existingAttributes.getP2());
+        assertEquals(4.0, existingAttributes.getQ2());
+        assertEquals(5.0, existingAttributes.getP3());
+        assertEquals(6.0, existingAttributes.getQ3());
+        assertEquals(7, existingAttributes.getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(8, existingAttributes.getLeg1().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(9, existingAttributes.getLeg2().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(10, existingAttributes.getLeg2().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(11, existingAttributes.getLeg3().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(12, existingAttributes.getLeg3().getRatioTapChangerAttributes().getSolvedTapPosition());
     }
 }

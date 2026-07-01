@@ -1,23 +1,29 @@
 {
-  "data": [
-    {
-      "id": "selectedside1",
-      "currentLimits": {
-        "permanentLimit": 1.0,
-        "temporaryLimits": {
-          "10": {
-            "name": "temporarylimit1",
-            "value": 12.0,
-            "acceptableDuration": 10,
-            "fictitious": false
+  "data" : [ {
+    "id" : "selectedside1",
+    "currentLimits" : {
+      "permanentLimit" : 1.0,
+      "temporaryLimits" : {
+        "10" : {
+          "name" : "temporarylimit1",
+          "value" : 12.0,
+          "acceptableDuration" : 10,
+          "fictitious" : false,
+          "properties" : {
+            "tlprop1" : "tlvalue1",
+            "tlprop2" : "tlvalue2"
           }
         }
       },
-      "properties": {
-        "prop1": "value1",
-        "prop2": "value2"
+      "properties" : {
+        "lprop4" : "lvalue4",
+        "lprop3" : "lvalue3"
       }
+    },
+    "properties" : {
+      "prop1" : "value1",
+      "prop2" : "value2"
     }
-  ],
-  "meta": {}
+  } ],
+  "meta" : { }
 }

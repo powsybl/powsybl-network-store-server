@@ -25,26 +25,36 @@ import java.util.*;
 public class OperationalLimitsGroupAttributesSqlData {
     private Double currentLimitsPermanentLimit;
     private List<TemporaryLimitAttributes> currentLimitsTemporaryLimits;
+    private Map<String, String> currentLimitsProperties;
     private Double apparentPowerLimitsPermanentLimit;
     private List<TemporaryLimitAttributes> apparentPowerLimitsTemporaryLimits;
+    private Map<String, String> apparentPowerLimitsProperties;
     private Double activePowerLimitsPermanentLimit;
     private List<TemporaryLimitAttributes> activePowerLimitsTemporaryLimits;
+    private Map<String, String> activePowerLimitsProperties;
     private Map<String, String> properties;
 
     public static OperationalLimitsGroupAttributesSqlData of(OperationalLimitsGroupAttributes operationalLimitsGroup) {
         return OperationalLimitsGroupAttributesSqlData.builder()
                 .currentLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getCurrentLimits()))
                 .currentLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getCurrentLimits()))
+                .currentLimitsProperties(extractLimitProperties(operationalLimitsGroup.getCurrentLimits()))
                 .apparentPowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getApparentPowerLimits()))
                 .apparentPowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getApparentPowerLimits()))
+                .apparentPowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsTemporaryLimits(convertToTemporaryLimitAttributes(operationalLimitsGroup.getActivePowerLimits()))
+                .activePowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
                 .properties(operationalLimitsGroup.getProperties())
                 .build();
     }
 
     private static Double extractPermanentLimit(LimitsAttributes limitsAttributes) {
         return limitsAttributes != null ? limitsAttributes.getPermanentLimit() : null;
+    }
+
+    private static Map<String, String> extractLimitProperties(LimitsAttributes limitsAttributes) {
+        return limitsAttributes != null ? limitsAttributes.getProperties() : null;
     }
 
     private static List<TemporaryLimitAttributes> convertToTemporaryLimitAttributes(LimitsAttributes limitsAttributes) {
@@ -58,6 +68,7 @@ public class OperationalLimitsGroupAttributesSqlData {
                         .name(temporaryLimit.getName())
                         .value(temporaryLimit.getValue())
                         .fictitious(temporaryLimit.isFictitious())
+                        .properties(temporaryLimit.getProperties())
                         .build())
                 .toList();
     }

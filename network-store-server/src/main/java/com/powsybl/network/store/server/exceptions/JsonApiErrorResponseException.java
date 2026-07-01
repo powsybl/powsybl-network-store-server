@@ -6,12 +6,11 @@
  */
 package com.powsybl.network.store.server.exceptions;
 
+import com.powsybl.network.store.model.ErrorObject;
+import com.powsybl.network.store.model.TopLevelError;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import com.powsybl.network.store.model.ErrorObject;
-import com.powsybl.network.store.model.TopLevelError;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
@@ -45,7 +44,7 @@ public class JsonApiErrorResponseException extends RuntimeException {
         return topLevelError;
     }
 
-    private static final String computeMessage(TopLevelError topLevelError) {
+    private static String computeMessage(TopLevelError topLevelError) {
         Map<String, String> meta = topLevelError.getMeta();
         if (meta != null && meta.get(TopLevelError.META_MESSAGE) != null) {
             return meta.get(TopLevelError.META_MESSAGE);

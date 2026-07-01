@@ -230,6 +230,27 @@ public final class QueryCatalog {
                 ID_COLUMN + " = ?";
     }
 
+    public static String buildUpdateShuntCompensatorSvQuery() {
+        return "update " + SHUNT_COMPENSATOR_TABLE + " set p = ?" +
+                ", q = ?" +
+                ", solvedsectioncount = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
+    public static String buildUpdateTwoWindingsTransformerSvQuery() {
+        return "update " + TWO_WINDINGS_TRANSFORMER_TABLE + " set p1 = ?" +
+                ", q1 = ?" +
+                ", p2 = ?" +
+                ", q2 = ?" +
+                ", ratiotapchangersolvedtapposition = ?" +
+                ", phasetapchangersolvedtapposition = ?" +
+                " where " + NETWORK_UUID_COLUMN + " = ? and " +
+                VARIANT_NUM_COLUMN + " = ? and " +
+                ID_COLUMN + " = ?";
+    }
+
     public static String buildUpdateBranchSvQuery(String tableName) {
         return "update " +
                 tableName +
@@ -251,6 +272,12 @@ public final class QueryCatalog {
                 ", q2 = ?" +
                 ", p3 = ?" +
                 ", q3 = ?" +
+                ", ratiotapchangersolvedtapposition1 = ?" +
+                ", phasetapchangersolvedtapposition1 = ?" +
+                ", ratiotapchangersolvedtapposition2 = ?" +
+                ", phasetapchangersolvedtapposition2 = ?" +
+                ", ratiotapchangersolvedtapposition3 = ?" +
+                ", phasetapchangersolvedtapposition3 = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";
@@ -261,6 +288,7 @@ public final class QueryCatalog {
                 VOLTAGE_LEVEL_TABLE +
                 " set calculatedbusesforbusview = ?" +
                 ", calculatedbusesforbusbreakerview = ?" +
+                ", nodetocalculatedbusforbusview = ?" +
                 " where " + NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
                 ID_COLUMN + " = ?";
@@ -312,7 +340,7 @@ public final class QueryCatalog {
                 ID_COLUMN + ", " +
                 "?" + ", " +
                 columns.stream().filter(CLONE_PREDICATE).collect(Collectors.joining(",")) +
-                " from network" + " " +
+                " from " + NETWORK_TABLE + " " +
                 "where uuid = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
@@ -366,7 +394,9 @@ public final class QueryCatalog {
     }
 
     public static String buildGetTombstonedExternalAttributesIdsQuery() {
-        return "select " + EQUIPMENT_ID_COLUMN + " FROM " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE + " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ? AND " + TYPE_COLUMN + " = ?";
+        return "select " + EQUIPMENT_ID_COLUMN +
+                " FROM " + TOMBSTONED_EXTERNAL_ATTRIBUTES_TABLE +
+                " WHERE " + NETWORK_UUID_COLUMN + " = ? AND " + VARIANT_NUM_COLUMN + " = ? AND " + TYPE_COLUMN + " = ?";
     }
 
     public static String buildDeleteTombstonedExternalAttributesQuery() {
@@ -402,9 +432,9 @@ public final class QueryCatalog {
     // Reactive Capability Curve Point
     public static String buildCloneReactiveCapabilityCurvePointsQuery() {
         return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
-                ", " + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", minQ, maxQ, p) select " +
+                ", " + NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", minQ, maxQ, p, properties) select " +
                 EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN +
-                ", ?, ?, minQ, maxQ, p from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " + NETWORK_UUID_COLUMN +
+                ", ?, ?, minQ, maxQ, p, properties from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " + NETWORK_UUID_COLUMN +
                 " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
@@ -413,7 +443,7 @@ public final class QueryCatalog {
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
-                "minQ, maxQ, p " +
+                "minQ, maxQ, p, properties " +
                 "from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
@@ -428,7 +458,7 @@ public final class QueryCatalog {
                 EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + ", " +
                 VARIANT_NUM_COLUMN + ", " +
-                "minQ, maxQ, p " +
+                "minQ, maxQ, p, properties " +
                 "from " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
@@ -439,8 +469,8 @@ public final class QueryCatalog {
         return "insert into " + REACTIVE_CAPABILITY_CURVE_POINT_TABLE + "(" +
                 EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
                 NETWORK_UUID_COLUMN + " ," +
-                VARIANT_NUM_COLUMN + ", minQ, maxQ, p)" +
-                " values (?, ?, ?, ?, ?, ?, ?)";
+                VARIANT_NUM_COLUMN + ", minQ, maxQ, p, properties)" +
+                " values (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildDeleteReactiveCapabilityCurvePointsVariantEquipmentINQuery(int numberOfValues) {
@@ -467,16 +497,16 @@ public final class QueryCatalog {
     // Area Boundaries
     public static String buildCloneAreaBoundariesQuery() {
         return "insert into " + AREA_BOUNDARY_TABLE + " (" + AREA_ID_COLUMN + ", " + NETWORK_UUID_COLUMN + ", "
-            + VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac) select " +
+            + VARIANT_NUM_COLUMN + ", boundaryboundarylineid, terminalconnectableid, terminalside, ac, properties) select " +
             AREA_ID_COLUMN +
-            ", ?, ?, boundarydanglinglineid, terminalconnectableid, terminalside, ac from " + AREA_BOUNDARY_TABLE + " where " + NETWORK_UUID_COLUMN +
+            ", ?, ?, boundaryboundarylineid, terminalconnectableid, terminalside, ac, properties from " + AREA_BOUNDARY_TABLE + " where " + NETWORK_UUID_COLUMN +
             " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
     public static String buildAreaBoundaryQuery(String columnNameForWhereClause) {
         String baseQuery = "select " + AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
-            "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
+            "boundaryboundarylineid, terminalconnectableid, terminalside, ac, properties " +
             "from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? ";
@@ -492,7 +522,7 @@ public final class QueryCatalog {
         }
         return "select " + AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " +
-            "boundarydanglinglineid, terminalconnectableid, terminalside, ac " +
+            "boundaryboundarylineid, terminalconnectableid, terminalside, ac, properties " +
             "from " + AREA_BOUNDARY_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
@@ -503,8 +533,8 @@ public final class QueryCatalog {
         return "insert into " + AREA_BOUNDARY_TABLE + " (" +
             AREA_ID_COLUMN + ", " +
             NETWORK_UUID_COLUMN + " ," +
-            VARIANT_NUM_COLUMN + ", boundarydanglinglineid, terminalconnectableid, terminalside, ac)" +
-            " values (?, ?, ?, ?, ?, ?, ?)";
+            VARIANT_NUM_COLUMN + ", boundaryboundarylineid, terminalconnectableid, terminalside, ac, properties)" +
+            " values (?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildDeleteAreaBoundariesVariantEquipmentINQuery(int numberOfValues) {
