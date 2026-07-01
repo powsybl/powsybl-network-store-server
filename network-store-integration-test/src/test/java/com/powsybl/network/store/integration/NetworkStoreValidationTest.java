@@ -309,16 +309,19 @@ class NetworkStoreValidationTest {
         StaticVarCompensatorAdder adder4 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1);
         assertTrue(assertThrows(PowsyblException.class, adder4::add)
                 .getMessage().contains("bmax is invalid"));
-        StaticVarCompensatorAdder adder5 = vl1.newStaticVarCompensator().setId("SVC1").setRegulationMode(null).setNode(1).setBmin(1).setBmax(10);
+        StaticVarCompensatorAdder adder5 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulationMode(null);
         assertTrue(assertThrows(PowsyblException.class, adder5::add)
-                .getMessage().contains("Regulation mode is invalid"));
-        StaticVarCompensatorAdder adder6 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
-                .VOLTAGE);
+                .getMessage().contains("regulating is not set"));
+        StaticVarCompensatorAdder adder6 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(null);
         assertTrue(assertThrows(PowsyblException.class, adder6::add)
-                .getMessage().matches("(.*)voltage setpoint(.*)"));
+                .getMessage().contains("Regulation mode is invalid"));
         StaticVarCompensatorAdder adder7 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
-                .REACTIVE_POWER);
+                .VOLTAGE);
         assertTrue(assertThrows(PowsyblException.class, adder7::add)
+                .getMessage().matches("(.*)voltage setpoint(.*)"));
+        StaticVarCompensatorAdder adder8 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
+                .REACTIVE_POWER);
+        assertTrue(assertThrows(PowsyblException.class, adder8::add)
                 .getMessage().matches("(.*)reactive power setpoint(.*)"));
 
         StaticVarCompensator svc = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
