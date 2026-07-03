@@ -3227,6 +3227,9 @@ public class NetworkStoreRepository {
                 );
                 if (reactiveCapabilityCurvePoints.containsKey(owner)) {
                     T equipment = equipmentAttributesResource.getAttributes();
+                    if (equipment.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes) {
+                        equipment.setReactiveLimits(null);
+                    }
                     for (ReactiveCapabilityCurvePointAttributes reactiveCapabilityCurvePoint : reactiveCapabilityCurvePoints.get(owner)) {
                         insertReactiveCapabilityCurvePointInEquipment(equipment, reactiveCapabilityCurvePoint);
                     }

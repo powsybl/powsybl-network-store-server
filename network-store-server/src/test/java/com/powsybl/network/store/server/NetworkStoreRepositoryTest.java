@@ -302,14 +302,16 @@ class NetworkStoreRepositoryTest {
         map.put(infoGeneratorB, curvePointsForGeneratorB);
         map.put(infoGeneratorX, curvePointsX);
 
-        assertNull(resGeneratorA.getAttributes().getReactiveLimits());
+        assertNotNull(resGeneratorA.getAttributes().getReactiveLimits());
+        assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorA.getAttributes().getReactiveLimits());
         assertInstanceOf(ReactiveCapabilityCurveAttributes.class, resGeneratorB.getAttributes().getReactiveLimits());
         assertNull(((ReactiveCapabilityCurveAttributes) resGeneratorB.getAttributes().getReactiveLimits()).getPoints());
         assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorMinMax.getAttributes().getReactiveLimits());
 
         networkStoreRepository.insertReactiveCapabilityCurvePointsInEquipments(NETWORK_UUID, generators, new HashMap<>());
 
-        assertNull(resGeneratorA.getAttributes().getReactiveLimits());
+        assertNotNull(resGeneratorA.getAttributes().getReactiveLimits());
+        assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorA.getAttributes().getReactiveLimits());
         assertInstanceOf(ReactiveCapabilityCurveAttributes.class, resGeneratorB.getAttributes().getReactiveLimits());
         assertNull(((ReactiveCapabilityCurveAttributes) resGeneratorB.getAttributes().getReactiveLimits()).getPoints());
         assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorMinMax.getAttributes().getReactiveLimits());

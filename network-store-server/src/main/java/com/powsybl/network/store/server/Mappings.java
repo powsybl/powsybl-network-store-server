@@ -269,7 +269,7 @@ public class Mappings {
             (GeneratorAttributes attributes) -> attributes.getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes ? ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits(
                     )).getProperties() : null,
             (GeneratorAttributes attributes, Map<String, String> value) -> {
-                if (attributes.getReactiveLimits() == null) {
+                if (attributes.getReactiveLimits() == null || attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes) {
                     attributes.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
                 }
                 ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).setProperties(value);
@@ -419,7 +419,7 @@ public class Mappings {
             (BatteryAttributes attributes) -> attributes.getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes ? ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits(
                     )).getProperties() : null,
             (BatteryAttributes attributes, Map<String, String> value) -> {
-                if (attributes.getReactiveLimits() == null) {
+                if (attributes.getReactiveLimits() == null || attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes) {
                     attributes.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
                 }
                 ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).setProperties(value);
@@ -600,7 +600,7 @@ public class Mappings {
             (VscConverterStationAttributes attributes) -> attributes.getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes ? ((
                     ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).getProperties() : null,
             (VscConverterStationAttributes attributes, Map<String, String> value) -> {
-                if (attributes.getReactiveLimits() == null) {
+                if (attributes.getReactiveLimits() == null || attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes) {
                     attributes.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
                 }
                 ((ReactiveCapabilityCurveAttributes) attributes.getReactiveLimits()).setProperties(value);
