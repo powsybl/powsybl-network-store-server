@@ -51,6 +51,7 @@ final class NetworkStorageTestCaseFactory {
                 .setBmin(0.0002)
                 .setBmax(0.0008)
                 .setReactivePowerSetpoint(200)
+                .setRegulating(false)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setVoltageSetpoint(390)
                 .add();

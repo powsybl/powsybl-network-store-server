@@ -2484,6 +2484,7 @@ class NetworkStoreIT {
                 .setBmax(0.0008)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setVoltageSetpoint(390)
+                .setRegulating(false)
                 .add();
             svcsVL3 = vl3.getConnectables(StaticVarCompensator.class);
             assertEquals(1, Iterables.size(svcsVL3));
@@ -2711,6 +2712,7 @@ class NetworkStoreIT {
                 .setReactivePowerSetpoint(5.2f)
                 .setBmax(0.5f)
                 .setBmin(0.1f)
+                .setRegulating(false)
                 .add();
             svc.getTerminal().connect();
 
