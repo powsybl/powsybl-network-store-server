@@ -1,0 +1,12 @@
+name: Docker Deploy
+
+on: workflow_dispatch
+
+jobs:
+  run-deploy:
+    uses: powsybl/github-ci/.github/workflows/manual-dockerdeploy-backend-app-generic.yml@27de863e5794d59dad7cecf85157f3d55511a5aa
+    with:
+      dockerImage: docker.io/powsybl/network-store-server
+      dockerUsername: powsyblci
+    secrets:
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

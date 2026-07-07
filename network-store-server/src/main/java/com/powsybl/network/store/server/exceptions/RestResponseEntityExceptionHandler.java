@@ -6,10 +6,8 @@
  */
 package com.powsybl.network.store.server.exceptions;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
+import com.powsybl.network.store.model.ErrorObject;
+import com.powsybl.network.store.model.TopLevelError;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,17 +16,15 @@ import org.springframework.http.HttpStatus.Series;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
-
-import com.powsybl.network.store.model.ErrorObject;
-import com.powsybl.network.store.model.TopLevelError;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * @author Jon Harper <jon.harper at rte-france.com>
  */
 @ControllerAdvice
-public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionHandler {
+public class RestResponseEntityExceptionHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RestResponseEntityExceptionHandler.class);
 
@@ -58,7 +54,6 @@ public class RestResponseEntityExceptionHandler extends ResponseEntityExceptionH
         }
     }
 
-    @ResponseBody
     @ExceptionHandler(JsonApiErrorResponseException.class)
     public ResponseEntity<TopLevelError> handleControllerException(HttpServletRequest request, JsonApiErrorResponseException ex) {
         if (LOGGER.isErrorEnabled()) {

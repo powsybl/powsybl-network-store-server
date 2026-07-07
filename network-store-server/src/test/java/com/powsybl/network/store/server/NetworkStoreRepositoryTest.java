@@ -6,34 +6,37 @@
  */
 package com.powsybl.network.store.server;
 
-import com.powsybl.iidm.network.LimitType;
+import com.powsybl.iidm.network.StaticVarCompensator;
 import com.powsybl.network.store.model.*;
-import com.powsybl.network.store.server.dto.LimitsInfos;
+import com.powsybl.network.store.model.svattributes.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.*;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@RunWith(SpringRunner.class)
+/**
+ * @author Etienne Lesot <etienne.lesot at rte-france.com>
+ */
 @SpringBootTest
-@AutoConfigureMockMvc
-public class NetworkStoreRepositoryTest {
+class NetworkStoreRepositoryTest {
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
 
     @Autowired
-    protected NetworkStoreRepository networkStoreRepository;
+    private NetworkStoreRepository networkStoreRepository;
+
+    @AfterEach
+    void tearDown() {
+        networkStoreRepository.deleteNetwork(NETWORK_UUID);
+    }
 
     @Test
-    public void insertTemporaryLimitsInLinesTest() {
+    void insertTemporaryLimitsInLinesTest() {
 
         String equipmentIdA = "idLineA";
         String equipmentIdB = "idLineB";
@@ -63,10 +66,11 @@ public class NetworkStoreRepositoryTest {
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
                         .name("idLineA")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
+                        .operationalLimitsGroups1(new HashMap<>(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
-                                .build()))
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
+                                .build())))
                         .build())
                 .build();
 
@@ -76,10 +80,11 @@ public class NetworkStoreRepositoryTest {
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
                         .name("idLineB")
-                        .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
+                        .operationalLimitsGroups1(new HashMap<>(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
                                 .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
-                                .build()))
+                                .properties(Map.of("prop1", "value1", "prop2", "value2"))
+                            .build())))
                         .build())
                 .build();
 
@@ -87,116 +92,95 @@ public class NetworkStoreRepositoryTest {
         assertEquals(resLineB.getId(), infoLineB.getEquipmentId());
         assertNotEquals(resLineA.getId(), infoLineX.getEquipmentId());
 
-        TemporaryLimitAttributes templimitAOkSide1a = TemporaryLimitAttributes.builder()
-                .side(1)
-                .acceptableDuration(100)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        TemporaryLimitAttributes templimitAOkSide2a = TemporaryLimitAttributes.builder()
-                .side(2)
-                .acceptableDuration(100)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        TemporaryLimitAttributes templimitAOkSide2b = TemporaryLimitAttributes.builder()
-                .side(2)
-                .acceptableDuration(200)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        // If there are multiple instance of a limit on the same side with the same acceptable duration, only one is kept.
-        TemporaryLimitAttributes templimitAOkSide2bSameAcceptableDuration = TemporaryLimitAttributes.builder()
-                .side(2)
-                .acceptableDuration(200)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        TemporaryLimitAttributes templimitWrongEquipmentId = TemporaryLimitAttributes.builder()
-                .side(1)
-                .acceptableDuration(100)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        TemporaryLimitAttributes templimitBOkSide1a = TemporaryLimitAttributes.builder()
-                .side(1)
-                .acceptableDuration(100)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        TemporaryLimitAttributes templimitBOkSide1b = TemporaryLimitAttributes.builder()
-                .side(1)
-                .acceptableDuration(200)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
-        TemporaryLimitAttributes templimitBOkSide1c = TemporaryLimitAttributes.builder()
-                .side(1)
-                .acceptableDuration(300)
-                .limitType(LimitType.CURRENT)
-                .operationalLimitsGroupId("group1")
-                .build();
-
         List<Resource<LineAttributes>> lines = new ArrayList<>();
         lines.add(resLineA);
         lines.add(resLineB);
 
-        List<TemporaryLimitAttributes> temporaryLimitsA = new ArrayList<>();
-        temporaryLimitsA.add(templimitAOkSide1a);
-        temporaryLimitsA.add(templimitAOkSide2a);
-        temporaryLimitsA.add(templimitAOkSide2b);
-        temporaryLimitsA.add(templimitAOkSide2bSameAcceptableDuration);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsA1 = new TreeMap<>();
+        temporaryLimitsA1.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
 
-        List<TemporaryLimitAttributes> temporaryLimitsB = new ArrayList<>();
-        temporaryLimitsB.add(templimitBOkSide1a);
-        temporaryLimitsB.add(templimitBOkSide1b);
-        temporaryLimitsB.add(templimitBOkSide1c);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsA2 = new TreeMap<>();
+        temporaryLimitsA2.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
+        temporaryLimitsA2.put(200, TemporaryLimitAttributes.builder()
+                .acceptableDuration(200)
+                .build());
 
-        List<TemporaryLimitAttributes> temporaryLimitsX = new ArrayList<>();
-        temporaryLimitsX.add(templimitWrongEquipmentId);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsB1 = new TreeMap<>();
+        temporaryLimitsB1.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
+        temporaryLimitsB1.put(200, TemporaryLimitAttributes.builder()
+                .acceptableDuration(200)
+                .build());
+        temporaryLimitsB1.put(300, TemporaryLimitAttributes.builder()
+                .acceptableDuration(300)
+                .build());
 
-        Map<OwnerInfo, LimitsInfos> map = new HashMap<>();
-        LimitsInfos limitsInfosA = new LimitsInfos();
-        limitsInfosA.setTemporaryLimits(temporaryLimitsA);
-        map.put(infoLineA, limitsInfosA);
-        LimitsInfos limitsInfosB = new LimitsInfos();
-        limitsInfosB.setTemporaryLimits(temporaryLimitsB);
-        map.put(infoLineB, limitsInfosB);
-        LimitsInfos limitsInfosX = new LimitsInfos();
-        limitsInfosX.setTemporaryLimits(temporaryLimitsX);
-        map.put(infoLineX, limitsInfosX);
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimitsX1 = new TreeMap<>();
+        temporaryLimitsX1.put(100, TemporaryLimitAttributes.builder()
+                .acceptableDuration(100)
+                .build());
+
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> map = new HashMap<>();
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesA1 = new OperationalLimitsGroupAttributes();
+        LimitsAttributes.builder().temporaryLimits(temporaryLimitsA1).build();
+        operationalLimitsGroupAttributesA1.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsA1).build());
+        operationalLimitsGroupAttributesA1.setProperties(Map.of("prop1", "value1", "prop2", "value2"));
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesA2 = new OperationalLimitsGroupAttributes();
+        operationalLimitsGroupAttributesA2.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsA2).build());
+        operationalLimitsGroupAttributesA2.setProperties(Map.of("prop1", "value1", "prop2", "value2"));
+        map.put(infoLineA, Map.of(
+                        1, Map.of("group1", operationalLimitsGroupAttributesA1),
+                        2, Map.of("group1", operationalLimitsGroupAttributesA2)
+                )
+        );
+
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesB1 = new OperationalLimitsGroupAttributes();
+        operationalLimitsGroupAttributesB1.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsB1).build());
+        operationalLimitsGroupAttributesB1.setProperties(Map.of("prop1", "value1", "prop2", "value2"));
+        map.put(infoLineB, Map.of(
+                        1, Map.of("group1", operationalLimitsGroupAttributesB1)
+                )
+        );
+        OperationalLimitsGroupAttributes operationalLimitsGroupAttributesX1 = new OperationalLimitsGroupAttributes();
+        operationalLimitsGroupAttributesX1.setCurrentLimits(LimitsAttributes.builder().temporaryLimits(temporaryLimitsX1).build());
+        map.put(infoLineX, Map.of(
+                        1, Map.of("group1", operationalLimitsGroupAttributesX1)
+                )
+        );
 
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1"));
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
 
-        networkStoreRepository.insertLimitsInEquipments(NETWORK_UUID, lines, new HashMap<>());
+        networkStoreRepository.getLimitsHandler().insertOperationalLimitsGroupsInEquipments(NETWORK_UUID, lines, new HashMap<>());
 
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1"));
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
 
-        networkStoreRepository.insertLimitsInEquipments(NETWORK_UUID, lines, map);
+        networkStoreRepository.getLimitsHandler().insertOperationalLimitsGroupsInEquipments(NETWORK_UUID, lines, map);
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup2("group1").getCurrentLimits().getTemporaryLimits());
+        assertNotNull(resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties());
         assertEquals(1, resLineA.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits().size());
         assertEquals(2, resLineA.getAttributes().getOperationalLimitsGroup2("group1").getCurrentLimits().getTemporaryLimits().size());
+        assertEquals(2, resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties().size());
+        assertEquals(Map.of("prop1", "value1", "prop2", "value2"), resLineA.getAttributes().getOperationalLimitsGroup1("group1").getProperties());
         assertNotNull(resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits());
         assertNull(resLineB.getAttributes().getOperationalLimitsGroup2("group1"));
         assertEquals(3, resLineB.getAttributes().getOperationalLimitsGroup1("group1").getCurrentLimits().getTemporaryLimits().size());
+        assertEquals(2, resLineB.getAttributes().getOperationalLimitsGroup1("group1").getProperties().size());
     }
 
     @Test
-    public void insertReactiveCapabilityCurvesInGeneratorsTest() {
+    void insertReactiveCapabilityCurvesInGeneratorsTest() {
 
         String equipmentIdA = "idGeneratorA";
         String equipmentIdB = "idGeneratorB";
@@ -319,32 +303,32 @@ public class NetworkStoreRepositoryTest {
         map.put(infoGeneratorX, curvePointsX);
 
         assertNull(resGeneratorA.getAttributes().getReactiveLimits());
-        assertTrue(resGeneratorB.getAttributes().getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes);
+        assertInstanceOf(ReactiveCapabilityCurveAttributes.class, resGeneratorB.getAttributes().getReactiveLimits());
         assertNull(((ReactiveCapabilityCurveAttributes) resGeneratorB.getAttributes().getReactiveLimits()).getPoints());
-        assertTrue(resGeneratorMinMax.getAttributes().getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes);
+        assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorMinMax.getAttributes().getReactiveLimits());
 
         networkStoreRepository.insertReactiveCapabilityCurvePointsInEquipments(NETWORK_UUID, generators, new HashMap<>());
 
         assertNull(resGeneratorA.getAttributes().getReactiveLimits());
-        assertTrue(resGeneratorB.getAttributes().getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes);
+        assertInstanceOf(ReactiveCapabilityCurveAttributes.class, resGeneratorB.getAttributes().getReactiveLimits());
         assertNull(((ReactiveCapabilityCurveAttributes) resGeneratorB.getAttributes().getReactiveLimits()).getPoints());
-        assertTrue(resGeneratorMinMax.getAttributes().getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes);
+        assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorMinMax.getAttributes().getReactiveLimits());
 
         networkStoreRepository.insertReactiveCapabilityCurvePointsInEquipments(NETWORK_UUID, generators, map);
 
-        assertTrue(resGeneratorA.getAttributes().getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes);
+        assertInstanceOf(ReactiveCapabilityCurveAttributes.class, resGeneratorA.getAttributes().getReactiveLimits());
         assertNotNull(((ReactiveCapabilityCurveAttributes) resGeneratorA.getAttributes().getReactiveLimits()).getPoints());
         assertEquals(3, ((ReactiveCapabilityCurveAttributes) resGeneratorA.getAttributes().getReactiveLimits()).getPoints().size());
 
-        assertTrue(resGeneratorB.getAttributes().getReactiveLimits() instanceof ReactiveCapabilityCurveAttributes);
+        assertInstanceOf(ReactiveCapabilityCurveAttributes.class, resGeneratorB.getAttributes().getReactiveLimits());
         assertNotNull(((ReactiveCapabilityCurveAttributes) resGeneratorB.getAttributes().getReactiveLimits()).getPoints());
         assertEquals(2, ((ReactiveCapabilityCurveAttributes) resGeneratorB.getAttributes().getReactiveLimits()).getPoints().size());
 
-        assertTrue(resGeneratorMinMax.getAttributes().getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes);
+        assertInstanceOf(MinMaxReactiveLimitsAttributes.class, resGeneratorMinMax.getAttributes().getReactiveLimits());
     }
 
     @Test
-    public void insertTapChangerStepsInTwoWindingsTranformerTest() {
+    void insertTapChangerStepsInTwoWindingsTranformerTest() {
 
         String equipmentIdA = "id2WTransformerA";
         String equipmentIdB = "id2WTransformerB";
@@ -525,20 +509,9 @@ public class NetworkStoreRepositoryTest {
 
     }
 
-    public int getTapChangerStepsNumber(UUID networkUuid, int variantNum, ResourceType type, List<OwnerInfo> infos) {
-        return infos.stream()
-                .map(x -> {
-                    Map<OwnerInfo, List<TapChangerStepAttributes>> steps = networkStoreRepository.getTapChangerSteps(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "equipmentType", type.toString());
-                    if (steps.get(x) != null) {
-                        return steps.get(x).size();
-                    }
-                    return 0;
-                })
-                .reduce(0, Integer::sum);
-    }
-
+    @SuppressWarnings("checkstyle:MethodLength")
     @Test
-    public void insertTapChangerStepsInThreeWindingsTranformerTest() {
+    void insertTapChangerStepsInThreeWindingsTranformerTest() {
 
         String equipmentIdA = "id3WTransformerA";
         String equipmentIdB = "id3WTransformerB";
@@ -755,9 +728,8 @@ public class NetworkStoreRepositoryTest {
         assertNull(res3WTransformerB.getAttributes().getLeg(3).getPhaseTapChangerAttributes());
 
         // in A
-        assertThrows(IllegalArgumentException.class, () -> {
-            networkStoreRepository.insertTapChangerStepsInEquipments(NETWORK_UUID, threeWTransformers, mapA);
-        });
+        assertThrows(IllegalArgumentException.class, () ->
+            networkStoreRepository.insertTapChangerStepsInEquipments(NETWORK_UUID, threeWTransformers, mapA));
         assertNotNull(res3WTransformerA.getAttributes().getLeg(1).getRatioTapChangerAttributes().getSteps());
         assertNull(res3WTransformerA.getAttributes().getLeg(1).getPhaseTapChangerAttributes());
         assertEquals(2, res3WTransformerA.getAttributes().getLeg(1).getRatioTapChangerAttributes().getSteps().size());
@@ -767,9 +739,8 @@ public class NetworkStoreRepositoryTest {
         assertEquals(2, res3WTransformerA.getAttributes().getLeg(2).getRatioTapChangerAttributes().getSteps().size());
 
         // in B
-        assertThrows(IllegalArgumentException.class, () -> {
-            networkStoreRepository.insertTapChangerStepsInEquipments(NETWORK_UUID, threeWTransformers, mapB);
-        });
+        assertThrows(IllegalArgumentException.class, () ->
+            networkStoreRepository.insertTapChangerStepsInEquipments(NETWORK_UUID, threeWTransformers, mapB));
         assertNull(res3WTransformerB.getAttributes().getLeg(1).getPhaseTapChangerAttributes());
         assertNull(res3WTransformerB.getAttributes().getLeg(1).getRatioTapChangerAttributes());
 
@@ -783,16 +754,22 @@ public class NetworkStoreRepositoryTest {
     }
 
     @Test
-    public void test() {
+    void test() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String loadId = "load1";
+        String lineId = "line1";
         Resource<LineAttributes> line1 = Resource.lineBuilder()
-                .id("line1")
+                .id(lineId)
                 .attributes(LineAttributes.builder()
                         .voltageLevelId1("vl1")
                         .voltageLevelId2("vl2")
                         .build())
                 .build();
         Resource<LoadAttributes> load1 = Resource.loadBuilder()
-                .id("load1")
+                .id(loadId)
                 .attributes(LoadAttributes.builder()
                         .voltageLevelId("vl1")
                         .build())
@@ -800,6 +777,1043 @@ public class NetworkStoreRepositoryTest {
         networkStoreRepository.createLines(NETWORK_UUID, List.of(line1));
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
         List<String> identifiablesIds = networkStoreRepository.getIdentifiablesIds(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM);
-        assertEquals(List.of("load1", "line1"), identifiablesIds);
+        assertEquals(List.of(loadId, lineId), identifiablesIds);
+
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(loadId));
+        networkStoreRepository.deleteLines(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(lineId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getLine(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId).isEmpty());
+    }
+
+    @Test
+    void testRegulatingPointForGenerator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String generatorId = "gen1";
+        Resource<GeneratorAttributes> gen = Resource.generatorBuilder()
+            .id(generatorId)
+            .attributes(GeneratorAttributes.builder()
+                    .voltageLevelId("vl1")
+                    .name(generatorId)
+                    .regulatingPoint(RegulatingPointAttributes.builder()
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
+                        .regulatedResourceType(ResourceType.GENERATOR)
+                        .regulatingEquipmentId(generatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
+                        .build())
+                    .build())
+            .build();
+        networkStoreRepository.createGenerators(NETWORK_UUID, List.of(gen));
+        String loadId = "load1";
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+            .id(loadId)
+            .attributes(LoadAttributes.builder()
+                .voltageLevelId("vl1")
+                .build())
+            .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
+
+        Optional<Resource<GeneratorAttributes>> generator = networkStoreRepository.getGenerator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, generatorId);
+        assertTrue(generator.isPresent());
+        assertEquals(generatorId, generator.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(generator.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(generator.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(generatorId, generator.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(generator.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(1, generator.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(generator.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
+
+        // get vl generator
+        List<Resource<GeneratorAttributes>> generatorList = networkStoreRepository.getVoltageLevelGenerators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
+        assertEquals(1, generatorList.size());
+        Resource<GeneratorAttributes> generatorVl = generatorList.get(0);
+        assertEquals(generatorId, generatorVl.getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(generatorId, generatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(generatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(generatorVl.getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(generatorId, generatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(generatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+
+        // update
+        Resource<GeneratorAttributes> updatedGen = Resource.generatorBuilder()
+            .id(generatorId)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(GeneratorAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(generatorId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
+                        .regulatingEquipmentId(generatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                    .regulatedResourceType(ResourceType.LOAD)
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.updateGenerators(NETWORK_UUID, List.of(updatedGen));
+
+        Optional<Resource<GeneratorAttributes>> generatorResult = networkStoreRepository.getGenerator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, generatorId);
+        assertTrue(generatorResult.isPresent());
+        assertEquals(loadId, generatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(generatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(generatorResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(generatorId, generatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(generatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertTrue(generatorResult.get().getAttributes().getRegulatingEquipments().isEmpty());
+
+        Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
+        assertTrue(loadResult.isPresent());
+        assertEquals(1, loadResult.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
+
+        // delete
+        networkStoreRepository.deleteGenerators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(generatorId));
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(loadId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getGenerator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, generatorId).isEmpty());
+    }
+
+    @Test
+    void testRegulatingPointForShuntCompensator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId").build()));
+
+        String shuntCompensatorId = "shunt1";
+        Resource<ShuntCompensatorAttributes> shunt = Resource.shuntCompensatorBuilder()
+            .id(shuntCompensatorId)
+            .attributes(ShuntCompensatorAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(shuntCompensatorId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                    .localTerminal(TerminalRefAttributes.builder().connectableId(shuntCompensatorId).build())
+                    .regulatedResourceType(ResourceType.SHUNT_COMPENSATOR)
+                    .regulatingEquipmentId(shuntCompensatorId)
+                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(shuntCompensatorId).build())
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createShuntCompensators(NETWORK_UUID, List.of(shunt));
+        String loadId = "load1";
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+            .id(loadId)
+            .attributes(LoadAttributes.builder()
+                .voltageLevelId("vl1")
+                .build())
+            .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
+
+        Optional<Resource<ShuntCompensatorAttributes>> shuntCompensator = networkStoreRepository.getShuntCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, shuntCompensatorId);
+        assertTrue(shuntCompensator.isPresent());
+        assertEquals(shuntCompensatorId, shuntCompensator.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(shuntCompensator.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(shuntCompensator.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(shuntCompensatorId, shuntCompensator.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(shuntCompensator.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(1, shuntCompensator.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(shuntCompensator.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(shuntCompensatorId, ResourceType.SHUNT_COMPENSATOR)));
+
+        // get vl shunt
+        List<Resource<ShuntCompensatorAttributes>> shuntCompensatorList = networkStoreRepository.getVoltageLevelShuntCompensators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
+        assertEquals(1, shuntCompensatorList.size());
+        Resource<ShuntCompensatorAttributes> shuntCompensatorVl = shuntCompensatorList.get(0);
+        assertEquals(shuntCompensatorId, shuntCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(shuntCompensatorId, shuntCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(shuntCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(shuntCompensatorVl.getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(shuntCompensatorId, shuntCompensatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(shuntCompensatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+
+        // update
+        Resource<ShuntCompensatorAttributes> updatedGen = Resource.shuntCompensatorBuilder()
+            .id(shuntCompensatorId)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(ShuntCompensatorAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(shuntCompensatorId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(shuntCompensatorId).build())
+                        .regulatingEquipmentId(shuntCompensatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                    .regulatedResourceType(ResourceType.LOAD)
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.updateShuntCompensators(NETWORK_UUID, List.of(updatedGen));
+
+        Optional<Resource<ShuntCompensatorAttributes>> shuntCompensatorResult = networkStoreRepository.getShuntCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, shuntCompensatorId);
+        assertTrue(shuntCompensatorResult.isPresent());
+        assertEquals(loadId, shuntCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(shuntCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(shuntCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(shuntCompensatorId, shuntCompensatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(shuntCompensatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertTrue(shuntCompensatorResult.get().getAttributes().getRegulatingEquipments().isEmpty());
+
+        Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
+        assertTrue(loadResult.isPresent());
+        assertEquals(1, loadResult.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(shuntCompensatorId, ResourceType.SHUNT_COMPENSATOR)));
+
+        // delete
+        networkStoreRepository.deleteShuntCompensators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(shuntCompensatorId));
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(loadId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getShuntCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, shuntCompensatorId).isEmpty());
+    }
+
+    @Test
+    void testRegulatingPointForStaticVarCompensator() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String staticVarCompensatorId = "svc1";
+        Resource<StaticVarCompensatorAttributes> staticVarCompensator = Resource.staticVarCompensatorBuilder()
+            .id(staticVarCompensatorId)
+            .attributes(StaticVarCompensatorAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(staticVarCompensatorId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                    .localTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
+                    .regulatedResourceType(ResourceType.STATIC_VAR_COMPENSATOR)
+                    .regulationMode(StaticVarCompensator.RegulationMode.VOLTAGE.toString())
+                    .regulatingEquipmentId(staticVarCompensatorId)
+                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createStaticVarCompensators(NETWORK_UUID, List.of(staticVarCompensator));
+        String loadId = "load1";
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+            .id(loadId)
+            .attributes(LoadAttributes.builder()
+                .voltageLevelId("vl1")
+                .build())
+            .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
+
+        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorCreation = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
+                staticVarCompensatorId);
+        assertTrue(staticVarCompensatorCreation.isPresent());
+        assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertEquals(StaticVarCompensator.RegulationMode.VOLTAGE.toString(), staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(1, staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(staticVarCompensatorId,
+                ResourceType.STATIC_VAR_COMPENSATOR)));
+
+        // get vl svc
+        List<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorList = networkStoreRepository.getVoltageLevelStaticVarCompensators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
+        assertEquals(1, staticVarCompensatorList.size());
+        Resource<StaticVarCompensatorAttributes> staticVarCompensatorVl = staticVarCompensatorList.get(0);
+        assertEquals(staticVarCompensatorId, staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(staticVarCompensatorId, staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertEquals(StaticVarCompensator.RegulationMode.VOLTAGE.toString(), staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(staticVarCompensatorId, staticVarCompensatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(staticVarCompensatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+
+        // update
+        Resource<StaticVarCompensatorAttributes> updatedGen = Resource.staticVarCompensatorBuilder()
+            .id(staticVarCompensatorId)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(StaticVarCompensatorAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(staticVarCompensatorId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
+                        .regulatingEquipmentId(staticVarCompensatorId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                    .regulatedResourceType(ResourceType.LOAD)
+                    .regulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER.toString())
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.updateStaticVarCompensators(NETWORK_UUID, List.of(updatedGen));
+
+        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorResult = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
+                staticVarCompensatorId);
+        assertTrue(staticVarCompensatorResult.isPresent());
+        assertEquals(loadId, staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertEquals(StaticVarCompensator.RegulationMode.REACTIVE_POWER.toString(), staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(staticVarCompensatorId, staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertTrue(staticVarCompensatorResult.get().getAttributes().getRegulatingEquipments().isEmpty());
+
+        Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
+        assertTrue(loadResult.isPresent());
+        assertEquals(1, loadResult.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(staticVarCompensatorId, ResourceType.STATIC_VAR_COMPENSATOR)));
+
+        // delete
+        networkStoreRepository.deleteStaticVarCompensators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(staticVarCompensatorId));
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(loadId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, staticVarCompensatorId).isEmpty());
+    }
+
+    @Test
+    void testRegulatingPointForVSC() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String vscId = "vsc1";
+        Resource<VscConverterStationAttributes> staticVarCompensator = Resource.vscConverterStationBuilder()
+            .id(vscId)
+            .attributes(VscConverterStationAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(vscId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                    .localTerminal(TerminalRefAttributes.builder().connectableId(vscId).build())
+                    .regulatedResourceType(ResourceType.VSC_CONVERTER_STATION)
+                    .regulatingEquipmentId(vscId)
+                    .regulatingTerminal(TerminalRefAttributes.builder().connectableId(vscId).build())
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createVscConverterStations(NETWORK_UUID, List.of(staticVarCompensator));
+        String loadId = "load1";
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+            .id(loadId)
+            .attributes(LoadAttributes.builder()
+                .voltageLevelId("vl1")
+                .build())
+            .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
+
+        Optional<Resource<VscConverterStationAttributes>> vscCreation = networkStoreRepository.getVscConverterStation(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, vscId);
+        assertTrue(vscCreation.isPresent());
+        assertEquals(vscId, vscCreation.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(vscCreation.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(vscCreation.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(vscId, vscCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(vscCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(1, vscCreation.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(vscCreation.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(vscId, ResourceType.VSC_CONVERTER_STATION)));
+
+        // get vl svc
+        List<Resource<VscConverterStationAttributes>> vscList = networkStoreRepository.getVoltageLevelVscConverterStations(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
+        assertEquals(1, vscList.size());
+        Resource<VscConverterStationAttributes> vscVl = vscList.get(0);
+        assertEquals(vscId, vscVl.getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(vscId, vscVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(vscVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(vscVl.getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(vscId, vscVl.getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(vscVl.getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+
+        // update
+        Resource<VscConverterStationAttributes> updatedGen = Resource.vscConverterStationBuilder()
+            .id(vscId)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(VscConverterStationAttributes.builder()
+                .voltageLevelId("vl1")
+                .name(vscId)
+                .regulatingPoint(RegulatingPointAttributes.builder()
+                        .localTerminal(TerminalRefAttributes.builder().connectableId(vscId).build())
+                        .regulatingEquipmentId(vscId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                    .regulatedResourceType(ResourceType.LOAD)
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.updateVscConverterStations(NETWORK_UUID, List.of(updatedGen));
+
+        Optional<Resource<VscConverterStationAttributes>> vscResult = networkStoreRepository.getVscConverterStation(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, vscId);
+        assertTrue(vscResult.isPresent());
+        assertEquals(loadId, vscResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(vscResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(vscResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(vscId, vscResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
+        assertNull(vscResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertTrue(vscResult.get().getAttributes().getRegulatingEquipments().isEmpty());
+
+        Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
+        assertTrue(loadResult.isPresent());
+        assertEquals(1, loadResult.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(vscId, ResourceType.VSC_CONVERTER_STATION)));
+
+        // delete
+        networkStoreRepository.deleteVscConverterStations(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(vscId));
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(loadId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getVscConverterStation(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, vscId).isEmpty());
+    }
+
+    @Test
+    void testRegulatingPointForTwoWindingsTransformers() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+        String twtId = "twt1";
+        Resource<TwoWindingsTransformerAttributes> twt = Resource.twoWindingsTransformerBuilder()
+            .id(twtId)
+            .attributes(TwoWindingsTransformerAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+                .name(twtId)
+                .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                    .regulatingPoint(RegulatingPointAttributes.builder()
+                        .regulatingResourceType(ResourceType.TWO_WINDINGS_TRANSFORMER)
+                        .regulatingTapChangerType(RegulatingTapChangerType.RATIO_TAP_CHANGER)
+                        .regulatedResourceType(ResourceType.TWO_WINDINGS_TRANSFORMER)
+                        .regulatingEquipmentId(twtId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(twtId).build())
+                        .build())
+                    .build())
+                .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                    .regulatingPoint(RegulatingPointAttributes.builder()
+                        .regulatingResourceType(ResourceType.TWO_WINDINGS_TRANSFORMER)
+                        .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER)
+                        .regulatedResourceType(ResourceType.TWO_WINDINGS_TRANSFORMER)
+                        .regulatingEquipmentId(twtId)
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(twtId).build())
+                        .build())
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createTwoWindingsTransformers(NETWORK_UUID, List.of(twt));
+        String loadId = "load1";
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+            .id(loadId)
+            .attributes(LoadAttributes.builder()
+                .voltageLevelId("vl1")
+                .build())
+            .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
+
+        Optional<Resource<TwoWindingsTransformerAttributes>> twoWindingsTransformer = networkStoreRepository.getTwoWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(twoWindingsTransformer.isPresent());
+        // ratio tap changer regulation
+        assertEquals(twtId, twoWindingsTransformer.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(twoWindingsTransformer.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twoWindingsTransformer.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twoWindingsTransformer.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // phase tap changer regulation
+        assertEquals(twtId, twoWindingsTransformer.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(twoWindingsTransformer.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twoWindingsTransformer.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twoWindingsTransformer.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // get vl twt
+        List<Resource<TwoWindingsTransformerAttributes>> twtList = networkStoreRepository.getVoltageLevelTwoWindingsTransformers(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
+        assertEquals(1, twtList.size());
+        Resource<TwoWindingsTransformerAttributes> twtVl = twtList.get(0);
+
+        // ratio tap changer regulation
+        assertEquals(twtId, twtVl.getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(twtId, twtVl.getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtVl.getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtVl.getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtVl.getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // phase tap changer regulation
+        assertEquals(twtId, twtVl.getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(twtId, twtVl.getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtVl.getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtVl.getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtVl.getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        Resource<TwoWindingsTransformerAttributes> updatedTwt = Resource.twoWindingsTransformerBuilder()
+            .id(twtId)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(TwoWindingsTransformerAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId1("vl2")
+                .name(twtId)
+                .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                    .regulatingPoint(RegulatingPointAttributes.builder()
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .regulatedResourceType(ResourceType.LOAD)
+                        .build())
+                    .build())
+                .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                    .regulatingPoint(RegulatingPointAttributes.builder()
+                        .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                        .regulatedResourceType(ResourceType.LOAD)
+                        .build())
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.updateTwoWindingsTransformers(NETWORK_UUID, List.of(updatedTwt));
+
+        Optional<Resource<TwoWindingsTransformerAttributes>> twtResult = networkStoreRepository.getTwoWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(twtResult.isPresent());
+        // ratio tap changer
+        assertEquals(loadId, twtResult.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtResult.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtResult.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtResult.get().getAttributes().getRatioTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+        // phase tap changer
+        assertEquals(loadId, twtResult.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtResult.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtResult.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtResult.get().getAttributes().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        assertTrue(twtResult.get().getAttributes().getRegulatingEquipments().isEmpty());
+
+        Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
+        assertTrue(loadResult.isPresent());
+        assertEquals(2, loadResult.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.RATIO_TAP_CHANGER)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.PHASE_TAP_CHANGER)));
+
+        // delete
+        networkStoreRepository.deleteTwoWindingsTransformers(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(twtId));
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(loadId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getTwoWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId).isEmpty());
+    }
+
+    @Test
+    void testRegulatingPointForThreeWindingsTransformers() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+        String twtId = "twt1";
+        Resource<ThreeWindingsTransformerAttributes> twt = Resource.threeWindingsTransformerBuilder()
+            .id(twtId)
+            .attributes(ThreeWindingsTransformerAttributes.builder()
+                .name(twtId)
+                .leg1(LegAttributes.builder()
+                    .voltageLevelId("vl1")
+                    .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                            .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingTapChangerType(RegulatingTapChangerType.RATIO_TAP_CHANGER_SIDE_ONE)
+                            .regulatedResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingEquipmentId(twtId)
+                            .regulatingTerminal(TerminalRefAttributes.builder().connectableId(twtId).build())
+                            .build())
+                        .build())
+                    .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                            .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_ONE)
+                            .regulatedResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingEquipmentId(twtId)
+                            .regulatingTerminal(TerminalRefAttributes.builder().connectableId(twtId).build())
+                            .build())
+                        .build())
+                    .build())
+                .leg2(LegAttributes.builder()
+                    .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                            .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_TWO)
+                            .regulatedResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingEquipmentId(twtId)
+                            .regulatingTerminal(TerminalRefAttributes.builder().connectableId(twtId).build())
+                            .build())
+                        .build())
+                    .build())
+                .leg3(LegAttributes.builder()
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createThreeWindingsTransformers(NETWORK_UUID, List.of(twt));
+        String loadId = "load1";
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+            .id(loadId)
+            .attributes(LoadAttributes.builder()
+                .voltageLevelId("vl1")
+                .build())
+            .build();
+        networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
+
+        Optional<Resource<ThreeWindingsTransformerAttributes>> threeWindingsTransformer = networkStoreRepository.getThreeWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(threeWindingsTransformer.isPresent());
+        // leg 1
+        // ratio tap changer regulation
+        assertEquals(twtId, threeWindingsTransformer.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // phase tap changer regulation
+        assertEquals(twtId, threeWindingsTransformer.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // leg 2
+        assertEquals(twtId, threeWindingsTransformer.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // leg 3
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg3().getPhaseTapChangerAttributes());
+        assertNull(threeWindingsTransformer.get().getAttributes().getLeg3().getRatioTapChangerAttributes());
+
+        // get vl twt
+        List<Resource<ThreeWindingsTransformerAttributes>> twtList = networkStoreRepository.getVoltageLevelThreeWindingsTransformers(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
+        assertEquals(1, twtList.size());
+        Resource<ThreeWindingsTransformerAttributes> twtVl = twtList.get(0);
+
+        // leg 1
+        // ratio tap changer regulation
+        assertEquals(twtId, twtVl.getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(twtId, twtVl.getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtVl.getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtVl.getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtVl.getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // phase tap changer regulation
+        assertEquals(twtId, twtVl.getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingEquipmentId());
+        assertEquals(twtId, twtVl.getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtVl.getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtVl.getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtVl.getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        Resource<ThreeWindingsTransformerAttributes> updatedTwt = Resource.threeWindingsTransformerBuilder()
+            .id(twtId)
+            .variantNum(Resource.INITIAL_VARIANT_NUM)
+            .attributes(ThreeWindingsTransformerAttributes.builder()
+                .name(twtId)
+                .leg1(LegAttributes.builder()
+                    .voltageLevelId("vl1")
+                    .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                            .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingTapChangerType(RegulatingTapChangerType.RATIO_TAP_CHANGER_SIDE_ONE)
+                            .regulatedResourceType(ResourceType.LOAD)
+                            .regulatingEquipmentId(twtId)
+                            .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                            .build())
+                        .build())
+                    .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                            .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_ONE)
+                            .regulatedResourceType(ResourceType.LOAD)
+                            .regulatingEquipmentId(twtId)
+                            .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                            .build())
+                        .build())
+                    .build())
+                .leg2(LegAttributes.builder()
+                    .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                        .regulatingPoint(RegulatingPointAttributes.builder()
+                            .regulatingResourceType(ResourceType.THREE_WINDINGS_TRANSFORMER)
+                            .regulatingTapChangerType(RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_TWO)
+                            .regulatedResourceType(ResourceType.LOAD)
+                            .regulatingEquipmentId(twtId)
+                            .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
+                            .build())
+                        .build())
+                    .build())
+                .leg3(LegAttributes.builder()
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.updateThreeWindingsTransformers(NETWORK_UUID, List.of(updatedTwt));
+
+        Optional<Resource<ThreeWindingsTransformerAttributes>> twtResult = networkStoreRepository.getThreeWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(twtResult.isPresent());
+        // ratio tap changer side 1
+        assertEquals(loadId, twtResult.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtResult.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtResult.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtResult.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+        // phase tap changer side 1
+        assertEquals(loadId, twtResult.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtResult.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtResult.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtResult.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        // phase tap changer side 2
+        assertEquals(loadId, twtResult.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
+        assertNull(twtResult.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
+        assertNull(twtResult.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getRegulationMode());
+        assertNull(twtResult.get().getAttributes().getLeg2().getPhaseTapChangerAttributes().getRegulatingPoint().getLocalTerminal());
+
+        assertTrue(twtResult.get().getAttributes().getRegulatingEquipments().isEmpty());
+
+        Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
+        assertTrue(loadResult.isPresent());
+        assertEquals(3, loadResult.get().getAttributes().getRegulatingEquipments().size());
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId,
+            ResourceType.THREE_WINDINGS_TRANSFORMER, RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_ONE)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId,
+            ResourceType.THREE_WINDINGS_TRANSFORMER, RegulatingTapChangerType.RATIO_TAP_CHANGER_SIDE_ONE)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId,
+            ResourceType.THREE_WINDINGS_TRANSFORMER, RegulatingTapChangerType.PHASE_TAP_CHANGER_SIDE_TWO)));
+
+        // delete
+        networkStoreRepository.deleteThreeWindingsTransformers(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(twtId));
+        networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(loadId));
+        assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
+        assertTrue(networkStoreRepository.getThreeWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId).isEmpty());
+    }
+
+    @Test
+    void testBindAttributesForBranch() {
+        BranchSvAttributes attributes = BranchSvAttributes.builder()
+                .p1(100.0)
+                .q1(50.0)
+                .p2(-100.0)
+                .q2(-50.0)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindBranchSvAttributes(attributes, values);
+
+        assertEquals(4, values.size());
+        assertEquals(100.0, values.get(0));
+        assertEquals(50.0, values.get(1));
+        assertEquals(-100.0, values.get(2));
+        assertEquals(-50.0, values.get(3));
+    }
+
+    @Test
+    void testUpdateAttributesForBranch() {
+        BranchAttributes existingAttributes = LineAttributes.builder()
+                .p1(0.0)
+                .q1(0.0)
+                .p2(0.0)
+                .q2(0.0)
+                .build();
+        BranchSvAttributes newAttributes = BranchSvAttributes.builder()
+                .p1(120.0)
+                .q1(60.0)
+                .p2(-120.0)
+                .q2(-60.0)
+                .build();
+
+        NetworkStoreRepository.updateBranchSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(120.0, existingAttributes.getP1(), 0.1);
+        assertEquals(60.0, existingAttributes.getQ1(), 0.1);
+        assertEquals(-120.0, existingAttributes.getP2(), 0.1);
+        assertEquals(-60.0, existingAttributes.getQ2(), 0.1);
+    }
+
+    @Test
+    void testBindAttributesForInjection() {
+        InjectionSvAttributes attributes = InjectionSvAttributes.builder()
+                .p(150.0)
+                .q(75.0)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindInjectionSvAttributes(attributes, values);
+
+        assertEquals(2, values.size());
+        assertEquals(150.0, values.get(0));
+        assertEquals(75.0, values.get(1));
+    }
+
+    @Test
+    void testUpdateAttributesForInjection() {
+        InjectionAttributes existingAttributes = LoadAttributes.builder()
+                .p(0.0)
+                .q(0.0)
+                .build();
+        InjectionSvAttributes newAttributes = InjectionSvAttributes.builder()
+                .p(180.0)
+                .q(90.0)
+                .build();
+
+        NetworkStoreRepository.updateInjectionSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(180.0, existingAttributes.getP(), 0.1);
+        assertEquals(90.0, existingAttributes.getQ(), 0.1);
+    }
+
+    @Test
+    void testBindAttributesForThreeWindingsTransformer() {
+        ThreeWindingsTransformerSvAttributes attributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(10.0)
+                .p2(20.0)
+                .p3(30.0)
+                .q1(5.0)
+                .q2(10.0)
+                .q3(15.0)
+                .leg1(LegSvAttributes.builder().ratioTapChangerAttributes(TapChangerSvAttributes.builder().solvedTapPosition(2).build()).build())
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindThreeWindingsTransformerSvAttributes(attributes, values);
+
+        assertEquals(12, values.size());
+        assertEquals(10.0, values.get(0));
+        assertEquals(5.0, values.get(1));
+        assertEquals(20.0, values.get(2));
+        assertEquals(10.0, values.get(3));
+        assertEquals(30.0, values.get(4));
+        assertEquals(15.0, values.get(5));
+        assertEquals(2, values.get(6));
+        assertNull(values.get(7));
+        assertNull(values.get(8));
+        assertNull(values.get(9));
+        assertNull(values.get(10));
+        assertNull(values.get(11));
+    }
+
+    @Test
+    void testUpdateAttributesForThreeWindingsTransformer() {
+        ThreeWindingsTransformerAttributes existingAttributes = ThreeWindingsTransformerAttributes.builder()
+                .p1(0.0)
+                .p2(0.0)
+                .p3(0.0)
+                .q1(0.0)
+                .q2(0.0)
+                .q3(0.0)
+                .build();
+        ThreeWindingsTransformerSvAttributes newAttributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(10.0)
+                .p2(20.0)
+                .p3(30.0)
+                .q1(5.0)
+                .q2(10.0)
+                .q3(15.0)
+                .build();
+
+        NetworkStoreRepository.updateThreeWindingsTransformerSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(10.0, existingAttributes.getP1(), 0.1);
+        assertEquals(5.0, existingAttributes.getQ1(), 0.1);
+        assertEquals(20.0, existingAttributes.getP2(), 0.1);
+        assertEquals(10.0, existingAttributes.getQ2(), 0.1);
+        assertEquals(30.0, existingAttributes.getP3(), 0.1);
+        assertEquals(15.0, existingAttributes.getQ3(), 0.1);
+    }
+
+    @Test
+    void testBindAttributesForVoltageLevel() {
+        List<CalculatedBusAttributes> calculatedBusAttributesBv =
+                List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesForBusBv =
+                List.of(CalculatedBusAttributes.builder().v(2.0).angle(180).build(), CalculatedBusAttributes.builder().v(1.0).angle(90).build());
+        Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
+        VoltageLevelSvAttributes attributes = VoltageLevelSvAttributes.builder()
+                .calculatedBusesForBusView(calculatedBusAttributesBv)
+                .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
+                .calculatedBusesForBusBreakerView(calculatedBusAttributesForBusBv)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindVoltageLevelSvAttributes(attributes, values);
+
+        assertEquals(3, values.size());
+        assertEquals(calculatedBusAttributesBv, values.get(0));
+        assertEquals(calculatedBusAttributesForBusBv, values.get(1));
+        assertEquals(nodeToCalculatedBusForBusView, values.get(2));
+    }
+
+    @Test
+    void testUpdateAttributesForVoltageLevel() {
+        List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
+        List<CalculatedBusAttributes> calculatedBusAttributesBbv = List.of(CalculatedBusAttributes.builder().v(10.0).angle(3.9).build(), CalculatedBusAttributes.builder().v(6.0).angle(1.9).build());
+        VoltageLevelAttributes existingAttributes = VoltageLevelAttributes.builder()
+                .calculatedBusesForBusView(new ArrayList<>())
+                .nodeToCalculatedBusForBusBreakerView(new HashMap<>())
+                .calculatedBusesForBusBreakerView(new ArrayList<>())
+                .build();
+        VoltageLevelSvAttributes newAttributes = VoltageLevelSvAttributes.builder()
+                .calculatedBusesForBusView(calculatedBusAttributesBv)
+                .nodeToCalculatedBusForBusView(nodeToCalculatedBusForBusView)
+                .calculatedBusesForBusBreakerView(calculatedBusAttributesBbv)
+                .build();
+
+        NetworkStoreRepository.updateVoltageLevelSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(calculatedBusAttributesBv, existingAttributes.getCalculatedBusesForBusView());
+        assertEquals(nodeToCalculatedBusForBusView, existingAttributes.getNodeToCalculatedBusForBusView());
+        assertEquals(calculatedBusAttributesBbv, existingAttributes.getCalculatedBusesForBusBreakerView());
+    }
+
+    @Test
+    void testTwtMappings() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+        String twtId = "twt1";
+        Resource<TwoWindingsTransformerAttributes> twt = Resource.twoWindingsTransformerBuilder()
+            .id(twtId)
+            .attributes(TwoWindingsTransformerAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+                .name(twtId)
+                .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                    .solvedTapPosition(1)
+                    .build())
+                .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                    .solvedTapPosition(2)
+                    .loadTapChangingCapabilities(true)
+                    .build())
+                .build())
+            .build();
+        networkStoreRepository.createTwoWindingsTransformers(NETWORK_UUID, List.of(twt));
+
+        Optional<Resource<TwoWindingsTransformerAttributes>> retrievedTwt = networkStoreRepository.getTwoWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(retrievedTwt.isPresent());
+        assertNotNull(retrievedTwt.get().getAttributes().getRatioTapChangerAttributes());
+        assertEquals(1, retrievedTwt.get().getAttributes().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertNotNull(retrievedTwt.get().getAttributes().getPhaseTapChangerAttributes());
+        assertTrue(retrievedTwt.get().getAttributes().getPhaseTapChangerAttributes().isLoadTapChangingCapabilities());
+        assertEquals(2, retrievedTwt.get().getAttributes().getPhaseTapChangerAttributes().getSolvedTapPosition());
+    }
+
+    @Test
+    void test3wtMappings() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+        String twtId = "twt1";
+        Resource<ThreeWindingsTransformerAttributes> twt = Resource.threeWindingsTransformerBuilder()
+            .id(twtId)
+            .attributes(ThreeWindingsTransformerAttributes.builder()
+                .name(twtId)
+                .leg1(LegAttributes.builder()
+                    .voltageLevelId("vl1")
+                    .ratioTapChangerAttributes(RatioTapChangerAttributes.builder()
+                        .solvedTapPosition(1)
+                        .build())
+                    .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder()
+                        .solvedTapPosition(2)
+                        .loadTapChangingCapabilities(true)
+                        .build())
+                    .build())
+                .leg2(LegAttributes.builder()
+                    .voltageLevelId("vl2").build())
+                .leg3(LegAttributes.builder()
+                    .voltageLevelId("vl3").build())
+                .build())
+            .build();
+        networkStoreRepository.createThreeWindingsTransformers(NETWORK_UUID, List.of(twt));
+
+        Optional<Resource<ThreeWindingsTransformerAttributes>> retrievedTwt = networkStoreRepository.getThreeWindingsTransformer(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, twtId);
+        assertTrue(retrievedTwt.isPresent());
+        assertNotNull(retrievedTwt.get().getAttributes().getLeg1().getRatioTapChangerAttributes());
+        assertEquals(1, retrievedTwt.get().getAttributes().getLeg1().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertNotNull(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes());
+        assertTrue(retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().isLoadTapChangingCapabilities());
+        assertEquals(2, retrievedTwt.get().getAttributes().getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
+    }
+
+    @Test
+    void testLineWithoutSelectedOlgShouldNotThrow() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String lineId = "line1";
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+                .id(lineId)
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .build())
+                .build();
+        networkStoreRepository.createLines(NETWORK_UUID, List.of(line1));
+
+        assertNotNull(networkStoreRepository.getLine(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, lineId));
+        assertTrue(networkStoreRepository.getAllSelectedOperationalLimitsGroupAttributesByResourceType(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, ResourceType.LINE).isEmpty());
+    }
+
+    @Test
+    void testBindAttributesForShuntCompensatorSv() {
+        ShuntCompensatorSvAttributes attributes = ShuntCompensatorSvAttributes.builder()
+                .p(3)
+                .q(2)
+                .solvedSectionCount(1)
+                .build();
+        List<Object> values = new ArrayList<>();
+        NetworkStoreRepository.bindShuntCompensatorSvAttributes(attributes, values);
+
+        assertEquals(3, values.size());
+        assertEquals(3.0, values.get(0));
+        assertEquals(2.0, values.get(1));
+        assertEquals(1, values.get(2));
+    }
+
+    @Test
+    void testUpdateAttributesForShuntCompensatorSv() {
+        ShuntCompensatorAttributes existingAttributes = ShuntCompensatorAttributes.builder()
+                .build();
+        ShuntCompensatorSvAttributes newAttributes = ShuntCompensatorSvAttributes.builder()
+                .p(3)
+                .q(2)
+                .solvedSectionCount(1)
+                .build();
+
+        NetworkStoreRepository.updateShuntCompensatorSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(3.0, existingAttributes.getP());
+        assertEquals(2.0, existingAttributes.getQ());
+        assertEquals(1, existingAttributes.getSolvedSectionCount());
+    }
+
+    @Test
+    void testUpdateAttributesForThreeWindingsTransformerSvTapChangers() {
+        ThreeWindingsTransformerAttributes existingAttributes = ThreeWindingsTransformerAttributes.builder()
+                .leg1(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .leg2(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .leg3(LegAttributes.builder()
+                        .phaseTapChangerAttributes(PhaseTapChangerAttributes.builder().build())
+                        .ratioTapChangerAttributes(RatioTapChangerAttributes.builder().build())
+                        .build())
+                .build();
+        ThreeWindingsTransformerSvAttributes newAttributes = ThreeWindingsTransformerSvAttributes.builder()
+                .p1(1)
+                .q1(2)
+                .p2(3)
+                .q2(4)
+                .p3(5)
+                .q3(6)
+                .leg1(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(7)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(8)
+                                .build())
+                        .build())
+                .leg2(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(9)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(10)
+                                .build())
+                        .build())
+                .leg3(LegSvAttributes.builder()
+                        .phaseTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(11)
+                                .build())
+                        .ratioTapChangerAttributes(TapChangerSvAttributes.builder()
+                                .solvedTapPosition(12)
+                                .build())
+                        .build())
+                .build();
+
+        NetworkStoreRepository.updateThreeWindingsTransformerSvAttributes(existingAttributes, newAttributes);
+
+        assertEquals(1.0, existingAttributes.getP1());
+        assertEquals(2.0, existingAttributes.getQ1());
+        assertEquals(3.0, existingAttributes.getP2());
+        assertEquals(4.0, existingAttributes.getQ2());
+        assertEquals(5.0, existingAttributes.getP3());
+        assertEquals(6.0, existingAttributes.getQ3());
+        assertEquals(7, existingAttributes.getLeg1().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(8, existingAttributes.getLeg1().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(9, existingAttributes.getLeg2().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(10, existingAttributes.getLeg2().getRatioTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(11, existingAttributes.getLeg3().getPhaseTapChangerAttributes().getSolvedTapPosition());
+        assertEquals(12, existingAttributes.getLeg3().getRatioTapChangerAttributes().getSolvedTapPosition());
     }
 }

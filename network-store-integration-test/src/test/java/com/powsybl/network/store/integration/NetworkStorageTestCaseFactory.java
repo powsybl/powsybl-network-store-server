@@ -15,15 +15,13 @@ import java.util.Objects;
  * @author Nicolas Noir <nicolas.noir at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-public final class NetworkStorageTestCaseFactory {
+final class NetworkStorageTestCaseFactory {
 
     private NetworkStorageTestCaseFactory() {
+        throw new IllegalStateException("Utility class");
     }
 
-    public static Network create() {
-        return create(NetworkFactory.findDefault());
-    }
-
+    @SuppressWarnings("checkstyle:MethodLength")
     public static Network create(NetworkFactory networkFactory) {
         Objects.requireNonNull(networkFactory);
 
@@ -53,6 +51,7 @@ public final class NetworkStorageTestCaseFactory {
                 .setBmin(0.0002)
                 .setBmax(0.0008)
                 .setReactivePowerSetpoint(200)
+                .setRegulating(false)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setVoltageSetpoint(390)
                 .add();
@@ -74,17 +73,17 @@ public final class NetworkStorageTestCaseFactory {
                 .setVoltageRegulatorOn(false)
                 .setVoltageSetpoint(213)
                 .add();
-        DanglingLine danglingLine1 = vl1.newDanglingLine()
-                .setId("DL1")
+        BoundaryLine boundaryLine1 = vl1.newBoundaryLine()
+                .setId("BL1")
                 .setNode(2)
-                .setName("Dangling line 1")
+                .setName("Boundary line 1")
                 .setP0(533)
                 .setQ0(242)
                 .setR(27)
                 .setX(44)
                 .setG(89)
                 .setB(11)
-                .setPairingKey("UCTE_DL1")
+                .setPairingKey("UCTE_BL1")
                 .newGeneration()
                 .setTargetP(100)
                 .setTargetQ(200)
@@ -94,12 +93,12 @@ public final class NetworkStorageTestCaseFactory {
                 .setVoltageRegulationOn(true)
                 .add()
                 .add();
-        danglingLine1.getGeneration()
+        boundaryLine1.getGeneration()
                 .newMinMaxReactiveLimits()
                 .setMinQ(200)
                 .setMaxQ(800)
                 .add();
-        danglingLine1.newCurrentLimits()
+        boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(256)
                 .beginTemporaryLimit()
                 .setName("TL1")
@@ -115,17 +114,17 @@ public final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        DanglingLine danglingLine2 = vl1.newDanglingLine()
-                .setId("DL2")
+        BoundaryLine boundaryLine2 = vl1.newBoundaryLine()
+                .setId("BL2")
                 .setNode(3)
-                .setName("Dangling line 2")
+                .setName("Boundary line 2")
                 .setP0(533)
                 .setQ0(242)
                 .setR(27)
                 .setX(44)
                 .setG(89)
                 .setB(11)
-                .setPairingKey("UCTE_DL2")
+                .setPairingKey("UCTE_BL2")
                 .newGeneration()
                 .setTargetP(100)
                 .setTargetQ(200)
@@ -135,7 +134,7 @@ public final class NetworkStorageTestCaseFactory {
                 .setVoltageRegulationOn(true)
                 .add()
                 .add();
-        danglingLine2.newCurrentLimits()
+        boundaryLine2.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits()
                 .setPermanentLimit(256)
                 .beginTemporaryLimit()
                 .setName("TL2")
@@ -150,7 +149,7 @@ public final class NetworkStorageTestCaseFactory {
                 .setFictitious(true)
                 .endTemporaryLimit()
                 .add();
-        danglingLine2.newActivePowerLimits()
+        boundaryLine2.getOrCreateSelectedOperationalLimitsGroup().newActivePowerLimits()
                 .setPermanentLimit(300)
                 .beginTemporaryLimit()
                 .setName("ACL_TL1")
@@ -165,7 +164,7 @@ public final class NetworkStorageTestCaseFactory {
                 .setFictitious(true)
                 .endTemporaryLimit()
                 .add();
-        danglingLine2.newApparentPowerLimits()
+        boundaryLine2.getOrCreateSelectedOperationalLimitsGroup().newApparentPowerLimits()
                 .setPermanentLimit(400)
                 .beginTemporaryLimit()
                 .setName("APL_TL1")
@@ -223,8 +222,8 @@ public final class NetworkStorageTestCaseFactory {
                 .setId("LINE1")
                 .setVoltageLevel1("VL1")
                 .setVoltageLevel2("VL2")
-                .setNode1(1)
-                .setNode2(2)
+                .setNode1(4)
+                .setNode2(3)
                 .setR(50)
                 .setX(20)
                 .setG1(12)
@@ -233,7 +232,7 @@ public final class NetworkStorageTestCaseFactory {
                 .setB2(32)
                 .add();
 
-        l1.newApparentPowerLimits1()
+        l1.getOrCreateSelectedOperationalLimitsGroup1().newApparentPowerLimits()
                 .setPermanentLimit(1000)
                 .beginTemporaryLimit()
                 .setName("APL_TL1")
@@ -249,7 +248,7 @@ public final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        l1.newApparentPowerLimits2()
+        l1.getOrCreateSelectedOperationalLimitsGroup2().newApparentPowerLimits()
                 .setPermanentLimit(2000)
                 .beginTemporaryLimit()
                 .setName("APL_TL3")
@@ -265,7 +264,7 @@ public final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        l1.newActivePowerLimits1()
+        l1.getOrCreateSelectedOperationalLimitsGroup1().newActivePowerLimits()
                 .setPermanentLimit(3000)
                 .beginTemporaryLimit()
                 .setName("ACL_TL1")
@@ -281,7 +280,7 @@ public final class NetworkStorageTestCaseFactory {
                 .endTemporaryLimit()
                 .add();
 
-        l1.newActivePowerLimits2()
+        l1.getOrCreateSelectedOperationalLimitsGroup2().newActivePowerLimits()
                 .setPermanentLimit(4000)
                 .beginTemporaryLimit()
                 .setName("ACL_TL3")
@@ -314,7 +313,7 @@ public final class NetworkStorageTestCaseFactory {
                 .setRatedU0(234)
                 .newLeg1()
                 .setVoltageLevel("VL2")
-                .setNode(1)
+                .setNode(4)
                 .setR(45)
                 .setX(35)
                 .setG(25)
@@ -411,6 +410,7 @@ public final class NetworkStorageTestCaseFactory {
                 .add();
 
         threeWindingsTransformer.getLeg1()
+                .getOrCreateSelectedOperationalLimitsGroup()
                 .newCurrentLimits()
                 .setPermanentLimit(25)
                 .add();
@@ -480,7 +480,7 @@ public final class NetworkStorageTestCaseFactory {
 
         ShuntCompensator shunt2 = vl2.newShuntCompensator()
                 .setId("SHUNT2")
-                .setNode(3)
+                .setNode(5)
                 .setVoltageRegulatorOn(false)
                 .setTargetDeadband(20)
                 .setTargetV(420)
@@ -504,7 +504,7 @@ public final class NetworkStorageTestCaseFactory {
 
         Battery battery = vl1.newBattery()
                 .setId("battery")
-                .setNode(4)
+                .setNode(5)
                 .setTargetP(50)
                 .setTargetQ(10)
                 .setMinP(40)

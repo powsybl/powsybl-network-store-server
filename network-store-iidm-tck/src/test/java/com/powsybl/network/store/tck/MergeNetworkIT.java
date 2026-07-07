@@ -8,23 +8,16 @@ package com.powsybl.network.store.tck;
 
 import com.powsybl.iidm.network.tck.AbstractMergeNetworkTest;
 import com.powsybl.network.store.server.NetworkStoreApplication;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@ContextHierarchy({
-    @ContextConfiguration(classes = {NetworkStoreApplication.class})
-    })
-@TestPropertySource(properties = { "spring.config.location=classpath:application.yaml" })
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = {"spring.config.location=classpath:application.yaml"})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class})})
 class MergeNetworkIT extends AbstractMergeNetworkTest {
+    /* FIXME remove all these tests when network merge is implemented */
 
-    //FIXME remove all these tests when network merge is implemented
     @Test
     @Override
     public void checkMergingDifferentFormat() {
@@ -51,7 +44,7 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void multipleDanglingLinesInMergedNetwork() {
+    public void multipleBoundaryLinesInMergedNetwork() {
         // FIXME
     }
 
@@ -69,7 +62,7 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void multipleDanglingLinesInMergingNetwork() {
+    public void multipleBoundaryLinesInMergingNetwork() {
         // FIXME
     }
 
@@ -111,7 +104,7 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void failMergeDanglingLinesWithSameId() {
+    public void failMergeBoundaryLinesWithSameId() {
         // FIXME
     }
 
@@ -171,31 +164,31 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
 
     @Test
     @Override
-    public void dontCreateATieLineWithAlreadyMergedDanglingLinesInMergedNetwork() {
+    public void dontCreateATieLineWithAlreadyMergedBoundaryLinesInMergedNetwork() {
         // FIXME
     }
 
     @Test
     @Override
-    public void dontCreateATieLineWithAlreadyMergedDanglingLinesInMergingNetwork() {
+    public void dontCreateATieLineWithAlreadyMergedBoundaryLinesInMergingNetwork() {
         // FIXME
     }
 
     @Test
     @Override
-    public void multipleConnectedDanglingLinesInMergedNetwork() {
+    public void multipleConnectedBoundaryLinesInMergedNetwork() {
         // FIXME
     }
 
     @Test
     @Override
-    public void multipleConnectedDanglingLinesWithSamePairingKey() {
+    public void multipleConnectedBoundaryLinesWithSamePairingKey() {
         // FIXME
     }
 
     @Test
     @Override
-    public void invertDanglingLinesWhenCreatingATieLine() {
+    public void invertBoundaryLinesWhenCreatingATieLine() {
         // FIXME
     }
 
@@ -205,4 +198,39 @@ class MergeNetworkIT extends AbstractMergeNetworkTest {
         // FIXME
     }
 
+    @Test
+    @Override
+    public void failMergeWithCommonAreaConflict() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndDetachWithDistinctAreas() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndFlattenWithExtensions() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndFlattenWithProperties() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void testMergeAndFlatten() {
+        // FIXME
+    }
+
+    @Test
+    @Override
+    public void failFlattenSubnetwork() {
+        // FIXME
+    }
 }

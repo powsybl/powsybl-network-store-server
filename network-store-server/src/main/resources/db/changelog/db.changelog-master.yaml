@@ -67,3 +67,95 @@ databaseChangeLog:
   - include:
       file: changesets/changelog_20240802T144700Z.xml
       relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20240808T110000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20240813T130300Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20240924T110000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20241011T120000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20241031T110000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20241204T110000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20241205T110000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20241121T110000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250131T140000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20241104T120000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250114T140000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250130T140000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250415T064500Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250704T121439Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250707T140000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250730T150000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250808T150000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250130T160000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250929T160000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20250904T150000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20260107T100000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20260316T100000Z.xml
+      relativeToChangelogFile: true
+
+  - include:
+      file: changesets/changelog_20260505T094635Z.xml
+      relativeToChangelogFile: true

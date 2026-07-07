@@ -8,6 +8,7 @@ package com.powsybl.network.store.integration;
 
 import com.powsybl.network.store.client.RestClient;
 import com.powsybl.network.store.model.Attributes;
+import com.powsybl.network.store.model.ExtensionAttributes;
 import com.powsybl.network.store.model.IdentifiableAttributes;
 import com.powsybl.network.store.model.Resource;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -19,11 +20,11 @@ import java.util.Optional;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-public class TestRestClient extends AbstractForwardingRestClient {
+class TestRestClient extends AbstractForwardingRestClient {
 
     private final RestClientMetrics metrics;
 
-    public TestRestClient(RestClient delegate, RestClientMetrics metrics) {
+    TestRestClient(RestClient delegate, RestClientMetrics metrics) {
         super(delegate);
         this.metrics = Objects.requireNonNull(metrics);
     }
@@ -35,14 +36,20 @@ public class TestRestClient extends AbstractForwardingRestClient {
     }
 
     @Override
+    public Optional<ExtensionAttributes> getOneExtensionAttributes(String url, Object... uriVariables) {
+        metrics.oneGetterCallCount++;
+        return super.getOneExtensionAttributes(url, uriVariables);
+    }
+
+    @Override
     public <T extends IdentifiableAttributes> List<Resource<T>> getAll(String target, String url, Object... uriVariables) {
         metrics.allGetterCallCount++;
         return super.getAll(target, url, uriVariables);
     }
 
     @Override
-    public <T extends Attributes> void updateAll(String url, List<Resource<T>> resources, Object... uriVariables) {
+    public <T extends Attributes> void updateAll(String url, List<Resource<T>> resources, Class<?> viewClass, Object... uriVariables) {
         metrics.updatedUrls.add(UriComponentsBuilder.fromUriString(url).buildAndExpand(uriVariables).toString());
-        super.updateAll(url, resources, uriVariables);
+        super.updateAll(url, resources, viewClass, uriVariables);
     }
 }

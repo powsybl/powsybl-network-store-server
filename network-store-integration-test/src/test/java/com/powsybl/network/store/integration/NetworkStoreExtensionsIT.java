@@ -11,6 +11,7 @@ import com.powsybl.cgmes.conformity.CgmesConformity1ModifiedCatalog;
 import com.powsybl.cgmes.conversion.CgmesImport;
 import com.powsybl.cgmes.extensions.*;
 import com.powsybl.cgmes.model.CgmesMetadataModel;
+import com.powsybl.cgmes.model.CgmesNames;
 import com.powsybl.cgmes.model.CgmesSubset;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.datasource.ReadOnlyDataSource;
@@ -18,59 +19,48 @@ import com.powsybl.commons.extensions.Extension;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
-import com.powsybl.iidm.network.test.BatteryNetworkFactory;
-import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.iidm.network.test.HvdcTestNetwork;
-import com.powsybl.iidm.network.test.SvcTestCaseFactory;
-import com.powsybl.iidm.network.test.ThreeWindingsTransformerNetworkFactory;
+import com.powsybl.iidm.network.test.*;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.RestClientImpl;
 import com.powsybl.network.store.iidm.impl.NetworkImpl;
 import com.powsybl.network.store.model.BaseVoltageSourceAttribute;
 import com.powsybl.network.store.model.CgmesMetadataModelAttributes;
 import com.powsybl.network.store.model.CgmesMetadataModelsAttributes;
 import com.powsybl.network.store.model.CimCharacteristicsAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.*;
 
 import static com.powsybl.network.store.integration.TestUtils.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  * @author Etienne Homer <etienne.homer at rte-france.com>
  */
-@RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextHierarchy({
-    @ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class})
-})
-@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
-public class NetworkStoreExtensionsIT {
-
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
+class NetworkStoreExtensionsIT {
 
     @LocalServerPort
     private int randomServerPort;
 
+    @AfterEach
+    void tearDown() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            service.deleteAllNetworks();
+        }
+    }
+
     @Test
-    public void testActivePowerControlExtension() {
+    void testActivePowerControlExtension() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Generator gen = network.getGenerator("GEN");
@@ -93,7 +83,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testGeneratorStartup() {
+    void testGeneratorStartup() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Generator gen = network.getGenerator("GEN");
@@ -101,8 +91,8 @@ public class NetworkStoreExtensionsIT {
                     .withPlannedActivePowerSetpoint(1.0)
                     .withStartupCost(2.0)
                     .withMarginalCost(3.0)
-                    .withPlannedOutageRate(4.0)
-                    .withForcedOutageRate(5.0)
+                    .withPlannedOutageRate(0.4)
+                    .withForcedOutageRate(0.5)
                     .add();
             service.flush(network);
         }
@@ -112,17 +102,17 @@ public class NetworkStoreExtensionsIT {
             Generator gen = network.getGenerator("GEN");
             GeneratorStartup generatorStartup = gen.getExtension(GeneratorStartup.class);
             assertNotNull(generatorStartup);
-            assertEquals(1.0f, generatorStartup.getPlannedActivePowerSetpoint(), 0f);
-            assertEquals(2.0f, generatorStartup.getStartupCost(), 0f);
-            assertEquals(3.0f, generatorStartup.getMarginalCost(), 0f);
-            assertEquals(4.0f, generatorStartup.getPlannedOutageRate(), 0f);
-            assertEquals(5.0f, generatorStartup.getForcedOutageRate(), 0f);
+            assertEquals(1.0, generatorStartup.getPlannedActivePowerSetpoint(), 0);
+            assertEquals(2.0, generatorStartup.getStartupCost(), 0);
+            assertEquals(3.0, generatorStartup.getMarginalCost(), 0);
+            assertEquals(0.4, generatorStartup.getPlannedOutageRate(), 0);
+            assertEquals(0.5, generatorStartup.getForcedOutageRate(), 0);
             assertNotNull(gen.getExtensionByName(GeneratorStartup.NAME));
         }
     }
 
     @Test
-    public void testGeneratorShortCircuit() {
+    void testGeneratorShortCircuit() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Generator gen = network.getGenerator("GEN");
@@ -130,7 +120,7 @@ public class NetworkStoreExtensionsIT {
             assertNull(gen.getExtensionByName(GeneratorShortCircuit.NAME));
             assertTrue(gen.getExtensions().isEmpty());
             GeneratorShortCircuitAdder circuitAdder = gen.newExtension(GeneratorShortCircuitAdder.class).withDirectTransX(Double.NaN);
-            assertThrows(PowsyblException.class, () -> circuitAdder.add());
+            assertThrows(PowsyblException.class, circuitAdder::add);
             circuitAdder.withDirectSubtransX(20.)
                     .withDirectTransX(30.)
                     .withStepUpTransformerX(50.)
@@ -160,7 +150,45 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testIdentifiableShortCircuit() {
+    void testBatteryShortCircuit() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = BatteryNetworkFactory.create(service.getNetworkFactory());
+            Battery bat = network.getBattery("BAT");
+            assertNull(bat.getExtension(BatteryShortCircuit.class));
+            assertNull(bat.getExtensionByName(BatteryShortCircuit.NAME));
+            assertTrue(bat.getExtensions().isEmpty());
+            BatteryShortCircuitAdder circuitAdder = bat.newExtension(BatteryShortCircuitAdder.class).withDirectTransX(Double.NaN);
+            assertThrows(PowsyblException.class, circuitAdder::add);
+            circuitAdder.withDirectSubtransX(20.)
+                .withDirectTransX(30.)
+                .withStepUpTransformerX(50.)
+                .add();
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
+            Battery bat = network.getBattery("BAT");
+            BatteryShortCircuit batteryShortCircuit = bat.getExtension(BatteryShortCircuit.class);
+            assertNotNull(batteryShortCircuit);
+            assertEquals(20., batteryShortCircuit.getDirectSubtransX(), 0);
+            assertEquals(30., batteryShortCircuit.getDirectTransX(), 0);
+            assertEquals(50., batteryShortCircuit.getStepUpTransformerX(), 0);
+            assertNotNull(bat.getExtensionByName(BatteryShortCircuit.NAME));
+            assertEquals(BatteryShortCircuit.NAME, batteryShortCircuit.getName());
+
+            assertThrows(PowsyblException.class, () -> batteryShortCircuit.setDirectTransX(Double.NaN));
+            batteryShortCircuit.setDirectSubtransX(23.);
+            batteryShortCircuit.setDirectTransX(32.);
+            batteryShortCircuit.setStepUpTransformerX(44.);
+            assertEquals(23., batteryShortCircuit.getDirectSubtransX(), 0);
+            assertEquals(32., batteryShortCircuit.getDirectTransX(), 0);
+            assertEquals(44., batteryShortCircuit.getStepUpTransformerX(), 0);
+        }
+    }
+
+    @Test
+    void testIdentifiableShortCircuit() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             VoltageLevel vl = network.getVoltageLevel("VLGEN");
@@ -192,7 +220,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void cgmesExtensionsTest() {
+    void cgmesExtensionsTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1Catalog.miniNodeBreaker().dataSource());
@@ -298,7 +326,8 @@ public class NetworkStoreExtensionsIT {
                     .cgmesTopologyKind(CgmesTopologyKind.BUS_BRANCH)
                     .build();
 
-            ((NetworkImpl) readNetwork).updateResource(res -> res.getAttributes().setCimCharacteristics(cimCharacteristicsAttributes));
+            ((NetworkImpl) readNetwork).updateResourceWithoutNotification(res ->
+                res.getAttributes().setCimCharacteristics(cimCharacteristicsAttributes));
 
             service.flush(readNetwork);
         }
@@ -451,9 +480,9 @@ public class NetworkStoreExtensionsIT {
         assertEquals(ConnectablePosition.Direction.TOP, cptwt2.getFeeder2().getDirection());
 
         ThreeWindingsTransformer twt3 = s1.newThreeWindingsTransformer().setId("TWT3")
-                .setName("Three windings transformer 1").setRatedU0(234).newLeg1().setVoltageLevel("v1").setNode(1)
-                .setR(45).setX(35).setG(25).setB(15).setRatedU(5).add().newLeg2().setVoltageLevel("v2").setNode(1)
-                .setR(47).setX(37).setG(27).setB(17).setRatedU(7).add().newLeg3().setVoltageLevel("v3").setNode(1)
+                .setName("Three windings transformer 1").setRatedU0(234).newLeg1().setVoltageLevel("v1").setNode(3)
+                .setR(45).setX(35).setG(25).setB(15).setRatedU(5).add().newLeg2().setVoltageLevel("v2").setNode(2)
+                .setR(47).setX(37).setG(27).setB(17).setRatedU(7).add().newLeg3().setVoltageLevel("v3").setNode(2)
                 .setR(49).setX(39).setG(29).setB(19).setRatedU(9).add().add();
         twt3.newExtension(ConnectablePositionAdder.class).newFeeder1().withName("twt3.1").withOrder(3)
                 .withDirection(ConnectablePosition.Direction.BOTTOM).add().newFeeder2().withName("twt3.2").withOrder(3)
@@ -484,7 +513,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void extensionsTest() {
+    void extensionsTest() {
         // create network and save it
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             service.flush(createExtensionsNetwork(service.getNetworkFactory()));
@@ -558,7 +587,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void coordinatedReactiveControlTest() {
+    void coordinatedReactiveControlTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Generator gen = network.getGenerator("GEN");
@@ -584,7 +613,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void generatorEntsoeCategoryTest() {
+    void generatorEntsoeCategoryTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Generator gen = network.getGenerator("GEN");
@@ -610,7 +639,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void voltagePerReactivePowerControlTest() {
+    void voltagePerReactivePowerControlTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
             StaticVarCompensator svc2 = network.getStaticVarCompensator("SVC2");
@@ -636,7 +665,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void loadDetailExtensionTest() {
+    void loadDetailExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
             Load load2 = network.getLoad("L2");
@@ -684,7 +713,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void slackTerminalExtensionTest() {
+    void slackTerminalExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
             VoltageLevel vl = network.getVoltageLevel("VL1");
@@ -723,7 +752,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void threeWindingsTransformerPhaseAngleClockExtensionTest() {
+    void threeWindingsTransformerPhaseAngleClockExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = ThreeWindingsTransformerNetworkFactory.create(service.getNetworkFactory());
             Substation substation = network.getSubstation("SUBSTATION");
@@ -754,7 +783,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void twoWindingsTransformerPhaseAngleClockExtensionTest() {
+    void twoWindingsTransformerPhaseAngleClockExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
 
@@ -782,7 +811,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void svcVoltagePerReactivePowerExtensionTest() {
+    void svcVoltagePerReactivePowerExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
 
@@ -810,7 +839,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void coordinatedReactiveControlExtensionTest() {
+    void coordinatedReactiveControlExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
 
@@ -838,7 +867,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void batteryActivePowerControlTest() {
+    void batteryActivePowerControlTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = NetworkStorageTestCaseFactory.create(service.getNetworkFactory());
             service.flush(network);
@@ -879,7 +908,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void lccActivePowerControlTest() {
+    void lccActivePowerControlTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = NetworkStorageTestCaseFactory.create(service.getNetworkFactory());
             service.flush(network);
@@ -904,7 +933,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void loadActivePowerControlTest() {
+    void loadActivePowerControlTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = NetworkStorageTestCaseFactory.create(service.getNetworkFactory());
             service.flush(network);
@@ -931,7 +960,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void hvdcAngleDroopActivePowerControlExtensionTest() {
+    void hvdcAngleDroopActivePowerControlExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = HvdcTestNetwork.createVsc(service.getNetworkFactory());
             HvdcLine hvdcLine = network.getHvdcLine("L");
@@ -982,7 +1011,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void hvdcOperatorActivePowerRangeExtensionTest() {
+    void hvdcOperatorActivePowerRangeExtensionTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = HvdcTestNetwork.createVsc(service.getNetworkFactory());
             HvdcLine hvdcLine = network.getHvdcLine("L");
@@ -1028,13 +1057,14 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void cgmesControlAreaDanglingLineTest() {
+    void cgmesControlAreaBoundaryLineTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1Catalog.microGridBaseCaseBE().dataSource());
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-            assertEquals(0, cgmesControlAreas.getCgmesControlAreas().size());
+            Area cgmesControlArea = network.getArea("ca1");
+            assertNull(cgmesControlArea);
+            List<Area> areas = network.getAreaStream().toList();
+            assertEquals(0, areas.size());
         }
 
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -1043,20 +1073,29 @@ public class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-            assertEquals(0, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.newCgmesControlArea()
+            assertEquals(0, network.getAreaStream().toList().size());
+            Area cgmesControlArea = network.newArea()
                     .setId("ca1")
-                    .setEnergyIdentificationCodeEic("code")
-                    .setNetInterchange(1000)
+                    .setInterchangeTarget(1000)
                     .add();
-            cgmesControlArea.add(network.getGenerator("550ebe0d-f2b2-48c1-991f-cebea43a21aa").getTerminal());
-            cgmesControlArea.add(network.getDanglingLine("a16b4a6c-70b1-4abf-9a9d-bd0fa47f9fe4").getBoundary());
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea ca1 = cgmesControlAreas.getCgmesControlArea("ca1");
+            cgmesControlArea.addAlias("code", CgmesNames.ENERGY_IDENT_CODE_EIC);
+            cgmesControlArea.newAreaBoundary()
+                .setTerminal(network.getGenerator("550ebe0d-f2b2-48c1-991f-cebea43a21aa").getTerminal())
+                .setAc(true)
+                .add();
+            cgmesControlArea.newAreaBoundary()
+                .setBoundary(network.getBoundaryLine("a16b4a6c-70b1-4abf-9a9d-bd0fa47f9fe4").getBoundary())
+                .setAc(true)
+                .add();
+            assertEquals(2, cgmesControlArea.getAreaBoundaryStream().toList().size());
+            assertEquals(1, network.getAreaStream().toList().size());
+            Area ca1 = network.getArea("ca1");
             assertNotNull(ca1);
-
+            assertEquals(2, ca1.getAreaBoundaryStream().toList().size());
+            assertEquals(-91.19499400000001, ca1.getAcInterchange());
+            assertEquals(0, ca1.getDcInterchange());
+            assertEquals("code", ca1.getAliasFromType(CgmesNames.ENERGY_IDENT_CODE_EIC)
+                .orElse(null));
             service.flush(network);
         }
 
@@ -1066,22 +1105,18 @@ public class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-            assertTrue(cgmesControlAreas.containsCgmesControlAreaId("ca1"));
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.getCgmesControlArea("ca1");
+            Area cgmesControlArea = network.getArea("ca1");
+            assertNotNull(cgmesControlArea);
+            assertEquals(1, network.getAreaStream().toList().size());
             assertEquals("ca1", cgmesControlArea.getId());
-            assertNull(cgmesControlArea.getName());
-            assertEquals("code", cgmesControlArea.getEnergyIdentificationCodeEIC());
-            assertEquals(1000, cgmesControlArea.getNetInterchange(), 0);
-            assertEquals(1, cgmesControlArea.getTerminals().size());
-            assertEquals(1, cgmesControlArea.getBoundaries().size());
+            assertTrue(cgmesControlArea.getOptionalName().isEmpty());
+            assertTrue(cgmesControlArea.getInterchangeTarget().isPresent());
+            assertEquals(1000, cgmesControlArea.getInterchangeTarget().getAsDouble());
         }
     }
 
     @Test
-    public void baseVoltageMappingTest() {
+    void baseVoltageMappingTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1Catalog.microGridBaseCaseBE().dataSource());
@@ -1137,7 +1172,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void cgmesControlAreaTieLineTest() {
+    void cgmesControlAreaTieLineTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Properties properties = new Properties();
@@ -1151,19 +1186,23 @@ public class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-
-            assertNotNull(cgmesControlAreas);
-            assertEquals(0, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.newCgmesControlArea()
+            assertEquals(0, network.getAreaStream().toList().size());
+            Area cgmesControlArea = network.newArea()
                     .setId("ca2")
-                    .setEnergyIdentificationCodeEic("code2")
-                    .setNetInterchange(800)
+                    .setInterchangeTarget(800)
+                    .addAreaBoundary(network.getTieLine("b18cd1aa-7808-49b9-a7cf-605eaf07b006 + e8acf6b6-99cb-45ad-b8dc-16c7866a4ddc").getBoundaryLine1().getBoundary(),
+                        true)
                     .add();
-            cgmesControlArea.add(((TieLine) network.getTieLine("b18cd1aa-7808-49b9-a7cf-605eaf07b006 + e8acf6b6-99cb-45ad-b8dc-16c7866a4ddc")).getDanglingLine1().getBoundary());
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-
+            cgmesControlArea.addAlias("code2", CgmesNames.ENERGY_IDENT_CODE_EIC);
+            assertEquals(1, cgmesControlArea.getAreaBoundaryStream().toList().size());
+            Area ca2 = network.getArea("ca2");
+            assertNotNull(ca2);
+            assertEquals(1, ca2.getAreaBoundaryStream().toList().size());
+            assertTrue(ca2.getInterchangeTarget().isPresent());
+            assertEquals(800, ca2.getInterchangeTarget().getAsDouble());
+            assertEquals(90.07909111485668, ca2.getAcInterchange());
+            assertEquals("code2", ca2.getAliasFromType(CgmesNames.ENERGY_IDENT_CODE_EIC)
+                .orElse(null));
             service.flush(network);
         }
 
@@ -1173,18 +1212,20 @@ public class NetworkStoreExtensionsIT {
             UUID networkUuid = networkIds.keySet().iterator().next();
 
             Network network = service.getNetwork(networkUuid);
-            CgmesControlAreas cgmesControlAreas = network.getExtension(CgmesControlAreas.class);
-            assertNotNull(cgmesControlAreas);
-
-            assertEquals(1, cgmesControlAreas.getCgmesControlAreas().size());
-            CgmesControlArea cgmesControlArea = cgmesControlAreas.getCgmesControlArea("ca2");
+            Area cgmesControlArea = network.getAreaStream().findFirst().orElse(null);
             assertNotNull(cgmesControlArea);
-            assertEquals(1, cgmesControlArea.getBoundaries().size());
+            assertEquals("ca2", cgmesControlArea.getId());
+            assertTrue(cgmesControlArea.getInterchangeTarget().isPresent());
+            assertEquals(800, cgmesControlArea.getInterchangeTarget().getAsDouble());
+            assertEquals(90.07909111485668, cgmesControlArea.getAcInterchange());
+            assertEquals("code2", cgmesControlArea.getAliasFromType(CgmesNames.ENERGY_IDENT_CODE_EIC)
+                .orElse(null));
+            assertEquals(1, cgmesControlArea.getAreaBoundaryStream().toList().size());
         }
     }
 
     @Test
-    public void testRemoteReactivePowerControl() {
+    void testRemoteReactivePowerControl() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             // import new network in the store
             Network network = service.importNetwork(CgmesConformity1ModifiedCatalog.microGridBaseCaseBEReactivePowerGen().dataSource());
@@ -1208,7 +1249,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testSubstationPosition() {
+    void testSubstationPosition() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Substation substation = network.getSubstation("P1");
@@ -1226,11 +1267,11 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testLinePosition() {
+    void testLinePosition() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             Line line = network.getLine("NHV1_NHV2_1");
-            DanglingLine danglingLine = network.getVoltageLevel("VLGEN").newDanglingLine().setId("D_LINE")
+            BoundaryLine boundaryLine = network.getVoltageLevel("VLGEN").newBoundaryLine().setId("D_LINE")
                     .setB(33.4)
                     .setP0(66.9)
                     .setQ0(55.0)
@@ -1241,8 +1282,9 @@ public class NetworkStoreExtensionsIT {
                     .add();
 
             line.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D))).add();
-            danglingLine.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D))).add();
-            assertThrows(PowsyblException.class, () -> network.getVoltageLevel("VLGEN").newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D))).add());
+            boundaryLine.newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D))).add();
+            assertThrows(PowsyblException.class, () -> network.getVoltageLevel("VLGEN").newExtension(LinePositionAdder.class).withCoordinates(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D,
+                    3.0D))).add());
             service.flush(network);
         }
 
@@ -1254,14 +1296,14 @@ public class NetworkStoreExtensionsIT {
             assertNotNull(linePosition);
             assertEquals(List.of(new Coordinate(48.0D, 2.0D), new Coordinate(46.5D, 3.0D)), linePosition.getCoordinates());
 
-            LinePosition<DanglingLine> danglingLinePosition = network.getDanglingLine("D_LINE").getExtension(LinePosition.class);
-            assertNotNull(danglingLinePosition);
-            assertEquals(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D)), danglingLinePosition.getCoordinates());
+            LinePosition<BoundaryLine> boundaryLinePosition = network.getBoundaryLine("D_LINE").getExtension(LinePosition.class);
+            assertNotNull(boundaryLinePosition);
+            assertEquals(List.of(new Coordinate(49.5D, 1.5D), new Coordinate(40.5D, 3.5D)), boundaryLinePosition.getCoordinates());
         }
     }
 
     @Test
-    public void testNetworkExtension() {
+    void testNetworkExtension() {
         String filePath = "/network_test1_cgmes_metadata_models.xml";
         ReadOnlyDataSource dataSource = getResource(filePath, filePath);
 
@@ -1291,7 +1333,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testMeasurements() {
+    void testMeasurements() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
@@ -1363,7 +1405,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testDiscreteMeasurements() {
+    void testDiscreteMeasurements() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
@@ -1434,7 +1476,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testBranchObservability() {
+    void testBranchObservability() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = BatteryNetworkFactory.create(service.getNetworkFactory());
             Line line = network.getLine("NHV1_NHV2_1");
@@ -1478,7 +1520,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void testInjectionObservability() {
+    void testInjectionObservability() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = BatteryNetworkFactory.create(service.getNetworkFactory());
             Generator generator = network.getGenerator("GEN");
@@ -1518,7 +1560,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void test2wtToBeEstimated() {
+    void test2wtToBeEstimated() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
@@ -1541,7 +1583,7 @@ public class NetworkStoreExtensionsIT {
     }
 
     @Test
-    public void test3wtToBeEstimated() {
+    void test3wtToBeEstimated() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = ThreeWindingsTransformerNetworkFactory.create(service.getNetworkFactory());
             ThreeWindingsTransformer threeWindingsTransformer = network.getThreeWindingsTransformer("3WT");
@@ -1568,6 +1610,85 @@ public class NetworkStoreExtensionsIT {
             assertTrue(threeWindingsTransformerToBeEstimated.shouldEstimatePhaseTapChanger2());
             assertTrue(threeWindingsTransformerToBeEstimated.shouldEstimateRatioTapChanger3());
             assertTrue(threeWindingsTransformerToBeEstimated.shouldEstimatePhaseTapChanger3());
+        }
+    }
+
+    @Test
+    void testRemoveExtension() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
+            Generator gen = network.getGenerator("GEN");
+            gen.newExtension(ActivePowerControlAdder.class)
+                    .withParticipate(true)
+                    .withDroop(6.3f)
+                    .add();
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
+            Generator gen = network.getGenerator("GEN");
+            ActivePowerControl<Generator> activePowerControl = gen.getExtension(ActivePowerControl.class);
+            assertNotNull(activePowerControl);
+
+            gen.removeExtension(ActivePowerControl.class);
+            assertNull(gen.getExtensionByName("activePowerControl"));
+            assertNull(gen.getExtension(ActivePowerControl.class));
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
+            Generator gen = network.getGenerator("GEN");
+            assertNull(gen.getExtensionByName("activePowerControl"));
+            assertNull(gen.getExtension(ActivePowerControl.class));
+        }
+    }
+
+    @Test
+    void testRemoveEquipmentWithExtension() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
+            Generator gen = network.getGenerator("GEN");
+            gen.newExtension(ActivePowerControlAdder.class)
+                    .withParticipate(true)
+                    .withDroop(6.3f)
+                    .add();
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
+            Generator gen = network.getGenerator("GEN");
+            // Load extension in cache
+            assertNotNull(gen.getExtension(ActivePowerControl.class));
+            // Delete identifiable
+            gen.remove();
+            // Recreate identifiable without extension
+            VoltageLevel vl = network.getSubstation("P1").newVoltageLevel()
+                    .setId("VL1")
+                    .setNominalV(400f)
+                    .setTopologyKind(TopologyKind.NODE_BREAKER)
+                    .add();
+            vl.newGenerator()
+                    .setId("GEN")
+                    .setNode(1)
+                    .setMaxP(20)
+                    .setMinP(-20)
+                    .setVoltageRegulatorOn(true)
+                    .setTargetP(100)
+                    .setTargetV(200)
+                    .setTargetQ(100)
+                    .add();
+            // Cache should be emptied when identifiable was removed
+            assertNull(gen.getExtension(ActivePowerControl.class));
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = service.getNetwork(service.getNetworkIds().keySet().iterator().next());
+            Generator gen = network.getGenerator("GEN");
+            assertNull(gen.getExtension(ActivePowerControl.class));
         }
     }
 }

@@ -8,20 +8,13 @@ package com.powsybl.network.store.tck;
 
 import com.powsybl.iidm.network.tck.AbstractLineTest;
 import com.powsybl.network.store.server.NetworkStoreApplication;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@ContextHierarchy({
-    @ContextConfiguration(classes = {NetworkStoreApplication.class})
-    })
-@TestPropertySource(properties = { "spring.config.location=classpath:application.yaml" })
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = {"spring.config.location=classpath:application.yaml"})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class})})
 class LineIT extends AbstractLineTest {
 
     @Test
@@ -38,13 +31,7 @@ class LineIT extends AbstractLineTest {
 
     @Test
     @Override
-    public void testMove1NbNetwork() {
-        // FIXME to investigate, TerminalNodeBreakerViewImpl/TerminalBusBreakerViewImpl.moveConnectable fails
-    }
-
-    @Test
-    @Override
-    public void testMove2Nb() {
-        // FIXME to investigate, TerminalNodeBreakerViewImpl/TerminalBusBreakerViewImpl.moveConnectable fails
+    public void testChangesNotification() {
+        // FIXME remove this test when proper network listener support is implemented
     }
 }

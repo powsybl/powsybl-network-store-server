@@ -11,20 +11,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.ConnectablePosition;
+import com.powsybl.iidm.network.extensions.GeneratorStartup;
 import com.powsybl.network.store.model.*;
 import jakarta.servlet.ServletException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.ZonedDateTime;
@@ -41,35 +38,39 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = ClassMode.BEFORE_EACH_TEST_METHOD)
-public class NetworkStoreControllerIT {
-
-    @DynamicPropertySource
-    static void makeTestDbSuffix(DynamicPropertyRegistry registry) {
-        UUID uuid = UUID.randomUUID();
-        registry.add("testDbSuffix", () -> uuid);
-    }
+class NetworkStoreControllerIT {
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    private static final UUID CLONED_NETWORK_UUID = UUID.randomUUID();
 
     @Autowired
-    protected ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
     @Autowired
     private MockMvc mvc;
 
-    @Before
-    public void setup() {
+    @AfterEach
+    void tearDown() throws Exception {
+        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk());
+        mvc.perform(delete("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID)
+                        .contentType(APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @BeforeEach
+    void setup() {
         this.objectMapper.registerModule(new JavaTimeModule())
                 .configure(SerializationFeature.WRITE_DATE_TIMESTAMPS_AS_NANOSECONDS, false)
                 .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false);
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     @Test
-    public void test() throws Exception {
+    void test() throws Exception {
         mvc.perform(get("/" + VERSION + "/networks")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -85,6 +86,7 @@ public class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                                              .uuid(NETWORK_UUID)
                                              .variantId("v")
+                                             .fullVariantNum(-1)
                                              .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                                              .build())
                 .build();
@@ -94,12 +96,11 @@ public class NetworkStoreControllerIT {
                 .andExpect(status().isCreated());
 
         //Do it again, it should error
-        assertThrows(ServletException.class, () -> {
+        assertThrows(ServletException.class, () ->
             mvc.perform(post("/" + VERSION + "/networks")
                 .contentType(APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Collections.singleton(foo))))
-                .andReturn();
-        });
+                .andReturn());
 
         mvc.perform(get("/" + VERSION + "/networks")
                         .contentType(APPLICATION_JSON))
@@ -273,9 +274,7 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.calculatedBusesForBusView[0].vertices[0].node").value(13))
                 .andExpect(jsonPath("data[0].attributes.calculatedBusesForBusView[0].vertices[0].side").value("TWO"));
 
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/switches/b1")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk());
+        deleteIdentifiables(List.of("bar"), "switches");
 
         // switch creation and update
         Resource<SwitchAttributes> resBreaker = Resource.switchBuilder()
@@ -346,7 +345,15 @@ public class NetworkStoreControllerIT {
                 .selectedOperationalLimitsGroupId1("group1")
                 .operationalLimitsGroups1(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                         .id("group1")
-                        .currentLimits(LimitsAttributes.builder().permanentLimit(20.).temporaryLimits(new TreeMap<>(Map.of(1200, TemporaryLimitAttributes.builder().value(30.).acceptableDuration(1200).build()))).build())
+                        .currentLimits(LimitsAttributes.builder()
+                            .permanentLimit(20.)
+                            .temporaryLimits(new TreeMap<>(Map.of(1200, TemporaryLimitAttributes.builder()
+                                .value(30.)
+                                .acceptableDuration(1200)
+                                .properties(Map.of("property2", "value2"))
+                                .build())))
+                            .properties(Map.of("property1", "value1"))
+                            .build())
                         .build()))
                 .build())
             .build();
@@ -371,8 +378,7 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.position1.direction").value("BOTTOM"))
                 .andExpect(jsonPath("data[0].attributes.position2.label").value("labPosition2"))
                 .andExpect(jsonPath("data[0].attributes.position2.direction").value("TOP"))
-                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0))
-                .andExpect(jsonPath("data[0].attributes.operationalLimitsGroups1[\"group1\"].currentLimits.permanentLimit").value(20.));
+                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0));
 
         resLine.getAttributes().setP1(100.);  // changing p1 value
         resLine.getAttributes().getProperties().put("property1", "newValue1");  // changing property value
@@ -444,8 +450,7 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.properties[\"property1\"]").value("value1"))
                 .andExpect(jsonPath("data[0].attributes.aliasByType[\"aliasDouble\"]").value("valueAliasDouble"))
                 .andExpect(jsonPath("data[0].attributes.aliasesWithoutType").value("alias1"))
-                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0))
-                .andExpect(jsonPath("data[0].attributes.operationalLimitsGroups1[\"group1\"].currentLimits.permanentLimit").value(20.));
+                .andExpect(jsonPath("data[0].attributes.mergedXnode.rdp").value(50.0));
 
         Resource<LineAttributes> resLine2 = Resource.lineBuilder()
             .id("idLine2")
@@ -496,12 +501,12 @@ public class NetworkStoreControllerIT {
             .andExpect(jsonPath("data[0].id").value("idLine"))
             .andExpect(jsonPath("data[0].attributes.p1").value(100.))
             .andExpect(jsonPath("data[0].attributes.properties[\"property1\"]").value("newValue1"))
-            .andExpect(jsonPath("data[1].id").value("idLine2"))
-            .andExpect(jsonPath("data[1].attributes.p1").value(30.))
-            .andExpect(jsonPath("data[1].attributes.properties[\"property12\"]").value("value12"))
-            .andExpect(jsonPath("data[2].id").value("idLineWithoutFirstPosition"))
-            .andExpect(jsonPath("data[2].attributes.p1").value(0.))
-            .andExpect(jsonPath("data[2].attributes.properties[\"property1\"]").value("value1"));
+            .andExpect(jsonPath("data[1].id").value("idLineWithoutFirstPosition"))
+            .andExpect(jsonPath("data[1].attributes.p1").value(0.))
+            .andExpect(jsonPath("data[1].attributes.properties[\"property1\"]").value("value1"))
+            .andExpect(jsonPath("data[2].id").value("idLine2"))
+            .andExpect(jsonPath("data[2].attributes.p1").value(30.))
+            .andExpect(jsonPath("data[2].attributes.properties[\"property12\"]").value("value12"));
 
         mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/voltage-levels/vl1/lines")
             .contentType(APPLICATION_JSON))
@@ -522,6 +527,12 @@ public class NetworkStoreControllerIT {
             .andExpect(jsonPath("data[0].attributes.voltageLevelId2").value("vl22"));
 
         // generator creation and update
+        RegulatingPointAttributes regulatingPointAttributes = RegulatingPointAttributes.builder()
+            .regulatingEquipmentId("id")
+            .regulatedResourceType(ResourceType.LOAD)
+            .regulatingTerminal(TerminalRefAttributes.builder().connectableId("idEq").side("ONE").build())
+            .localTerminal(TerminalRefAttributes.builder().connectableId("id").build())
+            .build();
         Resource<GeneratorAttributes> generator = Resource.generatorBuilder()
                 .id("id")
                 .attributes(GeneratorAttributes.builder()
@@ -529,10 +540,7 @@ public class NetworkStoreControllerIT {
                         .name("gen1")
                         .energySource(EnergySource.HYDRO)
                         .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().maxQ(10).minQ(10).build())
-                        .regulatingTerminal(TerminalRefAttributes.builder()
-                                .connectableId("idEq")
-                                .side("ONE")
-                                .build())
+                        .regulatingPoint(regulatingPointAttributes)
                         .build())
                 .build();
 
@@ -545,19 +553,21 @@ public class NetworkStoreControllerIT {
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(jsonPath("data[0].attributes.regulatingTerminal.connectableId").value("idEq"))
-                .andExpect(jsonPath("data[0].attributes.regulatingTerminal.side").value("ONE"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.connectableId").value("idEq"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.side").value("ONE"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.localTerminal.connectableId").value("id"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.kind").value("MIN_MAX"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.minQ").value(10.))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.maxQ").value(10.));
 
-        generator.getAttributes().getRegulatingTerminal().setConnectableId("idEq2");
-        generator.getAttributes().getRegulatingTerminal().setSide("TWO");
+        generator.getAttributes().getRegulatingPoint().getRegulatingTerminal().setConnectableId("idEq2");
+        generator.getAttributes().getRegulatingPoint().getRegulatingTerminal().setSide("TWO");
         generator.getAttributes().setReactiveLimits(ReactiveCapabilityCurveAttributes.builder()
             .points(new TreeMap<>(Map.of(
-                    50., ReactiveCapabilityCurvePointAttributes.builder().p(50.).minQ(11.).maxQ(76.).build(),
-                    50.12, ReactiveCapabilityCurvePointAttributes.builder().p(50.12).minQ(11.12).maxQ(76.12).build()
-            ))).build());
+                    50., ReactiveCapabilityCurvePointAttributes.builder().p(50.).minQ(11.).maxQ(76.).properties(Map.of("property1", "value1")).build(),
+                    50.12, ReactiveCapabilityCurvePointAttributes.builder().p(50.12).minQ(11.12).maxQ(76.12).properties(Map.of("property2", "value2")).build()
+            )))
+            .properties(Map.of("property3", "value3")).build());
 
         mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/generators")
                 .contentType(APPLICATION_JSON)
@@ -568,15 +578,19 @@ public class NetworkStoreControllerIT {
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(jsonPath("data[0].attributes.regulatingTerminal.connectableId").value("idEq2"))
-                .andExpect(jsonPath("data[0].attributes.regulatingTerminal.side").value("TWO"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.connectableId").value("idEq2"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.side").value("TWO"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.localTerminal.connectableId").value("id"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.kind").value("CURVE"))
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.properties[\"property3\"]").value("value3"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].p").value(50.))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].minQ").value(11.))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].maxQ").value(76.))
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.0\"].properties[\"property1\"]").value("value1"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].p").value(50.12))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].minQ").value(11.12))
-                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].maxQ").value(76.12));
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].maxQ").value(76.12))
+                .andExpect(jsonPath("data[0].attributes.reactiveLimits.points[\"50.12\"].properties[\"property2\"]").value("value2"));
 
         // battery creation and update
         Resource<BatteryAttributes> battery = Resource.batteryBuilder()
@@ -635,9 +649,7 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.p").value("310.0"))
                 .andExpect(jsonPath("data[0].attributes.q").value("120.0"));
 
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/batteries/battery1")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk());
+        deleteIdentifiables(List.of("battery1"), "batteries");
 
         // shunt compensator creation and update
         Resource<ShuntCompensatorAttributes> shuntCompensator = Resource.shuntCompensatorBuilder()
@@ -645,7 +657,12 @@ public class NetworkStoreControllerIT {
                 .attributes(ShuntCompensatorAttributes.builder()
                         .voltageLevelId("vl1")
                         .name("shunt1")
-                        .model(ShuntCompensatorLinearModelAttributes.builder().bPerSection(1).gPerSection(2).maximumSectionCount(3).build())
+                        .model(ShuntCompensatorLinearModelAttributes.builder()
+                            .bPerSection(1)
+                            .gPerSection(2)
+                            .maximumSectionCount(3)
+                            .properties(Map.of("property1", "value1"))
+                            .build())
                         .p(100.)
                         .build())
                 .build();
@@ -662,7 +679,8 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.model.bperSection").value(1))
                 .andExpect(jsonPath("data[0].attributes.model.gperSection").value(2))
                 .andExpect(jsonPath("data[0].attributes.model.maximumSectionCount").value(3))
-                .andExpect(jsonPath("data[0].attributes.p").value(100.));
+                .andExpect(jsonPath("data[0].attributes.model.properties[\"property1\"]").value("value1"))
+            .andExpect(jsonPath("data[0].attributes.p").value(100.));
 
         ((ShuntCompensatorLinearModelAttributes) shuntCompensator.getAttributes().getModel()).setBPerSection(15); // changing bPerSection value
         ((ShuntCompensatorLinearModelAttributes) shuntCompensator.getAttributes().getModel()).setGPerSection(22); // changing gPerSection value
@@ -696,12 +714,12 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.model.gperSection").value(22))
                 .andExpect(jsonPath("data[0].attributes.p").value(200.));
 
-        // dangling line creation and update
-        Resource<DanglingLineAttributes> danglingLine = Resource.danglingLineBuilder()
-                .id("idDanglingLine")
-                .attributes(DanglingLineAttributes.builder()
+        // boundary line creation and update
+        Resource<BoundaryLineAttributes> boundaryLine = Resource.boundaryLineBuilder()
+                .id("idBoundaryLine")
+                .attributes(BoundaryLineAttributes.builder()
                         .voltageLevelId("vl1")
-                        .name("dl1")
+                        .name("bl1")
                         .fictitious(true)
                         .node(5)
                         .p0(10)
@@ -710,32 +728,32 @@ public class NetworkStoreControllerIT {
                         .x(7)
                         .g(8)
                         .b(9)
-                        .generation(DanglingLineGenerationAttributes.builder()
+                        .generation(BoundaryLineGenerationAttributes.builder()
                                 .minP(1)
                                 .maxP(2)
                                 .targetP(3)
                                 .targetQ(4)
                                 .targetV(5)
                                 .voltageRegulationOn(false)
-                                .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().minQ(20).maxQ(30).build())
+                                .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().minQ(20).maxQ(30).properties(Map.of("property1", "value1")).build())
                                 .build())
                         .pairingKey("XN1")
                         .selectedOperationalLimitsGroupId("group1")
                         .operationalLimitsGroups(Map.of("group1", OperationalLimitsGroupAttributes.builder()
                                 .id("group1")
-                                .currentLimits(LimitsAttributes.builder().permanentLimit(20.).build())
+                                .currentLimits(LimitsAttributes.builder().permanentLimit(20.).properties(Map.of("property2", "value2")).build())
                                 .build()))
                         .p(100.)
                         .q(200)
                         .build())
                 .build();
 
-        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/dangling-lines")
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/boundary-lines")
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Collections.singleton(danglingLine))))
+                .content(objectMapper.writeValueAsString(Collections.singleton(boundaryLine))))
                 .andExpect(status().isCreated());
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/dangling-lines")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/boundary-lines")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -744,18 +762,19 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.generation.maxP").value(2))
                 .andExpect(jsonPath("data[0].attributes.generation.targetV").value(5))
                 .andExpect(jsonPath("data[0].attributes.generation.voltageRegulationOn").value(false))
-                .andExpect(jsonPath("data[0].attributes.generation.reactiveLimits.maxQ").value(30));
+                .andExpect(jsonPath("data[0].attributes.generation.reactiveLimits.maxQ").value(30))
+                .andExpect(jsonPath("data[0].attributes.generation.reactiveLimits.properties[\"property1\"]").value("value1"));
 
-        danglingLine.getAttributes().getGeneration().setMaxP(33);
-        danglingLine.getAttributes().getGeneration().setVoltageRegulationOn(true);
-        danglingLine.getAttributes().getGeneration().setTargetQ(54);
+        boundaryLine.getAttributes().getGeneration().setMaxP(33);
+        boundaryLine.getAttributes().getGeneration().setVoltageRegulationOn(true);
+        boundaryLine.getAttributes().getGeneration().setTargetQ(54);
 
-        mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/dangling-lines")
+        mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/boundary-lines")
                 .contentType(APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Collections.singleton(danglingLine))))
+                .content(objectMapper.writeValueAsString(Collections.singleton(boundaryLine))))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/dangling-lines")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/boundary-lines")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -763,7 +782,7 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.generation.targetQ").value(54))
                 .andExpect(jsonPath("data[0].attributes.generation.voltageRegulationOn").value(true));
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/dangling-lines/idDanglingLine")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/boundary-lines/idBoundaryLine")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -771,7 +790,7 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.generation.targetQ").value(54))
                 .andExpect(jsonPath("data[0].attributes.generation.voltageRegulationOn").value(true));
 
-        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/voltage-levels/vl1/dangling-lines")
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/voltage-levels/vl1/boundary-lines")
                 .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -848,22 +867,14 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.node").value(6));
 
         // Test removals
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/switches/b1")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk());
-
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/voltage-levels/baz")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk());
-
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/substations/bar")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk());
+        deleteIdentifiables(List.of("b1"), "switches");
+        deleteIdentifiables(List.of("baz"), "voltage-levels");
+        deleteIdentifiables(List.of("bar"), "substations");
 
         // tie line creation and update
         Resource<TieLineAttributes> tieLine = Resource.tieLineBuilder()
                 .id("idTieLine")
-                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).danglingLine1Id("half1").danglingLine2Id("half2")
+                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).boundaryLine1Id("half1").boundaryLine2Id("half2")
                         .build())
                 .build();
 
@@ -876,22 +887,20 @@ public class NetworkStoreControllerIT {
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(jsonPath("data[0].attributes.danglingLine1Id").value("half1"))
-                .andExpect(jsonPath("data[0].attributes.danglingLine2Id").value("half2"));
+                .andExpect(jsonPath("data[0].attributes.boundaryLine1Id").value("half1"))
+                .andExpect(jsonPath("data[0].attributes.boundaryLine2Id").value("half2"));
 
-        tieLine.getAttributes().setDanglingLine1Id("halfDl1");
+        tieLine.getAttributes().setBoundaryLine1Id("halfDl1");
         mvc.perform(put("/" + VERSION + "/networks/" + NETWORK_UUID + "/tie-lines")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Collections.singleton(tieLine))))
                 .andExpect(status().isOk());
 
-        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/tie-lines/idTieLine")
-                .contentType(APPLICATION_JSON))
-                .andExpect(status().isOk());
+        deleteIdentifiables(List.of("idTieLine"), "tie-lines");
     }
 
     @Test
-    public void networkCloneVariantTest() throws Exception {
+    void networkCloneVariantTest() throws Exception {
         // create a simple network with just one substation
         Resource<NetworkAttributes> n1 = Resource.networkBuilder()
                 .id("n1")
@@ -899,6 +908,7 @@ public class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -931,7 +941,7 @@ public class NetworkStoreControllerIT {
     }
 
     @Test
-    public void cloneNetworkTest() throws Exception {
+    void cloneNetworkTest() throws Exception {
         //Initialize network
         Resource<NetworkAttributes> n1 = Resource.networkBuilder()
                 .id("n1")
@@ -939,6 +949,7 @@ public class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -946,7 +957,12 @@ public class NetworkStoreControllerIT {
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(Collections.singleton(n1))))
                 .andExpect(status().isCreated());
-
+        RegulatingPointAttributes regulatingPointAttributes = RegulatingPointAttributes.builder()
+            .regulatingEquipmentId("id")
+            .regulatingResourceType(ResourceType.GENERATOR)
+            .regulatingTerminal(TerminalRefAttributes.builder().connectableId("idEq").side("ONE").build())
+            .localTerminal(TerminalRefAttributes.builder().connectableId("id").build())
+            .build();
         Resource<GeneratorAttributes> generator = Resource.generatorBuilder()
                 .id("id")
                 .attributes(GeneratorAttributes.builder()
@@ -954,10 +970,7 @@ public class NetworkStoreControllerIT {
                         .name("gen1")
                         .energySource(EnergySource.HYDRO)
                         .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().maxQ(10).minQ(10).build())
-                        .regulatingTerminal(TerminalRefAttributes.builder()
-                                .connectableId("idEq")
-                                .side("ONE")
-                                .build())
+                        .regulatingPoint(regulatingPointAttributes)
                         .build())
                 .build();
 
@@ -973,6 +986,7 @@ public class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId("v2")
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -988,6 +1002,7 @@ public class NetworkStoreControllerIT {
                 .attributes(NetworkAttributes.builder()
                         .uuid(NETWORK_UUID)
                         .variantId("v3")
+                        .fullVariantNum(-1)
                         .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
                         .build())
                 .build();
@@ -1012,30 +1027,30 @@ public class NetworkStoreControllerIT {
                 .andExpect(status().isCreated());
 
         //Clone the third variant
-        UUID clonedNetworkUuid = UUID.randomUUID();
-        mvc.perform(post("/" + VERSION + "/networks/" + clonedNetworkUuid + "?duplicateFrom=" + NETWORK_UUID + "&targetVariantIds=" + String.join(",", List.of("v2", "v3", "nonExistingVariant")))
+        mvc.perform(post("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID + "?duplicateFrom=" + NETWORK_UUID + "&targetVariantIds=" + String.join(",", List.of("v2", "v3", "nonExistingVariant")))
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        mvc.perform(get("/" + VERSION + "/networks/" + clonedNetworkUuid)
+        mvc.perform(get("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID)
                         .contentType(APPLICATION_JSON))
                  .andExpect(status().isOk())
                  .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                  .andExpect(content().json("[{\"id\":\"v2\",\"num\":0},{\"id\":\"v3\",\"num\":1}]"));
 
         //Check the generator is present in the cloned network
-        mvc.perform(get("/" + VERSION + "/networks/" + clonedNetworkUuid + "/" + 1 + "/generators")
+        mvc.perform(get("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID + "/" + 1 + "/generators")
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
-                .andExpect(jsonPath("data[0].attributes.regulatingTerminal.connectableId").value("idEq"))
-                .andExpect(jsonPath("data[0].attributes.regulatingTerminal.side").value("ONE"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.connectableId").value("idEq"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.regulatingTerminal.side").value("ONE"))
+                .andExpect(jsonPath("data[0].attributes.regulatingPoint.localTerminal.connectableId").value("id"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.kind").value("MIN_MAX"))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.minQ").value(10.))
                 .andExpect(jsonPath("data[0].attributes.reactiveLimits.maxQ").value(10.));
 
         //Check the shunt is present in the cloned network
-        mvc.perform(get("/" + VERSION + "/networks/" + clonedNetworkUuid + "/" + 1 + "/shunt-compensators")
+        mvc.perform(get("/" + VERSION + "/networks/" + CLONED_NETWORK_UUID + "/" + 1 + "/shunt-compensators")
                         .contentType(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
@@ -1043,5 +1058,704 @@ public class NetworkStoreControllerIT {
                 .andExpect(jsonPath("data[0].attributes.model.gperSection").value(2))
                 .andExpect(jsonPath("data[0].attributes.model.maximumSectionCount").value(3))
                 .andExpect(jsonPath("data[0].attributes.p").value(100.));
+    }
+
+    @Test
+    void getExtensionAttributesTest() throws Exception {
+        setupExtensionAttributesTest();
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/id/extensions/" + ActivePowerControl.NAME))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("data[0].extensionName").value(ActivePowerControl.NAME))
+                .andExpect(jsonPath("data[0].participate").value(true))
+                .andExpect(jsonPath("data[0].droop").value(24))
+                .andExpect(jsonPath("data[0].participationFactor").value(0.6))
+                .andExpect(jsonPath("data[0].minTargetP").value(4.0))
+                .andExpect(jsonPath("data[0].maxTargetP").value(6.0));
+    }
+
+    @Test
+    void getAllExtensionsAttributesByResourceTypeAndExtensionNameTest() throws Exception {
+        setupExtensionAttributesTest();
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/types/" + ResourceType.GENERATOR + "/extensions/" + ActivePowerControl.NAME))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.id.extensionName").value(ActivePowerControl.NAME))
+                .andExpect(jsonPath("$.id.participate").value(true))
+                .andExpect(jsonPath("$.id.droop").value(24))
+                .andExpect(jsonPath("$.id.participationFactor").value(0.6))
+                .andExpect(jsonPath("$.id.minTargetP").value(4.0))
+                .andExpect(jsonPath("$.id.maxTargetP").value(6.0))
+                .andExpect(jsonPath("$.id2.extensionName").value(ActivePowerControl.NAME))
+                .andExpect(jsonPath("$.id2.participate").value(false))
+                .andExpect(jsonPath("$.id2.droop").value(12))
+                .andExpect(jsonPath("$.id2.participationFactor").value(0.7))
+                .andExpect(jsonPath("$.id2.minTargetP").value(8.0))
+                .andExpect(jsonPath("$.id2.maxTargetP").value(10.0));
+    }
+
+    @Test
+    void getAllExtensionsAttributesByIdentifiableIdTest() throws Exception {
+        setupExtensionAttributesTest();
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/id/extensions"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.activePowerControl.extensionName").value(ActivePowerControl.NAME))
+                .andExpect(jsonPath("$.activePowerControl.participate").value(true))
+                .andExpect(jsonPath("$.activePowerControl.droop").value(24))
+                .andExpect(jsonPath("$.activePowerControl.participationFactor").value(0.6))
+                .andExpect(jsonPath("$.activePowerControl.minTargetP").value(4.0))
+                .andExpect(jsonPath("$.activePowerControl.maxTargetP").value(6.0))
+                .andExpect(jsonPath("$.startup.extensionName").value(GeneratorStartup.NAME))
+                .andExpect(jsonPath("$.startup.plannedActivePowerSetpoint").value(12.0))
+                .andExpect(jsonPath("$.startup.startupCost").value(34.0))
+                .andExpect(jsonPath("$.startup.marginalCost").value(5.0))
+                .andExpect(jsonPath("$.startup.plannedOutageRate").value(6.0))
+                .andExpect(jsonPath("$.startup.forcedOutageRate").value(8.0));
+    }
+
+    @Test
+    void getAllExtensionsAttributesByResourceTypeTest() throws Exception {
+        setupExtensionAttributesTest();
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/types/" + ResourceType.GENERATOR + "/extensions"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(jsonPath("$.id.activePowerControl.extensionName").value(ActivePowerControl.NAME))
+                .andExpect(jsonPath("$.id.activePowerControl.participate").value(true))
+                .andExpect(jsonPath("$.id.activePowerControl.droop").value(24))
+                .andExpect(jsonPath("$.id.activePowerControl.participationFactor").value(0.6))
+                .andExpect(jsonPath("$.id.activePowerControl.minTargetP").value(4.0))
+                .andExpect(jsonPath("$.id.activePowerControl.maxTargetP").value(6.0))
+                .andExpect(jsonPath("$.id.startup.extensionName").value(GeneratorStartup.NAME))
+                .andExpect(jsonPath("$.id.startup.plannedActivePowerSetpoint").value(12.0))
+                .andExpect(jsonPath("$.id.startup.startupCost").value(34.0))
+                .andExpect(jsonPath("$.id.startup.marginalCost").value(5.0))
+                .andExpect(jsonPath("$.id.startup.plannedOutageRate").value(6.0))
+                .andExpect(jsonPath("$.id.startup.forcedOutageRate").value(8.0))
+                .andExpect(jsonPath("$.id2.activePowerControl.extensionName").value(ActivePowerControl.NAME))
+                .andExpect(jsonPath("$.id2.activePowerControl.participate").value(false))
+                .andExpect(jsonPath("$.id2.activePowerControl.droop").value(12))
+                .andExpect(jsonPath("$.id2.activePowerControl.participationFactor").value(0.7))
+                .andExpect(jsonPath("$.id2.activePowerControl.minTargetP").value(8.0))
+                .andExpect(jsonPath("$.id2.activePowerControl.maxTargetP").value(10.0))
+                .andExpect(jsonPath("$.id2.startup.extensionName").value(GeneratorStartup.NAME))
+                .andExpect(jsonPath("$.id2.startup.plannedActivePowerSetpoint").value(10.0))
+                .andExpect(jsonPath("$.id2.startup.startupCost").value(23.0))
+                .andExpect(jsonPath("$.id2.startup.marginalCost").value(7.0))
+                .andExpect(jsonPath("$.id2.startup.plannedOutageRate").value(9.0))
+                .andExpect(jsonPath("$.id2.startup.forcedOutageRate").value(10.0));
+
+    }
+
+    @Test
+    void removeExtensionAttributesTest() throws Exception {
+        setupExtensionAttributesTest();
+        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/id/extensions/" + ActivePowerControl.NAME))
+                .andExpect(status().isOk());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/identifiables/id/extensions/" + ActivePowerControl.NAME))
+                .andExpect(status().isNotFound());
+    }
+
+    private void setupExtensionAttributesTest() throws Exception {
+        // Create network
+        Resource<NetworkAttributes> n1 = Resource.networkBuilder()
+                .id("n1")
+                .variantNum(0)
+                .attributes(NetworkAttributes.builder()
+                        .uuid(NETWORK_UUID)
+                        .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                        .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
+                        .build())
+                .build();
+
+        mvc.perform(post("/" + VERSION + "/networks")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Collections.singleton(n1))))
+                .andExpect(status().isCreated());
+        // Create first generator with two extensions
+        Resource<GeneratorAttributes> generator = Resource.generatorBuilder()
+                .id("id")
+                .attributes(GeneratorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("gen1")
+                        .energySource(EnergySource.HYDRO)
+                        .extensionAttributes(Map.of(
+                                ActivePowerControl.NAME, new ActivePowerControlAttributes(true, 24, 0.6, 4, 6),
+                                GeneratorStartup.NAME, new GeneratorStartupAttributes(12, 34, 5, 6, 8)))
+                        .build())
+                .build();
+
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/generators")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Collections.singleton(generator))))
+                .andExpect(status().isCreated());
+
+        // Create second generator with two extensions
+        Resource<GeneratorAttributes> generator2 = Resource.generatorBuilder()
+                .id("id2")
+                .attributes(GeneratorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("gen2")
+                        .energySource(EnergySource.NUCLEAR)
+                        .extensionAttributes(Map.of(
+                                ActivePowerControl.NAME, new ActivePowerControlAttributes(false, 12, 0.7, 8, 10),
+                                GeneratorStartup.NAME, new GeneratorStartupAttributes(10, 23, 7, 9, 10)
+                        ))
+                        .build())
+                .build();
+
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/generators")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Collections.singleton(generator2))))
+                .andExpect(status().isCreated());
+    }
+
+    @SuppressWarnings("checkstyle:MethodLength")
+    @Test
+    void testDeleteIdentifiables() throws Exception {
+        Resource<NetworkAttributes> foo = Resource.networkBuilder()
+                .id("foo")
+                .attributes(NetworkAttributes.builder()
+                        .uuid(NETWORK_UUID)
+                        .variantId(String.valueOf(Resource.INITIAL_VARIANT_NUM))
+                        .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
+                        .build())
+                .build();
+        mvc.perform(post("/" + VERSION + "/networks")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Collections.singleton(foo))))
+                .andExpect(status().isCreated());
+
+        Resource<VoltageLevelAttributes> vl1 = Resource.voltageLevelBuilder()
+                .id("vl1")
+                .attributes(VoltageLevelAttributes.builder()
+                        .nominalV(382)
+                        .lowVoltageLimit(362)
+                        .highVoltageLimit(402)
+                        .topologyKind(TopologyKind.NODE_BREAKER)
+                        .internalConnections(Collections.emptyList())
+                        .build())
+                .build();
+        createIdentifiable(vl1, "voltage-levels");
+
+        // substations
+        Resource<SubstationAttributes> sub1 = Resource.substationBuilder().id("sub1")
+                .attributes(SubstationAttributes.builder()
+                        .country(Country.FR)
+                        .tso("RTE")
+                        .entsoeArea(EntsoeAreaAttributes.builder().code("D7").build())
+                        .build())
+                .build();
+        createIdentifiable(sub1, "substations");
+
+        Resource<SubstationAttributes> sub2 = Resource.substationBuilder().id("sub2")
+                .attributes(SubstationAttributes.builder()
+                        .country(Country.FR)
+                        .tso("RTE")
+                        .entsoeArea(EntsoeAreaAttributes.builder().code("D7").build())
+                        .build())
+                .build();
+        createIdentifiable(sub2, "substations");
+
+        deleteIdentifiables(List.of("sub1", "sub2"), "substations");
+
+        // voltage levels
+        Resource<VoltageLevelAttributes> vl11 = Resource.voltageLevelBuilder()
+                .id("vl11")
+                .attributes(VoltageLevelAttributes.builder()
+                        .nominalV(382)
+                        .lowVoltageLimit(362)
+                        .highVoltageLimit(402)
+                        .topologyKind(TopologyKind.NODE_BREAKER)
+                        .internalConnections(Collections.emptyList())
+                        .build())
+                .build();
+        createIdentifiable(vl11, "voltage-levels");
+
+        Resource<VoltageLevelAttributes> vl12 = Resource.voltageLevelBuilder()
+                .id("vl12")
+                .attributes(VoltageLevelAttributes.builder()
+                        .nominalV(382)
+                        .lowVoltageLimit(362)
+                        .highVoltageLimit(402)
+                        .topologyKind(TopologyKind.NODE_BREAKER)
+                        .internalConnections(Collections.emptyList())
+                        .build())
+                .build();
+        createIdentifiable(vl12, "voltage-levels");
+
+        deleteIdentifiables(List.of("vl11", "vl12"), "voltage-levels");
+
+        // generators
+        Resource<GeneratorAttributes> generator1 = Resource.generatorBuilder()
+                .id("gen1")
+                .attributes(GeneratorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("gen1")
+                        .energySource(EnergySource.HYDRO)
+                        .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().maxQ(10).minQ(10).build()).build())
+                .build();
+        createIdentifiable(generator1, "generators");
+
+        Resource<GeneratorAttributes> generator2 = Resource.generatorBuilder()
+                .id("gen2")
+                .attributes(GeneratorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("gen1")
+                        .energySource(EnergySource.HYDRO)
+                        .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().maxQ(10).minQ(10).build())
+                        .build())
+                .build();
+        createIdentifiable(generator2, "generators");
+
+        // switches
+        Resource<SwitchAttributes> switch1 = Resource.switchBuilder()
+                .id("b1")
+                .attributes(SwitchAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .kind(SwitchKind.BREAKER)
+                        .node1(1)
+                        .node2(2)
+                        .open(false)
+                        .retained(false)
+                        .fictitious(false)
+                        .build())
+                .build();
+        createIdentifiable(switch1, "switches");
+
+        Resource<SwitchAttributes> switch2 = Resource.switchBuilder()
+                .id("b2")
+                .attributes(SwitchAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .kind(SwitchKind.BREAKER)
+                        .node1(1)
+                        .node2(2)
+                        .open(false)
+                        .retained(false)
+                        .fictitious(false)
+                        .build())
+                .build();
+        createIdentifiable(switch2, "switches");
+        deleteIdentifiables(List.of("b1", "b2"), "switches");
+
+        // lines
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+                .id("line1")
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .build())
+                .build();
+        createIdentifiable(line1, "lines");
+
+        Resource<LineAttributes> line2 = Resource.lineBuilder()
+                .id("line2")
+                .attributes(LineAttributes.builder()
+                        .voltageLevelId1("vl1")
+                        .voltageLevelId2("vl2")
+                        .build())
+                .build();
+        createIdentifiable(line2, "lines");
+
+        deleteIdentifiables(List.of("line1", "line2"), "lines");
+
+        // batteries
+        Resource<BatteryAttributes> battery1 = Resource.batteryBuilder()
+                .id("bat1")
+                .attributes(BatteryAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("battery1")
+                        .targetP(250)
+                        .targetQ(100)
+                        .maxP(500)
+                        .minP(100)
+                        .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().maxQ(10).minQ(10).build())
+                        .build())
+                .build();
+        createIdentifiable(battery1, "batteries");
+
+        Resource<BatteryAttributes> battery2 = Resource.batteryBuilder()
+                .id("bat2")
+                .attributes(BatteryAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("battery1")
+                        .targetP(250)
+                        .targetQ(100)
+                        .maxP(500)
+                        .minP(100)
+                        .reactiveLimits(MinMaxReactiveLimitsAttributes.builder().maxQ(10).minQ(10).build())
+                        .build())
+                .build();
+        createIdentifiable(battery2, "batteries");
+
+        deleteIdentifiables(List.of("bat1", "bat2"), "batteries");
+
+        // shunt-compensators
+        Resource<ShuntCompensatorAttributes> shuntCompensator1 = Resource.shuntCompensatorBuilder()
+                .id("idShunt1")
+                .attributes(ShuntCompensatorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("shunt1")
+                        .model(ShuntCompensatorLinearModelAttributes.builder().bPerSection(1).gPerSection(2).maximumSectionCount(3).build())
+                        .p(100.)
+                        .build())
+                .build();
+        createIdentifiable(shuntCompensator1, "shunt-compensators");
+
+        Resource<ShuntCompensatorAttributes> shuntCompensator2 = Resource.shuntCompensatorBuilder()
+                .id("idShunt2")
+                .attributes(ShuntCompensatorAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("shunt1")
+                        .model(ShuntCompensatorLinearModelAttributes.builder().bPerSection(1).gPerSection(2).maximumSectionCount(3).build())
+                        .p(100.)
+                        .build())
+                .build();
+        createIdentifiable(shuntCompensator2, "shunt-compensators");
+
+        deleteIdentifiables(List.of("idShunt2", "idShunt1"), "shunt-compensators");
+
+        Resource<BoundaryLineAttributes> boundaryLine1 = Resource.boundaryLineBuilder()
+                .id("idBoundaryLine1")
+                .attributes(BoundaryLineAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("bl1")
+                        .build())
+                .build();
+        createIdentifiable(boundaryLine1, "boundary-lines");
+
+        Resource<BoundaryLineAttributes> boundaryLine2 = Resource.boundaryLineBuilder()
+                .id("idBoundaryLine2")
+                .attributes(BoundaryLineAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("bl1")
+                        .build())
+                .build();
+        createIdentifiable(boundaryLine2, "boundary-lines");
+
+        deleteIdentifiables(List.of("idBoundaryLine1", "idBoundaryLine2"), "boundary-lines");
+
+        // grounds
+        Resource<GroundAttributes> ground1 = Resource.groundBuilder()
+                .id("idGround1")
+                .attributes(GroundAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("ground1")
+                        .build())
+                .build();
+        createIdentifiable(ground1, "grounds");
+
+        Resource<GroundAttributes> ground2 = Resource.groundBuilder()
+                .id("idGround2")
+                .attributes(GroundAttributes.builder()
+                        .voltageLevelId("vl1")
+                        .name("ground1")
+                        .build())
+                .build();
+        createIdentifiable(ground2, "grounds");
+
+        deleteIdentifiables(List.of("idGround2", "idGround1"), "grounds");
+
+        // tie-lines
+        Resource<TieLineAttributes> tieLine1 = Resource.tieLineBuilder()
+                .id("idTieLine1")
+                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).boundaryLine1Id("half1").boundaryLine2Id("half2")
+                        .build())
+                .build();
+        createIdentifiable(tieLine1, "tie-lines");
+
+        Resource<TieLineAttributes> tieLine2 = Resource.tieLineBuilder()
+                .id("idTieLine2")
+                .attributes(TieLineAttributes.builder().name("TieLine").fictitious(false).boundaryLine1Id("half1").boundaryLine2Id("half2")
+                        .build())
+                .build();
+        createIdentifiable(tieLine2, "tie-lines");
+
+        deleteIdentifiables(List.of("idTieLine1", "idTieLine2"), "tie-lines");
+
+        // vsc converter stations
+        Resource<VscConverterStationAttributes> vsc1 = Resource.vscConverterStationBuilder()
+                .id("vsc1")
+                .attributes(VscConverterStationAttributes.builder().name("vsc1").build())
+                .build();
+        createIdentifiable(vsc1, "vsc-converter-stations");
+
+        Resource<VscConverterStationAttributes> vsc2 = Resource.vscConverterStationBuilder()
+                .id("vsc2")
+                .attributes(VscConverterStationAttributes.builder().name("vsc2").build())
+                .build();
+        createIdentifiable(vsc2, "vsc-converter-stations");
+
+        deleteIdentifiables(List.of("vsc1", "vsc2"), "vsc-converter-stations");
+
+        // lcc converter stations
+        Resource<LccConverterStationAttributes> lcc1 = Resource.lccConverterStationBuilder()
+                .id("lcc1")
+                .attributes(LccConverterStationAttributes.builder().name("lcc1").build())
+                .build();
+        createIdentifiable(lcc1, "lcc-converter-stations");
+
+        Resource<LccConverterStationAttributes> lcc2 = Resource.lccConverterStationBuilder()
+                .id("lcc2")
+                .attributes(LccConverterStationAttributes.builder().name("lcc2").build())
+                .build();
+        createIdentifiable(lcc2, "lcc-converter-stations");
+
+        deleteIdentifiables(List.of("lcc1", "lcc2"), "lcc-converter-stations");
+
+        //HVDC
+        Resource<HvdcLineAttributes> hvdc1 = Resource.hvdcLineBuilder()
+                .id("hvdc1")
+                .attributes(HvdcLineAttributes.builder().name("hvdc1").build())
+                .build();
+        createIdentifiable(hvdc1, "hvdc-lines");
+
+        Resource<HvdcLineAttributes> hvdc2 = Resource.hvdcLineBuilder()
+                .id("hvdc2")
+                .attributes(HvdcLineAttributes.builder().name("hvdc2").build())
+                .build();
+        createIdentifiable(hvdc2, "hvdc-lines");
+
+        deleteIdentifiables(List.of("hvdc1", "hvdc2"), "hvdc-lines");
+
+        // loads
+        Resource<LoadAttributes> load1 = Resource.loadBuilder()
+                .id("load1")
+                .attributes(LoadAttributes.builder().name("load1").build())
+                .build();
+        createIdentifiable(load1, "loads");
+
+        Resource<LoadAttributes> load2 = Resource.loadBuilder()
+                .id("load2")
+                .attributes(LoadAttributes.builder().name("load2").build())
+                .build();
+        createIdentifiable(load2, "loads");
+
+        deleteIdentifiables(List.of("load1", "load2"), "loads");
+
+        // static var compensators
+        Resource<StaticVarCompensatorAttributes> svc1 = Resource.staticVarCompensatorBuilder()
+                .id("svc1")
+                .attributes(StaticVarCompensatorAttributes.builder().name("svc1").build())
+                .build();
+        createIdentifiable(svc1, "static-var-compensators");
+
+        Resource<StaticVarCompensatorAttributes> svc2 = Resource.staticVarCompensatorBuilder()
+                .id("svc2")
+                .attributes(StaticVarCompensatorAttributes.builder().name("svc2").build())
+                .build();
+        createIdentifiable(svc2, "static-var-compensators");
+
+        deleteIdentifiables(List.of("svc1", "svc2"), "static-var-compensators");
+
+        // 2 windings transformers
+        Resource<TwoWindingsTransformerAttributes> twoWT1 = Resource.twoWindingsTransformerBuilder()
+                .id("TwoWT1")
+                .attributes(TwoWindingsTransformerAttributes.builder().name("TwoWT1").build())
+                .build();
+        createIdentifiable(twoWT1, "2-windings-transformers");
+
+        Resource<TwoWindingsTransformerAttributes> twoWT2 = Resource.twoWindingsTransformerBuilder()
+                .id("TwoWT2")
+                .attributes(TwoWindingsTransformerAttributes.builder().name("TwoWT2").build())
+                .build();
+        createIdentifiable(twoWT2, "2-windings-transformers");
+
+        deleteIdentifiables(List.of("TwoWT1", "TwoWT2"), "2-windings-transformers");
+
+        // 3 windings transformers
+        Resource<ThreeWindingsTransformerAttributes> threeWT1 = Resource.threeWindingsTransformerBuilder()
+                .id("ThreeWT1")
+                .attributes(ThreeWindingsTransformerAttributes.builder()
+                        .name("ThreeWT1")
+                        .leg1(LegAttributes.builder().voltageLevelId("baz").build())
+                        .leg2(LegAttributes.builder().voltageLevelId("baz").build())
+                        .leg3(LegAttributes.builder().voltageLevelId("baz").build())
+                        .build())
+                .build();
+        createIdentifiable(threeWT1, "3-windings-transformers");
+
+        Resource<ThreeWindingsTransformerAttributes> threeWT2 = Resource.threeWindingsTransformerBuilder()
+                .id("ThreeWT2")
+                .attributes(ThreeWindingsTransformerAttributes.builder()
+                        .name("ThreeWT2")
+                        .leg1(LegAttributes.builder().voltageLevelId("baz").build())
+                        .leg2(LegAttributes.builder().voltageLevelId("baz").build())
+                        .leg3(LegAttributes.builder().voltageLevelId("baz").build())
+                        .build())
+                .build();
+        createIdentifiable(threeWT2, "3-windings-transformers");
+
+        deleteIdentifiables(List.of("ThreeWT2", "ThreeWT1"), "3-windings-transformers");
+
+        // busbar sections
+        Resource<BusbarSectionAttributes> busBar1 = Resource.busbarSectionBuilder()
+                .id("busBar1")
+                .attributes(BusbarSectionAttributes.builder().name("busBar1").build())
+                .build();
+        createIdentifiable(busBar1, "busbar-sections");
+
+        Resource<BusbarSectionAttributes> busBar2 = Resource.busbarSectionBuilder()
+                .id("busBar2")
+                .attributes(BusbarSectionAttributes.builder().name("busBar2").build())
+                .build();
+        createIdentifiable(busBar2, "busbar-sections");
+
+        deleteIdentifiables(List.of("busBar2", "busBar1"), "busbar-sections");
+
+        // configured buses
+        Resource<ConfiguredBusAttributes> bus1 = Resource.configuredBusBuilder()
+                .id("bus1")
+                .attributes(ConfiguredBusAttributes.builder().name("bus1").build())
+                .build();
+        createIdentifiable(bus1, "configured-buses");
+
+        Resource<ConfiguredBusAttributes> bus2 = Resource.configuredBusBuilder()
+                .id("bus2")
+                .attributes(ConfiguredBusAttributes.builder().name("bus2").build())
+                .build();
+        createIdentifiable(bus2, "configured-buses");
+
+        deleteIdentifiables(List.of("bus1", "bus2"), "configured-buses");
+    }
+
+    private void createIdentifiable(Resource<? extends AbstractIdentifiableAttributes> resource, String identifiableType) throws Exception {
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + identifiableType)
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Collections.singleton(resource))))
+                .andExpect(status().isCreated());
+    }
+
+    private void deleteIdentifiables(List<String> ids, String identifiableType) throws Exception {
+        mvc.perform(delete("/" + VERSION + "/networks/" + NETWORK_UUID + "/" + Resource.INITIAL_VARIANT_NUM + "/" + identifiableType)
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(ids)))
+                .andExpect(status().isOk());
+    }
+
+    private void setupOperationalLimitsGroupAttributesTest() throws Exception {
+        // Create network
+        Resource<NetworkAttributes> n1 = Resource.networkBuilder()
+            .id("n1")
+            .variantNum(0)
+            .attributes(NetworkAttributes.builder()
+                .uuid(NETWORK_UUID)
+                .variantId(VariantManagerConstants.INITIAL_VARIANT_ID)
+                .caseDate(ZonedDateTime.parse("2015-01-01T00:00:00.000Z"))
+                .build())
+            .build();
+
+        mvc.perform(post("/" + VERSION + "/networks")
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(Collections.singleton(n1))))
+            .andExpect(status().isCreated());
+        // Create first line with two olg
+        String olgId1 = "selectedside1";
+        String olgId2 = "selectedside2";
+        String olgId3 = "otherside1line1";
+        String olgId4 = "otherside1line2";
+        OperationalLimitsGroupAttributes olg1 = createOperationalLimitsGroupAttributes(olgId1);
+        OperationalLimitsGroupAttributes olg2 = createOperationalLimitsGroupAttributes(olgId2);
+        OperationalLimitsGroupAttributes olg3 = createOperationalLimitsGroupAttributes(olgId3);
+        OperationalLimitsGroupAttributes olg4 = createOperationalLimitsGroupAttributes(olgId4);
+        Resource<LineAttributes> line1 = Resource.lineBuilder()
+            .id("line1")
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl1")
+                .voltageLevelId2("vl2")
+                .name("line1")
+                .selectedOperationalLimitsGroupId1(olgId1)
+                .operationalLimitsGroups1(Map.of(olgId1, olg1, olgId3, olg3))
+                .selectedOperationalLimitsGroupId2(olgId2)
+                .operationalLimitsGroups2(Map.of(olgId2, olg2))
+                .build())
+            .build();
+
+        Resource<LineAttributes> line2 = Resource.lineBuilder()
+            .id("line2")
+            .attributes(LineAttributes.builder()
+                .voltageLevelId1("vl3")
+                .voltageLevelId2("vl4")
+                .name("line2")
+                .selectedOperationalLimitsGroupId1(olgId1)
+                .operationalLimitsGroups1(Map.of(olgId1, olg1))
+                .selectedOperationalLimitsGroupId2(olgId2)
+                .operationalLimitsGroups2(Map.of(olgId2, olg2, olgId4, olg4))
+                .build())
+            .build();
+
+        mvc.perform(post("/" + VERSION + "/networks/" + NETWORK_UUID + "/lines")
+                .contentType(APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(List.of(line1, line2))))
+            .andExpect(status().isCreated());
+    }
+
+    private OperationalLimitsGroupAttributes createOperationalLimitsGroupAttributes(String operationalLimitsGroupId) {
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = new TreeMap<>();
+        temporaryLimits.put(10, TemporaryLimitAttributes.builder()
+            .value(12)
+            .name("temporarylimit1")
+            .acceptableDuration(10)
+            .fictitious(false)
+            .properties(Map.of("tlprop1", "tlvalue1", "tlprop2", "tlvalue2"))
+            .build());
+        return OperationalLimitsGroupAttributes.builder()
+            .id(operationalLimitsGroupId)
+            .currentLimits(LimitsAttributes.builder()
+                .permanentLimit(1)
+                .temporaryLimits(temporaryLimits)
+                .properties(Map.of("lprop3", "lvalue3", "lprop4", "lvalue4"))
+                .build())
+            .properties(Map.of("prop1", "value1", "prop2", "value2"))
+            .build();
+    }
+
+    @Test
+    void getAllOperationalLimitsGroupAttributesTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(getClass().getResourceAsStream("/allOperationalLimitsGroupResultTest.json").readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/types/LINE/operationalLimitsGroup"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getAllSelectedOperationalLimitsGroupAttributesTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(Objects.requireNonNull(getClass().getResourceAsStream("/allSelectedOperationalLimitsGroupResultTest.json")).readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/types/LINE/operationalLimitsGroup/selected"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getAllOperationalLimitsGroupAttributesForBranchSideTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(Objects.requireNonNull(getClass().getResourceAsStream("/allOperationalLimitsGroupForBranchLine1ResultTest.json")).readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/line1/types/LINE/side/1/operationalLimitsGroup"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getOneOperationalLimitsGroupAttributesTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        String resultString = new String(Objects.requireNonNull(getClass().getResourceAsStream("/OneOperationalLimitsGroupResultTest.json")).readAllBytes());
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/line1/types/LINE/operationalLimitsGroup/selectedside1/side/1"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json(resultString));
+    }
+
+    @Test
+    void getOperationalLimitsGroupAttributesNotFoundTest() throws Exception {
+        setupOperationalLimitsGroupAttributesTest();
+        mvc.perform(get("/" + VERSION + "/networks/" + NETWORK_UUID + "/0/branch/notFound/types/LINE/operationalLimitsGroup/notFound/side/1"))
+            .andExpect(status().isNotFound())
+            .andExpect(content().contentType(APPLICATION_JSON))
+            .andExpect(content().json("{}"));
     }
 }

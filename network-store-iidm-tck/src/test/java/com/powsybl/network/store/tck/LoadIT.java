@@ -6,39 +6,37 @@
  */
 package com.powsybl.network.store.tck;
 
+import com.powsybl.iidm.network.DefaultNetworkListener;
+import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.NetworkListener;
 import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.tck.AbstractLoadTest;
 import com.powsybl.iidm.network.test.FictitiousSwitchFactory;
 import com.powsybl.network.store.server.NetworkStoreApplication;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-@ContextHierarchy({
-    @ContextConfiguration(classes = {NetworkStoreApplication.class})
-    })
-@TestPropertySource(properties = { "spring.config.location=classpath:application.yaml" })
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = {"spring.config.location=classpath:application.yaml"})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class})})
 class LoadIT extends AbstractLoadTest {
 
-    //TODO remove this test when ZipLoadModelAdder is implemented
     @Override
     @Test
-    public void testZipLoadModel() { }
+    public void testZipLoadModel() {
+        //TODO remove this test when ZipLoadModelAdder is implemented
+    }
 
-    //TODO remove this test when ZipLoadModelAdder is implemented
     @Override
     @Test
     public void testExponentialLoadModel() {
-        // FIXME
+        //TODO remove this test when ZipLoadModelAdder is implemented
         Network network = FictitiousSwitchFactory.create();
         VoltageLevel voltageLevel = network.getVoltageLevel("C");
         assertNull(voltageLevel.newLoad().newExponentialModel().setNp(0.0).setNq(0.0).add());
@@ -48,6 +46,23 @@ class LoadIT extends AbstractLoadTest {
     @Override
     public void testSetterGetterInMultiVariants() {
         //FIXME remove when we fix primary key constraints violation on DB
+    }
+
+    @Test
+    @Override
+    public void setNameTest() {
+        NetworkListener mockedListener = Mockito.mock(DefaultNetworkListener.class);
+        Network network = FictitiousSwitchFactory.create();
+        network.addListener(mockedListener);
+        Load load = network.getLoad("CE");
+        Assertions.assertNotNull(load);
+        Assertions.assertTrue(load.getOptionalName().isEmpty());
+        load.setName("FOO");
+        Assertions.assertEquals("FOO", load.getOptionalName().orElseThrow());
+        // The following line is overrided from AbstractLoadTest::setNameTest due to a difference in
+        // the variantId ergument of onUpdate method :
+        // null in AbstractLoadTest and "InitialState" in network store
+        Mockito.verify(mockedListener, Mockito.times(1)).onUpdate(load, "name", "InitialState", null, "FOO");
     }
 
 }

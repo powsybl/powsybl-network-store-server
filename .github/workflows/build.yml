@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+
+jobs:
+  build:
+    uses: powsybl/github-ci/.github/workflows/build-backend-app-generic.yml@27de863e5794d59dad7cecf85157f3d55511a5aa
+    with:
+      dockerImage: docker.io/powsybl/network-store-server
+      dockerUsername: powsyblci
+      eventOrganizations: gridsuite
+      eventType: network_store_server_updated
+    secrets:
+      sonar-token: ${{ secrets.SONAR_TOKEN }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      repo-token: ${{ secrets.REPO_ACCESS_TOKEN }}
