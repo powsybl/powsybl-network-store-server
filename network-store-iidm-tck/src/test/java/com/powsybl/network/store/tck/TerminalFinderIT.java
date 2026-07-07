@@ -8,7 +8,6 @@ package com.powsybl.network.store.tck;
 
 import com.powsybl.iidm.network.tck.AbstractTerminalFinderTest;
 import com.powsybl.network.store.server.NetworkStoreApplication;
-import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
