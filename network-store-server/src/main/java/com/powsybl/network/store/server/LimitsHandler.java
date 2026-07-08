@@ -151,7 +151,6 @@ public class LimitsHandler {
     private Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> innerGetOperationalLimitsGroups(PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map = new HashMap<>();
-            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> olgToMigrate = new HashMap<>();
             while (resultSet.next()) {
                 OperationalLimitsGroupOwnerInfo owner = new OperationalLimitsGroupOwnerInfo();
                 // In order, from the QueryCatalog.buildOperationalLimitsGroupQuery SQL query :

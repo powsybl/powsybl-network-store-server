@@ -156,7 +156,7 @@ public final class QueryLimitsCatalog {
                 " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " +
                 NETWORK_UUID_COLUMN + " = ? and " +
                 VARIANT_NUM_COLUMN + " = ? and " +
-                columnNameForWhereClause + " = ? and " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + " is not null";
+                columnNameForWhereClause + " = ? and " + V237_TEMPORARY_LIMITS_COLUMN + " is not null";
     }
 
     public static String buildOperationalLimitsGroupWithInClauseQuery(String columnNameForInClause, int numberOfValues) {
