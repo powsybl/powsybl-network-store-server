@@ -4,8 +4,12 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet author="lesoteti" id="321000000000-1">
+        <renameColumn
+                newColumnName="current_limits_temporary_limits_v237"
+                oldColumnName="current_limits_temporary_limits"
+                tableName="operationallimitsgroup"/>
         <addColumn tableName="operationallimitsgroup">
-            <column name="current_limits_temporary_limits_v237" type="TEXT"/>
+            <column name="current_limits_temporary_limits" type="TEXT"/>
         </addColumn>
     </changeSet>
 </databaseChangeLog>

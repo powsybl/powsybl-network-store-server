@@ -154,7 +154,7 @@ public class LimitsHandler {
                 // 7 current_limits_permanent_limit, 8 current_limits_temporary_limits, 9 current_limits_properties,
                 // 10 apparent_power_limits_permanent_limit, 11 apparent_power_limits_temporary_limits, 12 apparent_power_limits_properties,
                 // 13 active_power_limits_permanent_limit, 14 active_power_limits_temporary_limits, 15 active_power_limits_properties,
-                // 16 properties, 17 current_limits_temporary_limits_v2.37
+                // 16 properties, 17 old current_limits_temporary_limits_v2.37
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
@@ -167,15 +167,15 @@ public class LimitsHandler {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
                 operationalLimitsGroupAttributes.setId(operationalLimitsGroupId);
                 LimitsAttributes currentLimits;
-                // FIXME : clean when all temporary limits are migrated to new column
+                // FIXME : to revert when migration 2.37 limits migration is done
                 if (resultSet.getString(8) != null) {
-                    currentLimits = createOldLimitsAttributes(
+                    currentLimits = createLimitsAttributes(
                             resultSet.getObject(7, Double.class),
                             resultSet.getString(8),
                             resultSet.getString(9)
                     );
                 } else {
-                    currentLimits = createLimitsAttributes(
+                    currentLimits = createOldLimitsAttributes(
                             resultSet.getObject(7, Double.class),
                             resultSet.getString(17),
                             resultSet.getString(9));
@@ -234,7 +234,7 @@ public class LimitsHandler {
         return new LimitsAttributes(permanentLimit, temporaryLimits, properties);
     }
 
-    // FIXME : clean when all temporary limits are migrated to new column
+    // FIXME : to revert when migration 2.37 limits migration is done
     private LimitsAttributes createOldLimitsAttributes(Double permanentLimitData,
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {
