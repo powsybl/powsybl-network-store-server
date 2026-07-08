@@ -110,7 +110,8 @@ public class V237LimitsMigration implements CustomTaskChange {
     }
 
     private static void migrateOlgForEquipmentType(NetworkStoreRepository repository, UUID networkId, int variantNum, ResourceType resourceType) {
-        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap = repository.getAllOldOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, resourceType);
+        Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap =
+                repository.getAllOldOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, resourceType);
         if (operationalLimitsGroupsMap.isEmpty()) {
             LOGGER.info("all operational limits groups were already migrated for " + resourceType + " there is no migration.");
             return;
@@ -120,7 +121,8 @@ public class V237LimitsMigration implements CustomTaskChange {
         LOGGER.info("{} operational limits groups were migrated for " + resourceType, operationalLimitsGroupsMap.size());
     }
 
-    private static Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> convertOlgMap(UUID networkId, int variantNum, ResourceType resourceType, Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap) {
+    private static Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> convertOlgMap(
+            UUID networkId, int variantNum, ResourceType resourceType, Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap) {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> newMap = new HashMap<>();
         operationalLimitsGroupsMap.forEach((equipmentId, olgPerEquipmentId) ->
                 olgPerEquipmentId.forEach((side, olgPerEquipmentIdPerSide) -> olgPerEquipmentIdPerSide.forEach((olgId, olg) -> {

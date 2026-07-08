@@ -21,6 +21,7 @@ final class NetworkStorageTestCaseFactory {
         throw new IllegalStateException("Utility class");
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     public static Network create(NetworkFactory networkFactory) {
         Objects.requireNonNull(networkFactory);
 
@@ -50,6 +51,7 @@ final class NetworkStorageTestCaseFactory {
                 .setBmin(0.0002)
                 .setBmax(0.0008)
                 .setReactivePowerSetpoint(200)
+                .setRegulating(false)
                 .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
                 .setVoltageSetpoint(390)
                 .add();

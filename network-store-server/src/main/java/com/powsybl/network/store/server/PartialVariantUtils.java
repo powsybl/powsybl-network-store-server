@@ -217,8 +217,10 @@ public final class PartialVariantUtils {
                                                                                                                             int variantNum,
                                                                                                                             int fullVariantNum,
                                                                                                                             Supplier<Set<String>> fetchTombstonedIdentifiableIds,
-                                                                                                                            Supplier<Set<OperationalLimitsGroupOwnerInfo>> fetchTombstonedOperationalLimitsGroup,
-                                                                                                                            IntFunction<Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> operationalLimitsGroupFunction) {
+                                                                                                                            Supplier<Set<OperationalLimitsGroupOwnerInfo>>
+                                                                                                                                    fetchTombstonedOperationalLimitsGroup,
+                                                                                                                            IntFunction<Map<OperationalLimitsGroupOwnerInfo,
+                                                                                                                                    OperationalLimitsGroupAttributes>> operationalLimitsGroupFunction) {
 
         if (NetworkAttributes.isFullVariant(fullVariantNum)) {
             // If the variant is full, retrieve limits groups for the specified variant directly
@@ -242,7 +244,8 @@ public final class PartialVariantUtils {
         return convertOperationalLimitsGroupsMap(operationalLimitsGroupAttributes);
     }
 
-    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupsMap(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map) {
+    private static Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> convertOperationalLimitsGroupsMap(
+            Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map) {
         Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> result = new HashMap<>();
 
         map.forEach((ownerInfo, attributes) -> {

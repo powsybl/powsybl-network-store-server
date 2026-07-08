@@ -509,6 +509,7 @@ class NetworkStoreRepositoryTest {
 
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     @Test
     void insertTapChangerStepsInThreeWindingsTranformerTest() {
 
@@ -993,7 +994,8 @@ class NetworkStoreRepositoryTest {
             .build();
         networkStoreRepository.createLoads(NETWORK_UUID, List.of(load1));
 
-        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorCreation = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, staticVarCompensatorId);
+        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorCreation = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
+                staticVarCompensatorId);
         assertTrue(staticVarCompensatorCreation.isPresent());
         assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
         assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
@@ -1001,7 +1003,8 @@ class NetworkStoreRepositoryTest {
         assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
         assertEquals(1, staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().size());
-        assertTrue(staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(staticVarCompensatorId, ResourceType.STATIC_VAR_COMPENSATOR)));
+        assertTrue(staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(staticVarCompensatorId,
+                ResourceType.STATIC_VAR_COMPENSATOR)));
 
         // get vl svc
         List<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorList = networkStoreRepository.getVoltageLevelStaticVarCompensators(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, "vl1");
@@ -1032,7 +1035,8 @@ class NetworkStoreRepositoryTest {
             .build();
         networkStoreRepository.updateStaticVarCompensators(NETWORK_UUID, List.of(updatedGen));
 
-        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorResult = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, staticVarCompensatorId);
+        Optional<Resource<StaticVarCompensatorAttributes>> staticVarCompensatorResult = networkStoreRepository.getStaticVarCompensator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM,
+                staticVarCompensatorId);
         assertTrue(staticVarCompensatorResult.isPresent());
         assertEquals(loadId, staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
         assertNull(staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
@@ -1258,8 +1262,10 @@ class NetworkStoreRepositoryTest {
         Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
         assertTrue(loadResult.isPresent());
         assertEquals(2, loadResult.get().getAttributes().getRegulatingEquipments().size());
-        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER, RegulatingTapChangerType.RATIO_TAP_CHANGER)));
-        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER, RegulatingTapChangerType.PHASE_TAP_CHANGER)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.RATIO_TAP_CHANGER)));
+        assertTrue(loadResult.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(twtId, ResourceType.TWO_WINDINGS_TRANSFORMER,
+                RegulatingTapChangerType.PHASE_TAP_CHANGER)));
 
         // delete
         networkStoreRepository.deleteTwoWindingsTransformers(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, Collections.singletonList(twtId));
@@ -1582,8 +1588,10 @@ class NetworkStoreRepositoryTest {
 
     @Test
     void testBindAttributesForVoltageLevel() {
-        List<CalculatedBusAttributes> calculatedBusAttributesBv = List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
-        List<CalculatedBusAttributes> calculatedBusAttributesForBusBv = List.of(CalculatedBusAttributes.builder().v(2.0).angle(180).build(), CalculatedBusAttributes.builder().v(1.0).angle(90).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesBv =
+                List.of(CalculatedBusAttributes.builder().v(8.0).angle(6.9).build(), CalculatedBusAttributes.builder().v(9.0).angle(7.9).build());
+        List<CalculatedBusAttributes> calculatedBusAttributesForBusBv =
+                List.of(CalculatedBusAttributes.builder().v(2.0).angle(180).build(), CalculatedBusAttributes.builder().v(1.0).angle(90).build());
         Map<Integer, Integer> nodeToCalculatedBusForBusView = Map.of(1, 1, 2, 4);
         VoltageLevelSvAttributes attributes = VoltageLevelSvAttributes.builder()
                 .calculatedBusesForBusView(calculatedBusAttributesBv)

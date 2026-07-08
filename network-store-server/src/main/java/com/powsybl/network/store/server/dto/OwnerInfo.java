@@ -7,11 +7,10 @@
 package com.powsybl.network.store.server.dto;
 
 import com.powsybl.network.store.model.ResourceType;
-import java.util.UUID;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.util.UUID;
 
 /**
  * Some equipments can have sub-attributes which are represented in a different table as the equipment's.

@@ -48,7 +48,8 @@ public class LimitsHandler {
         this.mappings = mappings;
     }
 
-    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupsAttributes(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupsAttributes(
+            UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
                 variantNum,
@@ -63,7 +64,8 @@ public class LimitsHandler {
     }
 
     // to remove after migration in 2.40
-    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOldOperationalLimitsGroupsAttributes(UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOldOperationalLimitsGroupsAttributes(
+            UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
                     variantNum,
@@ -100,7 +102,8 @@ public class LimitsHandler {
         return tombstonedOperationalLimitsGroups;
     }
 
-    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupsWithInClause(UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
+    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOperationalLimitsGroupsWithInClause(
+            UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause) {
         try (var connection = dataSource.getConnection()) {
             return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
                 variantNum,
@@ -113,7 +116,8 @@ public class LimitsHandler {
         }
     }
 
-    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride, String query) {
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsForVariant(
+            Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride, String query) {
         // keep columnNameForWhereClause and query will be removed after migration
         try (var preparedStmt = connection.prepareStatement(query)) {
             preparedStmt.setObject(1, networkUuid);
@@ -126,7 +130,8 @@ public class LimitsHandler {
         }
     }
 
-    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsWithInClauseForVariant(Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsWithInClauseForVariant(
+            Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
         if (valuesForInClause.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -214,7 +219,7 @@ public class LimitsHandler {
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {
         boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
-        boolean hasTemporaryLimits = temporaryLimitsData != null && !temporaryLimitsData.equals("[]");
+        boolean hasTemporaryLimits = temporaryLimitsData != null && !"[]".equals(temporaryLimitsData);
         if (!hasPermanentLimit && !hasTemporaryLimits) {
             return null;
         }
@@ -239,7 +244,7 @@ public class LimitsHandler {
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {
         boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
-        boolean hasTemporaryLimits = temporaryLimitsData != null && !temporaryLimitsData.equals("[]");
+        boolean hasTemporaryLimits = temporaryLimitsData != null && !"[]".equals(temporaryLimitsData);
         if (!hasPermanentLimit && !hasTemporaryLimits) {
             return null;
         }
@@ -263,7 +268,8 @@ public class LimitsHandler {
         return new LimitsAttributes(permanentLimit, temporaryLimits, properties);
     }
 
-    protected <T extends LimitHolder & IdentifiableAttributes> Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
+    protected <T extends LimitHolder & IdentifiableAttributes> Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsFromEquipments(
+            UUID networkUuid, List<Resource<T>> resources) {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> map = new HashMap<>();
 
         if (!resources.isEmpty()) {
@@ -327,7 +333,8 @@ public class LimitsHandler {
         }
     }
 
-    protected <T extends LimitHolder & IdentifiableAttributes> void insertOperationalLimitsGroupsInEquipments(UUID networkUuid, List<Resource<T>> equipments, Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups) {
+    protected <T extends LimitHolder & IdentifiableAttributes> void insertOperationalLimitsGroupsInEquipments(
+            UUID networkUuid, List<Resource<T>> equipments, Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups) {
         for (Resource<T> equipmentAttributesResource : equipments) {
             OwnerInfo owner = new OwnerInfo(
                     equipmentAttributesResource.getId(),
@@ -419,7 +426,8 @@ public class LimitsHandler {
                 .map(groupMap -> groupMap.get(operationalLimitsGroupId));
     }
 
-    public void deleteAndTombstoneOperationalLimitsGroups(UUID networkUuid, List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant, Integer variantNum) throws SQLException {
+    public void deleteAndTombstoneOperationalLimitsGroups(
+            UUID networkUuid, List<OperationalLimitsGroupOwnerInfo> operationalLimitsGroupInfos, boolean isPartialVariant, Integer variantNum) throws SQLException {
         deleteOperationalLimitsGroups(networkUuid, operationalLimitsGroupInfos);
         if (isPartialVariant) {
             insertTombstonedOperationalLimitsGroups(operationalLimitsGroupInfos, networkUuid, variantNum);
@@ -467,7 +475,8 @@ public class LimitsHandler {
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
             UUID networkId, int variantNum, ResourceType type) {
         Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroupIds = getSelectedOperationalLimitsGroupIds(networkId, variantNum, type);
-        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> selectedOperationalLimitsGroups = getSelectedOperationalLimitsGroups(networkId, variantNum, selectedOperationalLimitsGroupIds.values().stream().toList());
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> selectedOperationalLimitsGroups =
+                getSelectedOperationalLimitsGroups(networkId, variantNum, selectedOperationalLimitsGroupIds.values().stream().toList());
 
         return selectedOperationalLimitsGroups.entrySet().stream()
                 .collect(Collectors.toMap(
@@ -476,7 +485,8 @@ public class LimitsHandler {
                 ));
     }
 
-    private Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getSelectedOperationalLimitsGroups(UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups) {
+    private Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getSelectedOperationalLimitsGroups(
+            UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups) {
         if (selectedOperationalLimitsGroups.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -492,7 +502,8 @@ public class LimitsHandler {
         }
     }
 
-    private Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getSelectedOperationalLimitsGroupsForVariant(Connection connection, UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups, int variantNumOverride) {
+    private Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getSelectedOperationalLimitsGroupsForVariant(
+            Connection connection, UUID networkId, int variantNum, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups, int variantNumOverride) {
         List<SelectedOperationalLimitsGroupIdentifiers> branchesWithSelectedLimitGroups =
                 selectedOperationalLimitsGroups.stream()
                         .filter(ids -> ids.operationalLimitsGroupId1() != null || ids.operationalLimitsGroupId2() != null)
@@ -524,7 +535,8 @@ public class LimitsHandler {
         return results;
     }
 
-    private static void setSelectedOperationalLimitsGroupParameters(PreparedStatement preparedStmt, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups) throws SQLException {
+    private static void setSelectedOperationalLimitsGroupParameters(
+            PreparedStatement preparedStmt, List<SelectedOperationalLimitsGroupIdentifiers> selectedOperationalLimitsGroups) throws SQLException {
         int paramIndex = 3;
         for (SelectedOperationalLimitsGroupIdentifiers identifiers : selectedOperationalLimitsGroups) {
             if (identifiers.operationalLimitsGroupId1() != null) {
@@ -554,7 +566,8 @@ public class LimitsHandler {
         }
     }
 
-    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIdsForVariant(Connection connection, UUID networkId, int variantNum, ResourceType type, int variantNumOverride) {
+    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getSelectedOperationalLimitsGroupIdsForVariant(
+            Connection connection, UUID networkId, int variantNum, ResourceType type, int variantNumOverride) {
         try (var preparedStmt = connection.prepareStatement(
                 QueryCatalog.buildGetSelectedOperationalLimitsGroupsQuery(mappings.getTableMapping(type).getTable()))) {
             preparedStmt.setObject(1, networkId);
@@ -565,14 +578,17 @@ public class LimitsHandler {
         }
     }
 
-    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getInnerSelectedOperationalLimitsGroupIds(UUID networkId, ResourceType type, PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
+    private Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> getInnerSelectedOperationalLimitsGroupIds(
+            UUID networkId, ResourceType type, PreparedStatement preparedStmt, int variantNumOverride) throws SQLException {
         try (ResultSet resultSet = preparedStmt.executeQuery()) {
             Map<OwnerInfo, SelectedOperationalLimitsGroupIdentifiers> resources = new HashMap<>();
             while (resultSet.next()) {
                 String branchId = resultSet.getString(1);
                 String operationalLimitsGroupId1 = resultSet.getString(2);
                 String operationalLimitsGroupId2 = resultSet.getString(3);
-                resources.put(new OwnerInfo(branchId, type, networkId, variantNumOverride), new SelectedOperationalLimitsGroupIdentifiers(branchId, operationalLimitsGroupId1, operationalLimitsGroupId2));
+                resources.put(
+                        new OwnerInfo(branchId, type, networkId, variantNumOverride),
+                        new SelectedOperationalLimitsGroupIdentifiers(branchId, operationalLimitsGroupId1, operationalLimitsGroupId2));
             }
             return resources;
         }

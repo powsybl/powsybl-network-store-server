@@ -68,6 +68,7 @@ class NetworkStoreControllerIT {
                 .configure(DeserializationFeature.READ_DATE_TIMESTAMPS_AS_NANOSECONDS, false);
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     @Test
     void test() throws Exception {
         mvc.perform(get("/" + VERSION + "/networks")
@@ -1209,6 +1210,7 @@ class NetworkStoreControllerIT {
                 .andExpect(status().isCreated());
     }
 
+    @SuppressWarnings("checkstyle:MethodLength")
     @Test
     void testDeleteIdentifiables() throws Exception {
         Resource<NetworkAttributes> foo = Resource.networkBuilder()

@@ -14,10 +14,8 @@ import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.observation.Observation;
-
 import io.micrometer.observation.ObservationRegistry;
 import org.springframework.stereotype.Service;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,6 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @author Antoine Bouhours <antoine.bouhours at rte-france.com>
  */
 @Service
+@SuppressWarnings("checkstyle:MethodTypeParameterName")
 public class NetworkStoreObserver {
 
     private static final String OBSERVATION_PREFIX = "app.network.store.server.";
@@ -116,6 +115,7 @@ public class NetworkStoreObserver {
                 });
     }
 
+    @SuppressWarnings("checkstyle:MethodTypeParameterName")
     public <K, K2, V, E extends Throwable> Map<K, Map<K2, V>> observeExtensions(String name, ResourceType resourceType, Observation.CheckedCallable<Map<K, Map<K2, V>>, E> callable) throws E {
         Observation observation = createObservation(name, resourceType);
         return observation
@@ -127,7 +127,9 @@ public class NetworkStoreObserver {
             });
     }
 
-    public <K, K2, K3, V, E extends Throwable> Map<K, Map<K2, Map<K3, V>>> observeLimitsGroups(String name, ResourceType resourceType, Observation.CheckedCallable<Map<K, Map<K2, Map<K3, V>>>, E> callable) throws E {
+    @SuppressWarnings("checkstyle:MethodTypeParameterName")
+    public <K, K2, K3, V, E extends Throwable> Map<K, Map<K2, Map<K3, V>>> observeLimitsGroups(String name, ResourceType resourceType, Observation.CheckedCallable<Map<K, Map<K2, Map<K3, V>>>, E>
+            callable) throws E {
         Observation observation = createObservation(name, resourceType);
         return observation
             .observeChecked(() -> {
