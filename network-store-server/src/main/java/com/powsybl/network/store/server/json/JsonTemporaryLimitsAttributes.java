@@ -81,33 +81,36 @@ public class JsonTemporaryLimitsAttributes {
     public TreeMap<Integer, TemporaryLimitAttributes> convertToTemporaryLimitAttributes() {
         TreeMap<Integer, TemporaryLimitAttributes> result = new TreeMap<>();
         for (int i = 0; i < n.length; i++) {
-            Double value = Double.NaN;
-            if (v[i] instanceof String) {
-                if (v[i].equals("MAXD")) {
-                    value = Double.MAX_VALUE;
-                } else if (v[i].equals("MAXF")) {
-                    value = (double) Float.MAX_VALUE;
-                }
-            } else {
-                value = (Double) v[i];
-            }
-            Integer duration;
-            if (d[i] instanceof String && d[i].equals("MAX")) {
-                duration = Integer.MAX_VALUE;
-            } else {
-                assert d[i] instanceof Integer;
-                duration = (Integer) d[i];
-            }
-            boolean fictitious = false;
-            if (f != null && f.length != 0) {
-                fictitious = f[i] == 1;
-            }
-            Map<String, String> properties = new HashMap<>();
-            if (p != null && p.length != 0) {
-                properties = p[i];
-            }
-            result.put(duration, new TemporaryLimitAttributes(n[i], value, duration, fictitious, properties));
+            Integer duration = parseDuration(d[i]);
+            result.put(duration, new TemporaryLimitAttributes(n[i], parseValue(v[i]), duration, parseFictitious(i), parseProperties(i)));
         }
         return result;
+    }
+
+    private Double parseValue(Object rawValue) {
+        if (rawValue instanceof String s) {
+            if ("MAXD".equals(s)) {
+                return Double.MAX_VALUE;
+            } else if ("MAXF".equals(s)) {
+                return (double) Float.MAX_VALUE;
+            }
+            return Double.NaN;
+        }
+        return (Double) rawValue;
+    }
+
+    private Integer parseDuration(Object rawDuration) {
+        if (rawDuration instanceof String s && "MAX".equals(s)) {
+            return Integer.MAX_VALUE;
+        }
+        return (Integer) rawDuration;
+    }
+
+    private boolean parseFictitious(int i) {
+        return f != null && f.length != 0 && f[i] == 1;
+    }
+
+    private Map<String, String> parseProperties(int i) {
+        return p != null && p.length != 0 ? p[i] : new HashMap<>();
     }
 }
