@@ -670,7 +670,7 @@ class NetworkStoreIT {
             assertEquals(1, networkIds.size());
 
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             readNetwork.addListener(mockedListener);
 
@@ -704,7 +704,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.createNetwork("test", "test");
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             network.addListener(mockedListener);
 
@@ -747,7 +747,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.createNetwork("test", "test");
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             network.addListener(mockedListener);
 
@@ -794,7 +794,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.createNetwork("test", "test");
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             network.addListener(mockedListener);
 
@@ -877,7 +877,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.createNetwork("test", "test");
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             network.addListener(mockedListener);
 
@@ -960,7 +960,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.createNetwork("test", "test");
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             network.addListener(mockedListener);
 
@@ -1060,7 +1060,7 @@ class NetworkStoreIT {
             assertEquals("TL2", temporaryLimit.getName());
             assertTrue(temporaryLimit.isFictitious());
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             readNetwork.addListener(mockedListener);
 
@@ -1169,7 +1169,7 @@ class NetworkStoreIT {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = service.createNetwork("test", "test");
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             network.addListener(mockedListener);
 
@@ -1491,7 +1491,7 @@ class NetworkStoreIT {
             TwoWindingsTransformer twoWindingsTransformer = readNetwork.getTwoWindingsTransformer("TwoWT1");
             assertNotNull(twoWindingsTransformer);
 
-            NetworkListener mockedListener = mock(DefaultNetworkListener.class);
+            NetworkListener mockedListener = mock(NetworkListener.class);
             // Add observer changes to current network
             readNetwork.addListener(mockedListener);
 

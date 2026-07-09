@@ -98,7 +98,7 @@ class NetworkStoreValidationTest {
 
         VoltageLevel vl2 = s1.newVoltageLevel().setId("VL2").setNominalV(380).setLowVoltageLimit(320).setHighVoltageLimit(420).setTopologyKind(TopologyKind.BUS_BREAKER).add();
         assertTrue(assertThrows(PowsyblException.class, () -> vl2.newGenerator().setId("G").setNode(0).add())
-                .getMessage().contains("node only used in a node breaker topology"));
+                .getMessage().contains("connectable bus is not set"));
 
         Generator gen = vl1.newGenerator().setId("G").setNode(0).setMinP(100).setMaxP(800).setTargetP(700).setVoltageRegulatorOn(true).setTargetV(380).setRatedS(5).add();
 
@@ -106,10 +106,10 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setBus("b1").setConnectableBus("B1").add())
                 .getMessage().contains("connection bus is different to connectable bus"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setBus("B1").setConnectableBus("B1").add())
-                .getMessage().contains("bus only used in a bus breaker topology"));
+                .getMessage().contains("node is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setConnectableBus("B1").add())
                 .getMessage().contains("connection node and connection bus are exclusives"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").add()).getMessage().contains("connectable bus is not set"));
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").add()).getMessage().contains("node is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(0).add())
                 .getMessage().contains("Generator 'G1': an equipment (G) is already connected to node 0 of voltage level VL1"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setEnergySource(null).add())
@@ -194,7 +194,7 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1).setConnectableBus("B1").add())
                 .getMessage().contains("connection node and connection bus are exclusives"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").add())
-                .getMessage().contains("connectable bus is not set"));
+                .getMessage().contains("node is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1).add())
                 .getMessage().contains("the shunt compensator model has not been defined"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1)
@@ -302,7 +302,7 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("connection node and connection bus are exclusives"));
         StaticVarCompensatorAdder adder2 = vl1.newStaticVarCompensator().setId("SVC1");
         assertTrue(assertThrows(PowsyblException.class, adder2::add)
-                .getMessage().contains("connectable bus is not set"));
+                .getMessage().contains("node is not set"));
         StaticVarCompensatorAdder adder3 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1);
         assertTrue(assertThrows(PowsyblException.class, adder3::add)
                 .getMessage().contains("bmin is invalid"));
@@ -351,7 +351,7 @@ class NetworkStoreValidationTest {
                 .getMessage().contains("connection node and connection bus are exclusives"));
         BoundaryLineAdder adder3 = vl1.newBoundaryLine().setId("BL1");
         assertTrue(assertThrows(PowsyblException.class, adder3::add)
-                .getMessage().contains("connectable bus is not set"));
+                .getMessage().contains("node is not set"));
         BoundaryLineAdder adder4 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1);
         assertTrue(assertThrows(PowsyblException.class, adder4::add)
                 .getMessage().contains("r is invalid"));
@@ -463,7 +463,7 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connection node 1 and connection bus 1 are exclusives"));
         twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2");
         assertTrue(assertThrows(PowsyblException.class, twtAdder::add)
-                .getMessage().contains("connectable bus 1 is not set"));
+                .getMessage().contains("node is not set"));
         twtAdder.setNode1(1).setBus2("b2").setConnectableBus2("B2");
         assertTrue(assertThrows(PowsyblException.class, twtAdder::add).getMessage().contains("connection bus 2 is different to connectable bus 2"));
         twtAdder = s1.newTwoWindingsTransformer().setId("2WT").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setConnectableBus2("B2");
@@ -722,7 +722,7 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setConnectableBus("B1").add())
                 .getMessage().contains("connection node and connection bus are exclusives"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").add())
-                .getMessage().contains("connectable bus is not set"));
+                .getMessage().contains("node is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).add())
                 .getMessage().contains("loss factor is invalid"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(200).add())
@@ -861,7 +861,7 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().setId("Line").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setConnectableBus1("B1").add())
                 .getMessage().contains("connection node 1 and connection bus 1 are exclusives"));
         assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().setId("Line").setVoltageLevel1("VL1").setVoltageLevel2("VL2").add())
-                .getMessage().contains("connectable bus 1 is not set"));
+                .getMessage().contains("node is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().setId("Line").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setBus2("b2").setConnectableBus2("B2").add())
                 .getMessage().contains("connection bus 2 is different to connectable bus 2"));
         assertTrue(assertThrows(PowsyblException.class, () -> network.newLine().setId("Line").setVoltageLevel1("VL1").setVoltageLevel2("VL2").setNode1(1).setNode2(1).setConnectableBus2("B2").add())

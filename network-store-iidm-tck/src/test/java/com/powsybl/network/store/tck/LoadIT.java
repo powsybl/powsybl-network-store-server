@@ -6,7 +6,6 @@
  */
 package com.powsybl.network.store.tck;
 
-import com.powsybl.iidm.network.DefaultNetworkListener;
 import com.powsybl.iidm.network.Load;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.NetworkListener;
@@ -51,7 +50,7 @@ class LoadIT extends AbstractLoadTest {
     @Test
     @Override
     public void setNameTest() {
-        NetworkListener mockedListener = Mockito.mock(DefaultNetworkListener.class);
+        NetworkListener mockedListener = Mockito.mock(NetworkListener.class);
         Network network = FictitiousSwitchFactory.create();
         network.addListener(mockedListener);
         Load load = network.getLoad("CE");
