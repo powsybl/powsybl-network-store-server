@@ -93,7 +93,7 @@ public class V237LimitsMigration implements CustomTaskChange {
         try {
             migrateV237Limits(repository, networkId, variantNum);
         } catch (Exception e) {
-            LOGGER.error("V2.37 limits migration : failure for network " + networkId + "/variantNum=" + variantNum, e);
+            LOGGER.error("V2.37 limits migration : failure for network {}/variantNum={}", networkId, variantNum, e);
             exceptions.add(e);
         }
     }
@@ -113,12 +113,12 @@ public class V237LimitsMigration implements CustomTaskChange {
         Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap =
                 repository.getAllOldOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, resourceType);
         if (operationalLimitsGroupsMap.isEmpty()) {
-            LOGGER.info("all operational limits groups were already migrated for " + resourceType + " there is no migration.");
+            LOGGER.info("all operational limits groups were already migrated for {} there is no migration.", resourceType);
             return;
         }
         repository.deleteOperationalLimitsGroups(networkId, variantNum, operationalLimitsGroupsMap.keySet().stream().toList());
         repository.insertOperationalLimitsGroups(convertOlgMap(networkId, variantNum, resourceType, operationalLimitsGroupsMap));
-        LOGGER.info("{} operational limits groups were migrated for " + resourceType, operationalLimitsGroupsMap.size());
+        LOGGER.info("{} operational limits groups were migrated for {}", operationalLimitsGroupsMap.size(), resourceType);
     }
 
     private static Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> convertOlgMap(

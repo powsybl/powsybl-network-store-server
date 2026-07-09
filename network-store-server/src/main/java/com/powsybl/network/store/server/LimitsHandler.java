@@ -162,7 +162,6 @@ public class LimitsHandler {
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
-                int variantNum = resultSet.getInt(4);
                 owner.setVariantNum(variantNumOverride);
                 owner.setSide(resultSet.getInt(5));
                 String operationalLimitsGroupId = resultSet.getString(6);
