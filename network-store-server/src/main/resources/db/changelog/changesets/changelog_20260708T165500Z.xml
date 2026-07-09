@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet author="bouhoursant" id="20260708-1">
+        <sql>
+            UPDATE generator g
+            SET reactivelimitskind = CASE
+                WHEN curvereactivelimitsproperties IS NOT NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM reactivecapabilitycurvepoint p
+                        WHERE p.networkuuid = g.networkuuid
+                          AND p.variantnum = g.variantnum
+                          AND p.equipmentid = g.id
+                          AND p.equipmenttype = 'GENERATOR'
+                    ) THEN 'CURVE'
+                ELSE 'MIN_MAX'
+            END
+            WHERE reactivelimitskind IS NULL;
+        </sql>
+        <sql>
+            UPDATE battery b
+            SET reactivelimitskind = CASE
+                WHEN curvereactivelimitsproperties IS NOT NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM reactivecapabilitycurvepoint p
+                        WHERE p.networkuuid = b.networkuuid
+                          AND p.variantnum = b.variantnum
+                          AND p.equipmentid = b.id
+                          AND p.equipmenttype = 'BATTERY'
+                    ) THEN 'CURVE'
+                ELSE 'MIN_MAX'
+            END
+            WHERE reactivelimitskind IS NULL;
+        </sql>
+        <sql>
+            UPDATE vscconverterstation v
+            SET reactivelimitskind = CASE
+                WHEN curvereactivelimitsproperties IS NOT NULL
+                    OR EXISTS (
+                        SELECT 1
+                        FROM reactivecapabilitycurvepoint p
+                        WHERE p.networkuuid = v.networkuuid
+                          AND p.variantnum = v.variantnum
+                          AND p.equipmentid = v.id
+                          AND p.equipmenttype = 'VSC_CONVERTER_STATION'
+                    ) THEN 'CURVE'
+                ELSE 'MIN_MAX'
+            END
+            WHERE reactivelimitskind IS NULL;
+        </sql>
+        <rollback>
+            <sql>UPDATE generator SET reactivelimitskind = NULL;</sql>
+            <sql>UPDATE battery SET reactivelimitskind = NULL;</sql>
+            <sql>UPDATE vscconverterstation SET reactivelimitskind = NULL;</sql>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>
