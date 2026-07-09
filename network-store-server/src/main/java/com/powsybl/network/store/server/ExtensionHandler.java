@@ -358,7 +358,7 @@ public class ExtensionHandler {
             Set<String> extensions = entry.getValue();
 
             if (extensions != null && !extensions.isEmpty()) {
-                try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantByExtensionsNameAndIdentifiableIdsINQuery(extensions.size()))) {
+                try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantForOneIdentifiableByExtensionsNameINQuery(extensions.size()))) {
                     preparedStmt.setObject(1, networkUuid);
                     preparedStmt.setInt(2, variantNum);
                     preparedStmt.setString(3, identifiableId);
