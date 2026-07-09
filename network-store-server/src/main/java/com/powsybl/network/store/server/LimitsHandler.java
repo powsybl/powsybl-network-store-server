@@ -171,7 +171,9 @@ public class LimitsHandler {
                 // 7 current_limits_permanent_limit, 8 current_limits_temporary_limits, 9 current_limits_properties,
                 // 10 apparent_power_limits_permanent_limit, 11 apparent_power_limits_temporary_limits, 12 apparent_power_limits_properties,
                 // 13 active_power_limits_permanent_limit, 14 active_power_limits_temporary_limits, 15 active_power_limits_properties,
-                // 16 properties, 17 old current_limits_temporary_limits_v2.37
+                // 16 properties,
+                // FIXME : to remove when 2.37 limits migration is done
+                // 17 old current_limits_temporary_limits_v2.37
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
