@@ -100,7 +100,7 @@ public class JsonTemporaryLimitsAttributes {
     }
 
     private Integer parseDuration(Object rawDuration) {
-        if (rawDuration instanceof String s && "MAX".equals(s)) {
+        if (rawDuration instanceof String s && s.equals("MAX")) {
             return Integer.MAX_VALUE;
         }
         return (Integer) rawDuration;
