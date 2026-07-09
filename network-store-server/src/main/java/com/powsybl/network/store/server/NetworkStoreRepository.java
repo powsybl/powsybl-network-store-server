@@ -3236,17 +3236,14 @@ public class NetworkStoreRepository {
     }
 
     private <T extends ReactiveLimitHolder> void insertReactiveCapabilityCurvePointInEquipment(T equipment, ReactiveCapabilityCurvePointAttributes reactiveCapabilityCurvePoint) {
-
-        if (equipment.getReactiveLimits() == null) {
-            equipment.setReactiveLimits(new ReactiveCapabilityCurveAttributes());
-        }
         ReactiveLimitsAttributes reactiveLimitsAttributes = equipment.getReactiveLimits();
-        if (reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes reactiveCapabilityCurveAttributes) {
-            if (reactiveCapabilityCurveAttributes.getPoints() == null) {
-                reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>());
-            }
-            reactiveCapabilityCurveAttributes.getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
+        if (!(reactiveLimitsAttributes instanceof ReactiveCapabilityCurveAttributes reactiveCapabilityCurveAttributes)) {
+            throw new PowsyblException("Expected curve reactive limits for equipment curve points");
         }
+        if (reactiveCapabilityCurveAttributes.getPoints() == null) {
+            reactiveCapabilityCurveAttributes.setPoints(new TreeMap<>());
+        }
+        reactiveCapabilityCurveAttributes.getPoints().put(reactiveCapabilityCurvePoint.getP(), reactiveCapabilityCurvePoint);
     }
 
     private void deleteReactiveCapabilityCurvePoints(UUID networkUuid, int variantNum, List<String> equipmentIds) {
