@@ -57,13 +57,13 @@ public class LimitsHandler {
                 () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                 () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
                 variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
-                    columnNameForWhereClause, valueForWhereClause, variantNum, buildOperationalLimitsGroupQuery(columnNameForWhereClause)));
+                    columnNameForWhereClause, valueForWhereClause, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
     }
 
-    // to remove after migration in 2.40
+    // FIXME : to remove when 2.37 limits migration is done
     public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOldOperationalLimitsGroupsAttributes(
             UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
         try (var connection = dataSource.getConnection()) {
@@ -72,8 +72,8 @@ public class LimitsHandler {
                     getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
                     () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
                     () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
-                    variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
-                            columnNameForWhereClause, valueForWhereClause, variantNum, buildOldOperationalLimitsGroupQuery(columnNameForWhereClause)));
+                    variant -> getOldOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
+                            columnNameForWhereClause, valueForWhereClause, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -117,9 +117,22 @@ public class LimitsHandler {
     }
 
     public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsForVariant(
-            Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride, String query) {
-        // keep columnNameForWhereClause and query will be removed after migration
-        try (var preparedStmt = connection.prepareStatement(query)) {
+            Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(buildOperationalLimitsGroupQuery(columnNameForWhereClause))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetOperationalLimitsGroups(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    // FIXME : to remove when 2.37 limits migration is done
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOldOperationalLimitsGroupsForVariant(
+            Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(buildOldOperationalLimitsGroupQuery(columnNameForWhereClause))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             preparedStmt.setString(3, valueForWhereClause);
@@ -170,7 +183,6 @@ public class LimitsHandler {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
                 operationalLimitsGroupAttributes.setId(operationalLimitsGroupId);
                 LimitsAttributes currentLimits;
-                // FIXME : to revert when migration 2.37 limits migration is done
                 if (resultSet.getString(8) != null) {
                     currentLimits = createLimitsAttributes(
                             resultSet.getObject(7, Double.class),
@@ -178,6 +190,7 @@ public class LimitsHandler {
                             resultSet.getString(9)
                     );
                 } else {
+                    // FIXME : to remove when 2.37 limits migration is done
                     currentLimits = createOldLimitsAttributes(
                             resultSet.getObject(7, Double.class),
                             resultSet.getString(17),
@@ -237,7 +250,7 @@ public class LimitsHandler {
         return new LimitsAttributes(permanentLimit, temporaryLimits, properties);
     }
 
-    // FIXME : to revert when migration 2.37 limits migration is done
+    // FIXME : to remove when 2.37 limits migration is done
     private LimitsAttributes createOldLimitsAttributes(Double permanentLimitData,
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {

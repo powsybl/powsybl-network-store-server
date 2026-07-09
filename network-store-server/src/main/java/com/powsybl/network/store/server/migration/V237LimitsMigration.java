@@ -125,9 +125,9 @@ public class V237LimitsMigration implements CustomTaskChange {
             UUID networkId, int variantNum, ResourceType resourceType, Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroupsMap) {
         Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> newMap = new HashMap<>();
         operationalLimitsGroupsMap.forEach((equipmentId, olgPerEquipmentId) ->
-                olgPerEquipmentId.forEach((side, olgPerEquipmentIdPerSide) -> olgPerEquipmentIdPerSide.forEach((olgId, olg) -> {
-                    newMap.put(new OperationalLimitsGroupOwnerInfo(equipmentId, resourceType, networkId, variantNum, olgId, side), olg);
-                })));
+                olgPerEquipmentId.forEach((side, olgPerEquipmentIdPerSide) -> olgPerEquipmentIdPerSide.forEach((olgId, olg) ->
+                    newMap.put(new OperationalLimitsGroupOwnerInfo(equipmentId, resourceType, networkId, variantNum, olgId, side), olg)
+                )));
         return newMap;
     }
 }

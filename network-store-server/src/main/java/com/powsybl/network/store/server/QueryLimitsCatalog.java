@@ -19,7 +19,7 @@ public final class QueryLimitsCatalog {
     static final String GROUP_ID_COLUMN = "operationallimitgroupid";
     static final String CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN = "current_limits_permanent_limit";
     static final String CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN = "current_limits_temporary_limits";
-    // FIXME : to revert when migration 2.37 limits migration is done
+    // FIXME : to remove when 2.37 limits migration is done
     static final String V237_TEMPORARY_LIMITS_COLUMN = "current_limits_temporary_limits_v237";
     static final String CURRENT_LIMITS_PROPERTIES_COLUMN = "current_limits_properties";
     static final String APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "apparent_power_limits_permanent_limit";
