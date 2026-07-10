@@ -353,26 +353,25 @@ public class ExtensionHandler {
     }
 
     public void deleteExtensionsFromIdentifiables(Connection connection, UUID networkUuid, int variantNum, Map<String, Set<String>> extensionNamesByIdentifiableId) {
-        for (Map.Entry<String, Set<String>> entry : extensionNamesByIdentifiableId.entrySet()) {
-            String identifiableId = entry.getKey();
-            Set<String> extensions = entry.getValue();
-
-            if (extensions != null && !extensions.isEmpty()) {
-                try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantForOneIdentifiableByExtensionsNameINQuery(extensions.size()))) {
-                    preparedStmt.setObject(1, networkUuid);
-                    preparedStmt.setInt(2, variantNum);
-                    preparedStmt.setString(3, identifiableId);
-
-                    int paramIndex = 4;
-                    for (String extensionName : extensions) {
-                        preparedStmt.setString(paramIndex++, extensionName);
-                    }
-
-                    preparedStmt.executeUpdate();
-                } catch (SQLException e) {
-                    throw new UncheckedSqlException(e);
+        int numberOfValues = extensionNamesByIdentifiableId.values().stream().mapToInt(Set::size).sum();
+        if (numberOfValues < 1) {
+            return;
+        }
+        try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantForOneIdentifiableByExtensionsNameINQuery(numberOfValues))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            int paramIndex = 3;
+            for (Map.Entry<String, Set<String>> entry : extensionNamesByIdentifiableId.entrySet()) {
+                String identifiableId = entry.getKey();
+                Set<String> extensions = entry.getValue();
+                for (String extensionName : extensions) {
+                    preparedStmt.setString(paramIndex++, identifiableId);
+                    preparedStmt.setString(paramIndex++, extensionName);
                 }
             }
+            preparedStmt.executeUpdate();
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
         }
     }
 
