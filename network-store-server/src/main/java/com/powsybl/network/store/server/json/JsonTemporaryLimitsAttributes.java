@@ -10,10 +10,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
 import lombok.Getter;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * @author Etienne Lesot <etienne.lesot at rte-france.com>
@@ -82,7 +79,7 @@ public class JsonTemporaryLimitsAttributes {
         this.p = hasNoProperties ? null : properties.toArray(Map[]::new);
     }
 
-    public TreeMap<Integer, TemporaryLimitAttributes> convertToTemporaryLimitAttributes() {
+    public SortedMap<Integer, TemporaryLimitAttributes> convertToTemporaryLimitAttributes() {
         TreeMap<Integer, TemporaryLimitAttributes> result = new TreeMap<>();
         for (int i = 0; i < n.length; i++) {
             Integer duration = parseDuration(d[i]);

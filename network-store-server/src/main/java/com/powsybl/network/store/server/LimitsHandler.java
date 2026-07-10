@@ -241,7 +241,7 @@ public class LimitsHandler {
         TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = null;
         if (hasTemporaryLimits) {
             JsonTemporaryLimitsAttributes jsonTemporaryLimitsAttributes = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
-            temporaryLimits = jsonTemporaryLimitsAttributes.convertToTemporaryLimitAttributes();
+            temporaryLimits = (TreeMap<Integer, TemporaryLimitAttributes>) jsonTemporaryLimitsAttributes.convertToTemporaryLimitAttributes();
         }
 
         Map<String, String> properties = null;
