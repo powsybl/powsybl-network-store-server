@@ -398,7 +398,9 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
             assertTrue(networkStoreRepository.getTapChangerStepsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, twoWTId, variantNum).isEmpty());
 
             // Operational Limits
-            assertTrue(networkStoreRepository.getLimitsHandler().getOperationalLimitsGroupsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId, variantNum).isEmpty());
+            assertTrue(networkStoreRepository.getLimitsHandler()
+                    .getOperationalLimitsGroupsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, lineId, variantNum)
+                    .isEmpty());
 
             // Reactive Capability Curve Points
             assertTrue(networkStoreRepository.getReactiveCapabilityCurvePointsForVariant(connection, networkUuid, variantNum, EQUIPMENT_ID_COLUMN, generatorId, variantNum).isEmpty());
