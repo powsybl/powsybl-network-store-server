@@ -14,6 +14,7 @@ import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import com.powsybl.network.store.server.json.JsonTemporaryLimitsAttributes;
 import com.powsybl.network.store.server.json.OperationalLimitsGroupAttributesSqlData;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -57,6 +58,22 @@ public class LimitsHandler {
                 () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
                 variant -> getOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
                     columnNameForWhereClause, valueForWhereClause, variantNum));
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
+    // FIXME : to remove when 2.37 limits migration is done
+    public Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getOldOperationalLimitsGroupsAttributes(
+            UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause) {
+        try (var connection = dataSource.getConnection()) {
+            return PartialVariantUtils.getOperationalLimitsGroupsAttributes(
+                    variantNum,
+                    getNetworkAttributes(connection, networkUuid, variantNum, mappings, mapper).getFullVariantNum(),
+                    () -> getTombstonedIdentifiableIds(connection, networkUuid, variantNum),
+                    () -> getTombstonedOperationalLimitsGroups(connection, networkUuid, variantNum),
+                    variant -> getOldOperationalLimitsGroupsForVariant(connection, networkUuid, variant,
+                            columnNameForWhereClause, valueForWhereClause, variantNum));
         } catch (SQLException e) {
             throw new UncheckedSqlException(e);
         }
@@ -112,6 +129,20 @@ public class LimitsHandler {
         }
     }
 
+    // FIXME : to remove when 2.37 limits migration is done
+    public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOldOperationalLimitsGroupsForVariant(
+            Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, String valueForWhereClause, int variantNumOverride) {
+        try (var preparedStmt = connection.prepareStatement(buildOldOperationalLimitsGroupQuery(columnNameForWhereClause))) {
+            preparedStmt.setObject(1, networkUuid);
+            preparedStmt.setInt(2, variantNum);
+            preparedStmt.setString(3, valueForWhereClause);
+
+            return innerGetOperationalLimitsGroups(preparedStmt, variantNumOverride);
+        } catch (SQLException e) {
+            throw new UncheckedSqlException(e);
+        }
+    }
+
     public Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsWithInClauseForVariant(
             Connection connection, UUID networkUuid, int variantNum, String columnNameForWhereClause, List<String> valuesForInClause, int variantNumOverride) {
         if (valuesForInClause.isEmpty()) {
@@ -136,11 +167,13 @@ public class LimitsHandler {
             while (resultSet.next()) {
                 OperationalLimitsGroupOwnerInfo owner = new OperationalLimitsGroupOwnerInfo();
                 // In order, from the QueryCatalog.buildOperationalLimitsGroupQuery SQL query :
-                // equipmentId, equipmentType, networkUuid, variantNum, side, operationallimitgroupid,
-                // current_limits_permanent_limit, current_limits_temporary_limits, current_limits_properties,
-                // apparent_power_limits_permanent_limit, apparent_power_limits_temporary_limits, apparent_power_limits_properties,
-                // active_power_limits_permanent_limit, active_power_limits_temporary_limits, active_power_limits_properties,
-                // properties
+                // 1 equipmentId, 2 equipmentType, 3 networkUuid, 4 variantNum, 5 side, 6 operationallimitgroupid,
+                // 7 current_limits_permanent_limit, 8 current_limits_temporary_limits, 9 current_limits_properties,
+                // 10 apparent_power_limits_permanent_limit, 11 apparent_power_limits_temporary_limits, 12 apparent_power_limits_properties,
+                // 13 active_power_limits_permanent_limit, 14 active_power_limits_temporary_limits, 15 active_power_limits_properties,
+                // 16 properties,
+                // FIXME : to remove when 2.37 limits migration is done
+                // 17 old current_limits_temporary_limits_v2.37
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
@@ -151,11 +184,20 @@ public class LimitsHandler {
 
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
                 operationalLimitsGroupAttributes.setId(operationalLimitsGroupId);
-                LimitsAttributes currentLimits = createLimitsAttributes(
-                        resultSet.getObject(7, Double.class),
-                        resultSet.getString(8),
-                        resultSet.getString(9)
-                );
+                LimitsAttributes currentLimits;
+                if (resultSet.getString(8) != null) {
+                    currentLimits = createLimitsAttributes(
+                            resultSet.getObject(7, Double.class),
+                            resultSet.getString(8),
+                            resultSet.getString(9)
+                    );
+                } else {
+                    // FIXME : to remove when 2.37 limits migration is done
+                    currentLimits = createOldLimitsAttributes(
+                            resultSet.getObject(7, Double.class),
+                            resultSet.getString(17),
+                            resultSet.getString(9));
+                }
                 operationalLimitsGroupAttributes.setCurrentLimits(currentLimits);
 
                 LimitsAttributes apparentPowerLimits = createLimitsAttributes(
@@ -178,7 +220,6 @@ public class LimitsHandler {
                     });
                     operationalLimitsGroupAttributes.setProperties(properties);
                 }
-
                 map.put(owner, operationalLimitsGroupAttributes);
             }
             return map;
@@ -188,6 +229,31 @@ public class LimitsHandler {
     }
 
     private LimitsAttributes createLimitsAttributes(Double permanentLimitData,
+                                                    String temporaryLimitsData,
+                                                    String propertiesData) throws JsonProcessingException {
+        boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
+        boolean hasTemporaryLimits = temporaryLimitsData != null && !"[]".equals(temporaryLimitsData);
+        if (!hasPermanentLimit && !hasTemporaryLimits) {
+            return null;
+        }
+
+        double permanentLimit = hasPermanentLimit ? permanentLimitData : Double.NaN;
+        TreeMap<Integer, TemporaryLimitAttributes> temporaryLimits = null;
+        if (hasTemporaryLimits) {
+            JsonTemporaryLimitsAttributes jsonTemporaryLimitsAttributes = mapper.readValue(temporaryLimitsData, new TypeReference<>() { });
+            temporaryLimits = (TreeMap<Integer, TemporaryLimitAttributes>) jsonTemporaryLimitsAttributes.convertToTemporaryLimitAttributes();
+        }
+
+        Map<String, String> properties = null;
+        if (!StringUtils.isEmpty(propertiesData)) {
+            properties = mapper.readValue(propertiesData, new TypeReference<>() { });
+        }
+
+        return new LimitsAttributes(permanentLimit, temporaryLimits, properties);
+    }
+
+    // FIXME : to remove when 2.37 limits migration is done
+    private LimitsAttributes createOldLimitsAttributes(Double permanentLimitData,
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {
         boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
