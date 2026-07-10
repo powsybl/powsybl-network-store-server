@@ -101,7 +101,7 @@ public final class QueryExtensionCatalog {
                 NETWORK_UUID_COLUMN + " = ?";
     }
 
-    public static String buildDeleteExtensionsVariantForOneIdentifiableByExtensionsNameINQuery(int numberOfValues) {
+    public static String buildDeleteExtensionsByIdentifiableIdAndExtensionNameINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }

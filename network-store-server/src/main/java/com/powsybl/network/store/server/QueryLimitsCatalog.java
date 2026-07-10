@@ -80,11 +80,8 @@ public final class QueryLimitsCatalog {
         return "delete from " + OPERATIONAL_LIMITS_GROUP_TABLE + " t " +
             "where t." + NETWORK_UUID_COLUMN + " = ? " +
             " and t." + VARIANT_NUM_COLUMN + " = ? " +
-            " and exists (select 1 from (values " +
-            String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) +
-            ") v(" + EQUIPMENT_ID_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ") " +
-            "where (t." + EQUIPMENT_ID_COLUMN + ", t." + GROUP_ID_COLUMN + ", t." + SIDE_COLUMN + ") = " +
-            "      (v." + EQUIPMENT_ID_COLUMN + ", v." + GROUP_ID_COLUMN + ", v." + SIDE_COLUMN + "))";
+            " and (t." + EQUIPMENT_ID_COLUMN + ", t." + GROUP_ID_COLUMN + ", t." + SIDE_COLUMN + ") in " +
+            "(" + String.join(", ", Collections.nCopies(numberOfValues, "(?, ?, ?)")) + ")";
     }
 
     public static String buildInsertOperationalLimitsGroupQuery() {

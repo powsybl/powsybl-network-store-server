@@ -357,7 +357,7 @@ public class ExtensionHandler {
         if (numberOfValues < 1) {
             return;
         }
-        try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsVariantForOneIdentifiableByExtensionsNameINQuery(numberOfValues))) {
+        try (var preparedStmt = connection.prepareStatement(QueryExtensionCatalog.buildDeleteExtensionsByIdentifiableIdAndExtensionNameINQuery(numberOfValues))) {
             preparedStmt.setObject(1, networkUuid);
             preparedStmt.setInt(2, variantNum);
             int paramIndex = 3;
