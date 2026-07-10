@@ -15,6 +15,7 @@ import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
 import com.powsybl.network.store.server.dto.RegulatingOwnerInfo;
 import com.powsybl.network.store.server.exceptions.UncheckedSqlException;
+import com.vladmihalcea.sql.SQLStatementCountValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import java.util.*;
 
 import static com.powsybl.network.store.server.Mappings.*;
 import static com.powsybl.network.store.server.QueryCatalog.*;
+import static com.powsybl.network.store.server.utils.DatabaseQueryUtils.assertRequestsCount;
 import static com.powsybl.network.store.server.utils.PartialVariantTestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -1879,6 +1881,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
     @Test
     void removeSeveralExtensionOnFullVariant() {
+        SQLStatementCountValidator.reset();
         String networkId = "network1";
         String generatorId1 = "generatorId1";
         String generatorId2 = "generatorId2";
@@ -1887,8 +1890,9 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         OwnerInfo ownerInfo2 = new OwnerInfo(generatorId2, ResourceType.GENERATOR, NETWORK_UUID, 0);
         Map<String, ExtensionAttributes> extensionAttributesMap = buildExtensionAttributesMap(5.6, "status1");
         insertExtensions(Map.of(ownerInfo1, extensionAttributesMap, ownerInfo2, extensionAttributesMap));
-
+        SQLStatementCountValidator.reset();
         networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 0, Map.of(generatorId1, Set.of(ActivePowerControl.NAME, OperatingStatus.NAME), generatorId2, Set.of(OperatingStatus.NAME)));
+        assertRequestsCount(1, 0, 0, 1);
 
         Assertions.assertEquals(Map.of(ActivePowerControl.NAME, buildActivePowerControlAttributes(5.6)),
                 networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(NETWORK_UUID, 0, generatorId2));
@@ -1907,9 +1911,11 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         Map<String, ExtensionAttributes> extensionAttributesMap = buildExtensionAttributesMap(5.6, "status1");
         insertExtensions(Map.of(ownerInfo1, extensionAttributesMap, ownerInfo2, extensionAttributesMap));
 
+        SQLStatementCountValidator.reset();
         networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 1, Map.of(
                 generatorId1, Set.of(ActivePowerControl.NAME, OperatingStatus.NAME),
                 generatorId2, Set.of(OperatingStatus.NAME)));
+        assertRequestsCount(2, 1, 0, 1);
 
         Assertions.assertEquals(Map.of(), networkStoreRepository.getAllExtensionsAttributesByIdentifiableId(NETWORK_UUID, 1, generatorId1));
         Assertions.assertEquals(Map.of(ActivePowerControl.NAME, buildActivePowerControlAttributes(5.6)),

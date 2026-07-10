@@ -67,6 +67,7 @@
         <sonar.projectKey>com.powsybl:powsybl-network-store-server</sonar.projectKey>
         <!-- FIXME: powsybl-network-store modules'version is overloaded in the dependencies section.The overloads and this property below have to be removed at next powsybl-ws-dependencies.version upgrade -->
         <powsybl-network-store.version>1.47.0-SNAPSHOT</powsybl-network-store.version>
+        <db-util.version>1.0.5</db-util.version>
     </properties>
 
     <modules>
@@ -115,6 +116,11 @@
                         <artifactId>log4j</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.vladmihalcea</groupId>
+                <artifactId>db-util</artifactId>
+                <version>${db-util.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
