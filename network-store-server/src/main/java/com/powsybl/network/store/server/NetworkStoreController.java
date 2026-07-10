@@ -1568,13 +1568,13 @@ public class NetworkStoreController {
                 () -> repository.getAllExtensionsAttributesByResourceType(networkId, variantNum, type)));
     }
 
-    @DeleteMapping(value = "{networkId}/{variantNum}/identifiables/types/{resourceType}/extensions")
+    @DeleteMapping(value = "{networkId}/{variantNum}/identifiables/extensions")
     @Operation(summary = "Delete extension attributes for a group of equipments")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "Successfully deleted extension attributes"))
     public ResponseEntity<Void> removeExtensionAttributes(@Parameter(description = "Network ID", required = true) @PathVariable("networkId") UUID networkId,
-                                          @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
-                                          @Parameter(description = "Resource type", required = true) @PathVariable("resourceType") ResourceType type,
-                                          @Parameter(description = "Extension names by identifiable id to remove", required = true) @RequestBody Map<String, Set<String>> extensionsByIdentifiableId) {
+                                                          @Parameter(description = "Variant number", required = true) @PathVariable("variantNum") int variantNum,
+                                                          @Parameter(description = "Extension names by identifiable id to remove", required = true)
+                                                          @RequestBody Map<String, Set<String>> extensionsByIdentifiableId) {
         repository.removeExtensionAttributes(networkId, variantNum, extensionsByIdentifiableId);
         return ResponseEntity.ok().build();
     }
