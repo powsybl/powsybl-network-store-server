@@ -1002,7 +1002,8 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
 
     @Test
     void removeExtensionWithoutNetwork() {
-        PowsyblException exception = assertThrows(PowsyblException.class, () -> networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 0, Map.of("unknownId", Set.of("unknownExtension"))));
+        Map<String, Set<String>> extensionMap = Map.of("unknownId", Set.of("unknownExtension"));
+        PowsyblException exception = assertThrows(PowsyblException.class, () -> networkStoreRepository.removeExtensionAttributes(NETWORK_UUID, 0, extensionMap));
         assertTrue(exception.getMessage().contains("Cannot retrieve source network attributes"));
     }
 
