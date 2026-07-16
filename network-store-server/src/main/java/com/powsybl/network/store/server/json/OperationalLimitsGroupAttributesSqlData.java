@@ -43,7 +43,7 @@ public class OperationalLimitsGroupAttributesSqlData {
                 .currentLimitsProperties(extractLimitProperties(operationalLimitsGroup.getCurrentLimits()))
                 .apparentPowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getApparentPowerLimits()))
                 .apparentPowerLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getApparentPowerLimits()))
-                .apparentPowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
+                .apparentPowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getApparentPowerLimits()))
                 .activePowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
