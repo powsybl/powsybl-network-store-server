@@ -3710,6 +3710,18 @@ public class NetworkStoreRepository {
                 ));
     }
 
+    // FIXME : to remove when 2.37 limits migration is done
+    public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllOldOperationalLimitsGroupAttributesByResourceType(
+            UUID networkId, int variantNum, ResourceType type) {
+        Map<OwnerInfo, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> operationalLimitsGroups =
+                limitsHandler.getOldOperationalLimitsGroupsAttributes(networkId, variantNum, EQUIPMENT_TYPE_COLUMN, type.toString());
+        return operationalLimitsGroups.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().getEquipmentId(),
+                        Map.Entry::getValue
+                ));
+    }
+
     public Map<String, Map<Integer, Map<String, OperationalLimitsGroupAttributes>>> getAllSelectedOperationalLimitsGroupAttributesByResourceType(
         UUID networkId, int variantNum, ResourceType type) {
         return limitsHandler.getAllSelectedOperationalLimitsGroupAttributesByResourceType(networkId, variantNum, type);
@@ -3723,5 +3735,15 @@ public class NetworkStoreRepository {
 
     public Optional<Resource<NetworkAttributes>> getNetwork(UUID uuid, int variantNum) {
         return Utils.getNetwork(uuid, variantNum, dataSource, mappings, mapper);
+    }
+
+    // FIXME : to remove when 2.37 limits migration is done
+    public void deleteOperationalLimitsGroups(UUID networkUuid, int variantNum, List<String> equipmentIds) {
+        limitsHandler.deleteOperationalLimitsGroups(networkUuid, variantNum, equipmentIds);
+    }
+
+    // FIXME : to remove when 2.37 limits migration is done
+    public void insertOperationalLimitsGroups(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups) {
+        limitsHandler.insertOperationalLimitsGroups(operationalLimitsGroups);
     }
 }
