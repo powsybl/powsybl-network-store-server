@@ -6,6 +6,8 @@
  */
 package com.powsybl.network.store.server;
 
+import java.util.Collections;
+
 import static com.powsybl.network.store.server.QueryCatalog.*;
 import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 
@@ -99,16 +101,17 @@ public final class QueryExtensionCatalog {
                 NETWORK_UUID_COLUMN + " = ?";
     }
 
-    public static String buildDeleteExtensionsVariantByExtensionsNameAndIdentifiableIdsINQuery(int numberOfValues) {
+    public static String buildDeleteExtensionsByIdentifiableIdAndExtensionNameINQuery(int numberOfValues) {
         if (numberOfValues < 1) {
             throw new IllegalArgumentException(MINIMAL_VALUE_REQUIREMENT_ERROR);
         }
 
-        return "delete from " + EXTENSION_TABLE +
-                " where " + NETWORK_UUID_COLUMN + " = ? " +
-                "and " + VARIANT_NUM_COLUMN + " = ? " +
-                "and name = ? " +
-                "and " + EQUIPMENT_ID_COLUMN + " in (" + generateInPlaceholders(numberOfValues) + ")";
+        return "delete from " + EXTENSION_TABLE + " t " +
+                " where t." + NETWORK_UUID_COLUMN + " = ? " +
+                "and t." + VARIANT_NUM_COLUMN + " = ? " +
+                " and (t." + EQUIPMENT_ID_COLUMN + ", t." + EXTENSION_NAME_COLUMN + ") in (" +
+                String.join(", ", Collections.nCopies(numberOfValues, "(?, ?)")) +
+                ")";
     }
 
     // Tombstoned extensions
