@@ -109,9 +109,11 @@ public final class QueryExtensionCatalog {
         return "delete from " + EXTENSION_TABLE + " t " +
                 " where t." + NETWORK_UUID_COLUMN + " = ? " +
                 "and t." + VARIANT_NUM_COLUMN + " = ? " +
-                " and (t." + EQUIPMENT_ID_COLUMN + ", t." + EXTENSION_NAME_COLUMN + ") in (" +
+                " and exists (select 1 from (values " +
                 String.join(", ", Collections.nCopies(numberOfValues, "(?, ?)")) +
-                ")";
+                ") v(" + EQUIPMENT_ID_COLUMN + ", " + EXTENSION_NAME_COLUMN + ") " +
+                "where (t." + EQUIPMENT_ID_COLUMN + ", t." + EXTENSION_NAME_COLUMN + ") = " +
+                "      (v." + EQUIPMENT_ID_COLUMN + ", v." + EXTENSION_NAME_COLUMN + "))";
     }
 
     // Tombstoned extensions
