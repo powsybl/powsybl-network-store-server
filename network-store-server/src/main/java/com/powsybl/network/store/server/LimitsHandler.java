@@ -320,7 +320,7 @@ public class LimitsHandler {
     public void insertOperationalLimitsGroups(Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> operationalLimitsGroups) {
         try (var connection = dataSource.getConnection()) {
             try (var preparedStmt = connection.prepareStatement(buildInsertOperationalLimitsGroupQuery())) {
-                List<Object> values = new ArrayList<>(16);
+                List<Object> values = new ArrayList<>(19);
                 List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> list = new ArrayList<>(operationalLimitsGroups.entrySet());
                 for (List<Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes>> subUnit : Lists.partition(list, BATCH_SIZE)) {
                     for (Map.Entry<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> entry : subUnit) {
