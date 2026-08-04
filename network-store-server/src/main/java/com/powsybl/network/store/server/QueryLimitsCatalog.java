@@ -17,14 +17,17 @@ import static com.powsybl.network.store.server.Utils.generateInPlaceholders;
 public final class QueryLimitsCatalog {
     static final String OPERATIONAL_LIMITS_GROUP_TABLE = "operationallimitsgroup";
     static final String GROUP_ID_COLUMN = "operationallimitgroupid";
+    static final String CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN = "current_limits_permanent_limit_name";
     static final String CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN = "current_limits_permanent_limit";
     static final String CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN = "current_limits_temporary_limits";
     // FIXME : to remove when 2.37 limits migration is done
     static final String V237_TEMPORARY_LIMITS_COLUMN = "current_limits_temporary_limits_v237";
     static final String CURRENT_LIMITS_PROPERTIES_COLUMN = "current_limits_properties";
+    static final String APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN = "apparent_power_limits_permanent_limit_name";
     static final String APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "apparent_power_limits_permanent_limit";
     static final String APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "apparent_power_limits_temporary_limits";
     static final String APPARENT_POWER_LIMITS_PROPERTIES_COLUMN = "apparent_power_limits_properties";
+    static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN = "active_power_limits_permanent_limit_name";
     static final String ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN = "active_power_limits_permanent_limit";
     static final String ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN = "active_power_limits_temporary_limits";
     static final String ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN = "active_power_limits_properties";
@@ -39,15 +42,21 @@ public final class QueryLimitsCatalog {
     public static String buildCloneOperationalLimitsGroupQuery() {
         return "insert into " + OPERATIONAL_LIMITS_GROUP_TABLE + "(" + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", " +
             NETWORK_UUID_COLUMN + ", " + VARIANT_NUM_COLUMN + ", " + GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
-            CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
-            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " + CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " + APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " + ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
             PROPERTIES_COLUMN + ", " + V237_TEMPORARY_LIMITS_COLUMN + ") " +
             "select " + EQUIPMENT_ID_COLUMN + ", " + EQUIPMENT_TYPE_COLUMN + ", ?, ?, " +
             GROUP_ID_COLUMN + ", " + SIDE_COLUMN + ", " +
-            CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
-            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
-            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " + ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " + CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " + APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " + ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " + ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
             PROPERTIES_COLUMN + ", " + V237_TEMPORARY_LIMITS_COLUMN +
             " from " + OPERATIONAL_LIMITS_GROUP_TABLE + " where " + NETWORK_UUID_COLUMN +
             " = ? and " + VARIANT_NUM_COLUMN + " = ?";
@@ -94,17 +103,20 @@ public final class QueryLimitsCatalog {
             EQUIPMENT_ID_COLUMN + ", " +
             GROUP_ID_COLUMN + ", " +
             SIDE_COLUMN + ", " +
+            CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
             PROPERTIES_COLUMN + ")" +
-            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildOperationalLimitsGroupQuery(String columnNameForWhereClause) {
@@ -114,12 +126,15 @@ public final class QueryLimitsCatalog {
             VARIANT_NUM_COLUMN + ", " +
             SIDE_COLUMN + "," +
             GROUP_ID_COLUMN + "," +
+            CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
@@ -139,12 +154,15 @@ public final class QueryLimitsCatalog {
                 VARIANT_NUM_COLUMN + ", " +
                 SIDE_COLUMN + "," +
                 GROUP_ID_COLUMN + "," +
+                CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
                 CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
                 CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+                APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+                ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
                 ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
                 ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
                 ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
@@ -166,12 +184,15 @@ public final class QueryLimitsCatalog {
             VARIANT_NUM_COLUMN + ", " +
             SIDE_COLUMN + "," +
             GROUP_ID_COLUMN + "," +
+            CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
@@ -194,12 +215,15 @@ public final class QueryLimitsCatalog {
             VARIANT_NUM_COLUMN + ", " +
             SIDE_COLUMN + "," +
             GROUP_ID_COLUMN + "," +
+            CURRENT_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             CURRENT_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             CURRENT_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             CURRENT_LIMITS_PROPERTIES_COLUMN + ", " +
+            APPARENT_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             APPARENT_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             APPARENT_POWER_LIMITS_PROPERTIES_COLUMN + ", " +
+            ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_NAME_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PERMANENT_LIMIT_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_TEMPORARY_LIMITS_COLUMN + ", " +
             ACTIVE_POWER_LIMITS_PROPERTIES_COLUMN + ", " +

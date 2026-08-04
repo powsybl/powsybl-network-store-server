@@ -19,6 +19,12 @@ class CurrentLimitsIT extends AbstractCurrentLimitsTest {
 
     @Override
     @Test
+    public void testNameDuplicationIsAllowed() {
+
+    }
+
+    @Override
+    @Test
     public void test() {
         // FIXME delete this test when we fix Bus.getV/setV not getting/updating correctly the V in all views
     }

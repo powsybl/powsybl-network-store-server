@@ -168,12 +168,15 @@ public class LimitsHandler {
                 OperationalLimitsGroupOwnerInfo owner = new OperationalLimitsGroupOwnerInfo();
                 // In order, from the QueryCatalog.buildOperationalLimitsGroupQuery SQL query :
                 // 1 equipmentId, 2 equipmentType, 3 networkUuid, 4 variantNum, 5 side, 6 operationallimitgroupid,
-                // 7 current_limits_permanent_limit, 8 current_limits_temporary_limits, 9 current_limits_properties,
-                // 10 apparent_power_limits_permanent_limit, 11 apparent_power_limits_temporary_limits, 12 apparent_power_limits_properties,
-                // 13 active_power_limits_permanent_limit, 14 active_power_limits_temporary_limits, 15 active_power_limits_properties,
-                // 16 properties,
+                // 7 current_limits_permanent_limit_name, 8 current_limits_permanent_limit,
+                // 9 current_limits_temporary_limits, 10 current_limits_properties,
+                // 11 apparent_power_limits_permanent_limit_name, 12 apparent_power_limits_permanent_limit,
+                // 13 apparent_power_limits_temporary_limits, 14 apparent_power_limits_properties,
+                // 15 active_power_limits_permanent_limit_name, 16 active_power_limits_permanent_limit,
+                // 17 active_power_limits_temporary_limits, 18 active_power_limits_properties,
+                // 19 properties,
                 // FIXME : to remove when 2.37 limits migration is done
-                // 17 old current_limits_temporary_limits_v2.37
+                // 20 old current_limits_temporary_limits_v2.37
                 owner.setEquipmentId(resultSet.getString(1));
                 owner.setEquipmentType(ResourceType.valueOf(resultSet.getString(2)));
                 owner.setNetworkUuid(UUID.fromString(resultSet.getString(3)));
@@ -185,36 +188,40 @@ public class LimitsHandler {
                 OperationalLimitsGroupAttributes operationalLimitsGroupAttributes = new OperationalLimitsGroupAttributes();
                 operationalLimitsGroupAttributes.setId(operationalLimitsGroupId);
                 LimitsAttributes currentLimits;
-                if (resultSet.getString(8) != null) {
+                if (resultSet.getString(9) != null) {
                     currentLimits = createLimitsAttributes(
-                            resultSet.getObject(7, Double.class),
-                            resultSet.getString(8),
-                            resultSet.getString(9)
+                            resultSet.getString(7),
+                            resultSet.getObject(8, Double.class),
+                            resultSet.getString(9),
+                            resultSet.getString(10)
                     );
                 } else {
                     // FIXME : to remove when 2.37 limits migration is done
                     currentLimits = createOldLimitsAttributes(
-                            resultSet.getObject(7, Double.class),
-                            resultSet.getString(17),
-                            resultSet.getString(9));
+                            resultSet.getString(7),
+                            resultSet.getObject(8, Double.class),
+                            resultSet.getString(20),
+                            resultSet.getString(10));
                 }
                 operationalLimitsGroupAttributes.setCurrentLimits(currentLimits);
 
                 LimitsAttributes apparentPowerLimits = createLimitsAttributes(
-                        resultSet.getObject(10, Double.class),
                         resultSet.getString(11),
-                        resultSet.getString(12)
+                        resultSet.getObject(12, Double.class),
+                        resultSet.getString(13),
+                        resultSet.getString(14)
                 );
                 operationalLimitsGroupAttributes.setApparentPowerLimits(apparentPowerLimits);
 
                 LimitsAttributes activePowerLimits = createLimitsAttributes(
-                        resultSet.getObject(13, Double.class),
-                        resultSet.getString(14),
-                        resultSet.getString(15)
+                        resultSet.getString(15),
+                        resultSet.getObject(16, Double.class),
+                        resultSet.getString(17),
+                        resultSet.getString(18)
                 );
                 operationalLimitsGroupAttributes.setActivePowerLimits(activePowerLimits);
 
-                String propertiesData = resultSet.getString(16);
+                String propertiesData = resultSet.getString(19);
                 if (!StringUtils.isEmpty(propertiesData)) {
                     Map<String, String> properties = mapper.readValue(propertiesData, new TypeReference<>() {
                     });
@@ -228,7 +235,7 @@ public class LimitsHandler {
         }
     }
 
-    private LimitsAttributes createLimitsAttributes(Double permanentLimitData,
+    private LimitsAttributes createLimitsAttributes(String permanentLimitNameData, Double permanentLimitData,
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {
         boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
@@ -249,11 +256,11 @@ public class LimitsHandler {
             properties = mapper.readValue(propertiesData, new TypeReference<>() { });
         }
 
-        return new LimitsAttributes(permanentLimit, temporaryLimits, properties);
+        return new LimitsAttributes(permanentLimitNameData, permanentLimit, temporaryLimits, properties);
     }
 
     // FIXME : to remove when 2.37 limits migration is done
-    private LimitsAttributes createOldLimitsAttributes(Double permanentLimitData,
+    private LimitsAttributes createOldLimitsAttributes(String permanentLimitNameData, Double permanentLimitData,
                                                     String temporaryLimitsData,
                                                     String propertiesData) throws JsonProcessingException {
         boolean hasPermanentLimit = permanentLimitData != null && !Double.isNaN(permanentLimitData);
@@ -278,7 +285,7 @@ public class LimitsHandler {
             properties = mapper.readValue(propertiesData, new TypeReference<>() { });
         }
 
-        return new LimitsAttributes(permanentLimit, temporaryLimits, properties);
+        return new LimitsAttributes(permanentLimitNameData, permanentLimit, temporaryLimits, properties);
     }
 
     protected <T extends LimitHolder & IdentifiableAttributes> Map<OperationalLimitsGroupOwnerInfo, OperationalLimitsGroupAttributes> getOperationalLimitsGroupsFromEquipments(
@@ -325,12 +332,15 @@ public class LimitsHandler {
                         values.add(entry.getKey().getOperationalLimitsGroupId());
                         values.add(entry.getKey().getSide());
                         OperationalLimitsGroupAttributesSqlData operationalLimitsGroupSqlData = OperationalLimitsGroupAttributesSqlData.of(entry.getValue());
+                        values.add(operationalLimitsGroupSqlData.getCurrentLimitsPermanentLimitName());
                         values.add(operationalLimitsGroupSqlData.getCurrentLimitsPermanentLimit());
                         values.add(operationalLimitsGroupSqlData.getCurrentLimitsTemporaryLimits());
                         values.add(operationalLimitsGroupSqlData.getCurrentLimitsProperties());
+                        values.add(operationalLimitsGroupSqlData.getApparentPowerLimitsPermanentLimitName());
                         values.add(operationalLimitsGroupSqlData.getApparentPowerLimitsPermanentLimit());
                         values.add(operationalLimitsGroupSqlData.getApparentPowerLimitsTemporaryLimits());
                         values.add(operationalLimitsGroupSqlData.getApparentPowerLimitsProperties());
+                        values.add(operationalLimitsGroupSqlData.getActivePowerLimitsPermanentLimitName());
                         values.add(operationalLimitsGroupSqlData.getActivePowerLimitsPermanentLimit());
                         values.add(operationalLimitsGroupSqlData.getActivePowerLimitsTemporaryLimits());
                         values.add(operationalLimitsGroupSqlData.getActivePowerLimitsProperties());
