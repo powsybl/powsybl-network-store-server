@@ -20,7 +20,7 @@ class CurrentLimitsIT extends AbstractCurrentLimitsTest {
     @Override
     @Test
     public void testNameDuplicationIsAllowed() {
-
+        // FIXME the ci does not run this test and there is a bug
     }
 
     @Override
