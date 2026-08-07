@@ -56,7 +56,7 @@
         <jib.from.image>powsybl/java:4.0.0</jib.from.image>
         <sirocco.version>1.0</sirocco.version>
         <!-- TODO to remove when powsybl-network-store.version included in powsybl-ws-dependencies -->
-        <powsybl-network-store.version>1.49.0-SNAPSHOT</powsybl-network-store.version>
+        <powsybl-network-store.version>1.50.0-SNAPSHOT</powsybl-network-store.version>
         <powsybl-ws-dependencies.version>2.34.0</powsybl-ws-dependencies.version>
         <!-- FIXME : to remove when sonar version is updated on github actions -->
         <!-- https://community.sonarsource.com/t/stackoverflowerror-at-defaultinputcomponent-equals/20324 -->

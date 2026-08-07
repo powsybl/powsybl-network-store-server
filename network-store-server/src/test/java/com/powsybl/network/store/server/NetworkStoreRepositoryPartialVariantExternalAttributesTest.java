@@ -7,6 +7,7 @@
 package com.powsybl.network.store.server;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.extensions.ActivePowerControl;
 import com.powsybl.iidm.network.extensions.OperatingStatus;
 import com.powsybl.network.store.model.*;
@@ -1744,6 +1745,7 @@ class NetworkStoreRepositoryPartialVariantExternalAttributesTest {
         return OperationalLimitsGroupAttributes.builder()
                 .id(operationLimitGroupId)
                 .currentLimits(LimitsAttributes.builder()
+                        .permanentLimitName(LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME)
                         .permanentLimit(permLimitValue)
                         .temporaryLimits(temporaryLimits)
                         .build())
