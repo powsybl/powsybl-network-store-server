@@ -48,10 +48,16 @@
     </developers>
 
     <properties>
+        <!-- FIXME to remove when powsybl-parent supports JDK25 -->
+        <java.version>25</java.version>
+        <maven.jacoco.version>0.8.15</maven.jacoco.version>
+        <checkstyle.version>13.8.0</checkstyle.version>
+        <maven.jib.version>3.5.1</maven.jib.version>
+        <jib.from.image>powsybl/java:4.0.0</jib.from.image>
         <sirocco.version>1.0</sirocco.version>
         <!-- TODO to remove when powsybl-network-store.version included in powsybl-ws-dependencies -->
         <powsybl-network-store.version>1.49.0-SNAPSHOT</powsybl-network-store.version>
-        <powsybl-ws-dependencies.version>2.33.0</powsybl-ws-dependencies.version>
+        <powsybl-ws-dependencies.version>2.34.0</powsybl-ws-dependencies.version>
         <!-- FIXME : to remove when sonar version is updated on github actions -->
         <!-- https://community.sonarsource.com/t/stackoverflowerror-at-defaultinputcomponent-equals/20324 -->
         <!-- The versions are very different from this post. But the fix works again. Maybe a similar problem in sonar code -->
@@ -103,6 +109,7 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
 
             <!-- project specific dependencies -->
             <dependency>
