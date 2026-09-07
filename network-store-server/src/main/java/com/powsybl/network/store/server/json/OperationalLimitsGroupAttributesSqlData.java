@@ -25,12 +25,15 @@ import java.util.Map;
 @Getter
 @Setter
 public class OperationalLimitsGroupAttributesSqlData {
+    private String currentLimitsPermanentLimitName;
     private Double currentLimitsPermanentLimit;
     private JsonTemporaryLimitsAttributes currentLimitsTemporaryLimits;
     private Map<String, String> currentLimitsProperties;
+    private String apparentPowerLimitsPermanentLimitName;
     private Double apparentPowerLimitsPermanentLimit;
     private JsonTemporaryLimitsAttributes apparentPowerLimitsTemporaryLimits;
     private Map<String, String> apparentPowerLimitsProperties;
+    private String activePowerLimitsPermanentLimitName;
     private Double activePowerLimitsPermanentLimit;
     private JsonTemporaryLimitsAttributes activePowerLimitsTemporaryLimits;
     private Map<String, String> activePowerLimitsProperties;
@@ -38,17 +41,24 @@ public class OperationalLimitsGroupAttributesSqlData {
 
     public static OperationalLimitsGroupAttributesSqlData of(OperationalLimitsGroupAttributes operationalLimitsGroup) {
         return OperationalLimitsGroupAttributesSqlData.builder()
+                .currentLimitsPermanentLimitName(extractPermanentLimitName(operationalLimitsGroup.getCurrentLimits()))
                 .currentLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getCurrentLimits()))
                 .currentLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getCurrentLimits()))
                 .currentLimitsProperties(extractLimitProperties(operationalLimitsGroup.getCurrentLimits()))
+                .apparentPowerLimitsPermanentLimitName(extractPermanentLimitName(operationalLimitsGroup.getApparentPowerLimits()))
                 .apparentPowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getApparentPowerLimits()))
                 .apparentPowerLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getApparentPowerLimits()))
                 .apparentPowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getApparentPowerLimits()))
+                .activePowerLimitsPermanentLimitName(extractPermanentLimitName(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsPermanentLimit(extractPermanentLimit(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsTemporaryLimits(convertToJsonTemporaryLimitsAttributes(operationalLimitsGroup.getActivePowerLimits()))
                 .activePowerLimitsProperties(extractLimitProperties(operationalLimitsGroup.getActivePowerLimits()))
                 .properties(operationalLimitsGroup.getProperties())
                 .build();
+    }
+
+    private static String extractPermanentLimitName(LimitsAttributes limitsAttributes) {
+        return limitsAttributes == null ? null : limitsAttributes.getPermanentLimitName();
     }
 
     private static Double extractPermanentLimit(LimitsAttributes limitsAttributes) {
