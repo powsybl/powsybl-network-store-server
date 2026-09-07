@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
-import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.server.dto.OperationalLimitsGroupOwnerInfo;
 import com.powsybl.network.store.server.dto.OwnerInfo;
@@ -256,10 +255,7 @@ public class LimitsHandler {
         if (!StringUtils.isEmpty(propertiesData)) {
             properties = mapper.readValue(propertiesData, new TypeReference<>() { });
         }
-
-        String permanentLimitName = hasPermanentLimit && permanentLimitNameData == null ?
-                LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME : permanentLimitNameData;
-        return new LimitsAttributes(permanentLimit, permanentLimitName, temporaryLimits, properties);
+        return new LimitsAttributes(permanentLimit, permanentLimitNameData, temporaryLimits, properties);
     }
 
     // FIXME : to remove when 2.37 limits migration is done

@@ -6,7 +6,6 @@
  */
 package com.powsybl.network.store.server.json;
 
-import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.network.store.model.LimitsAttributes;
 import com.powsybl.network.store.model.OperationalLimitsGroupAttributes;
 import com.powsybl.network.store.model.TemporaryLimitAttributes;
@@ -15,7 +14,6 @@ import lombok.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -60,8 +58,7 @@ public class OperationalLimitsGroupAttributesSqlData {
     }
 
     private static String extractPermanentLimitName(LimitsAttributes limitsAttributes) {
-        String permanentLimitName = limitsAttributes == null ? null : limitsAttributes.getPermanentLimitName();
-        return Objects.equals(permanentLimitName, LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME) ? null : permanentLimitName;
+        return limitsAttributes == null ? null : limitsAttributes.getPermanentLimitName();
     }
 
     private static Double extractPermanentLimit(LimitsAttributes limitsAttributes) {
