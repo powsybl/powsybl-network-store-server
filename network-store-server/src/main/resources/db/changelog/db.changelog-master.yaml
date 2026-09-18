@@ -164,6 +164,10 @@ databaseChangeLog:
       file: changesets/changelog_20260430T100000Z.xml
       relativeToChangelogFile: true
 
+  - include:
+      file: changesets/changelog_20260804T100000Z.xml
+      relativeToChangelogFile: true
+
 # Migration of V2.37 limits. To be added before tag v2.40.0 is deployed
 #  - include:
 #      file: changesets/changelog_20260430T110000Z.xml
