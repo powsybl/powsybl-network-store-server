@@ -1,6 +1,9 @@
 spring:
   application:
     name: network-store-server
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   datasource:
     # Network-store is critical in our system, raise some default limits
     hikari:
