@@ -38,7 +38,7 @@ public class NetworkFactoryTestService implements NetworkFactoryService {
         }
         ModuleConfig moduleConfig = moduleConfigOpt.get();
         String networkStoreBaseUrl = moduleConfig.getStringProperty("base-url");
-        RestClient restClient = new RestClientImpl(networkStoreBaseUrl);
+        ResourceAttributesRestClient restClient = new ResourceAttributesRestClientImpl(networkStoreBaseUrl);
         return new NetworkFactoryImpl(() -> new RestNetworkStoreClient(restClient));
     }
 }

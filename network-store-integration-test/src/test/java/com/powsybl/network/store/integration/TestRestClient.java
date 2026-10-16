@@ -6,7 +6,7 @@
  */
 package com.powsybl.network.store.integration;
 
-import com.powsybl.network.store.client.RestClient;
+import com.powsybl.network.store.client.ResourceAttributesRestClient;
 import com.powsybl.network.store.model.Attributes;
 import com.powsybl.network.store.model.ExtensionAttributes;
 import com.powsybl.network.store.model.IdentifiableAttributes;
@@ -24,7 +24,7 @@ class TestRestClient extends AbstractForwardingRestClient {
 
     private final RestClientMetrics metrics;
 
-    TestRestClient(RestClient delegate, RestClientMetrics metrics) {
+    TestRestClient(ResourceAttributesRestClient delegate, RestClientMetrics metrics) {
         super(delegate);
         this.metrics = Objects.requireNonNull(metrics);
     }
