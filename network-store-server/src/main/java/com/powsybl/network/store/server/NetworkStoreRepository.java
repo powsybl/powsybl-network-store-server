@@ -649,7 +649,10 @@ public class NetworkStoreRepository {
 
     private <T extends IdentifiableAttributes> Resource<T> completeBatteryInfos(Resource<T> resource, UUID networkUuid, int variantNum, String equipmentId) {
         Map<OwnerInfo, List<ReactiveCapabilityCurvePointAttributes>> reactiveCapabilityCurvePoints = getReactiveCapabilityCurvePoints(networkUuid, variantNum, EQUIPMENT_ID_COLUMN, equipmentId);
-        insertReactiveCapabilityCurvePointsInEquipments(networkUuid, List.of((Resource<BatteryAttributes>) resource), reactiveCapabilityCurvePoints);
+        Resource<BatteryAttributes> battery = (Resource<BatteryAttributes>) resource;
+        insertReactiveCapabilityCurvePointsInEquipments(networkUuid, List.of(battery), reactiveCapabilityCurvePoints);
+        insertRegulatingPointIntoInjection(networkUuid, variantNum, equipmentId, battery, ResourceType.BATTERY);
+        setRegulatingEquipments(List.of(battery), networkUuid, variantNum, ResourceType.BATTERY);
         return resource;
     }
 
@@ -1389,6 +1392,7 @@ public class NetworkStoreRepository {
 
         // Now that batteries are created, we will insert in the database the corresponding reactive capability curve points.
         insertReactiveCapabilityCurvePoints(getReactiveCapabilityCurvePointsFromEquipments(networkUuid, resources));
+        insertRegulatingPoints(getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public Optional<Resource<BatteryAttributes>> getBattery(UUID networkUuid, int variantNum, String batteryId) {
@@ -1402,7 +1406,7 @@ public class NetworkStoreRepository {
                 networkUuid, variantNum, EQUIPMENT_TYPE_COLUMN, ResourceType.BATTERY.toString());
 
         insertReactiveCapabilityCurvePointsInEquipments(networkUuid, batteries, reactiveCapabilityCurvePoints);
-        setRegulatingEquipments(batteries, networkUuid, variantNum, ResourceType.BATTERY);
+        setRegulatingPointAndRegulatingEquipments(batteries, networkUuid, variantNum, ResourceType.BATTERY);
 
         return batteries;
     }
@@ -1416,7 +1420,7 @@ public class NetworkStoreRepository {
                 equipmentsIds);
 
         insertReactiveCapabilityCurvePointsInEquipments(networkUuid, batteries, reactiveCapabilityCurvePoints);
-        setRegulatingEquipmentsWithIds(batteries, networkUuid, variantNum, ResourceType.BATTERY, equipmentsIds);
+        setRegulatingPointAndRegulatingEquipmentsWithIds(batteries, networkUuid, variantNum, ResourceType.BATTERY);
         return batteries;
     }
 
@@ -1424,6 +1428,7 @@ public class NetworkStoreRepository {
         updateIdentifiables(networkUuid, resources, mappings.getBatteryMappings(), VOLTAGE_LEVEL_ID_COLUMN);
 
         updateReactiveCapabilityCurvePoints(networkUuid, resources);
+        updateRegulatingPoints(networkUuid, resources, ResourceType.BATTERY, getRegulatingPointFromEquipments(networkUuid, resources));
     }
 
     public void updateBatteriesSv(UUID networkUuid, List<Resource<InjectionSvAttributes>> resources) {
@@ -1433,6 +1438,7 @@ public class NetworkStoreRepository {
     public void deleteBatteries(UUID networkUuid, int variantNum, List<String> batteryIds) {
         deleteIdentifiables(networkUuid, variantNum, batteryIds, BATTERY_TABLE);
         deleteReactiveCapabilityCurvePoints(networkUuid, variantNum, batteryIds);
+        deleteRegulatingPoints(networkUuid, variantNum, batteryIds, ResourceType.BATTERY);
     }
 
     // load
@@ -2274,6 +2280,11 @@ public class NetworkStoreRepository {
                                 : null);
                             values.add(attributes.getValue().getRegulating() != null
                                 ? attributes.getValue().getRegulating() : null);
+                            VoltageRegulationAttributes voltageRegulation = attributes.getValue() instanceof VoltageRegulationAttributes voltage
+                                ? voltage : null;
+                            values.add(voltageRegulation != null ? voltageRegulation.getTargetValue() : null);
+                            values.add(voltageRegulation != null ? voltageRegulation.getTargetDeadband() : null);
+                            values.add(voltageRegulation != null ? voltageRegulation.getSlope() : null);
                         } else {
                             values.add(null);
                             values.add(attributes.getKey().getEquipmentId());
@@ -2281,6 +2292,9 @@ public class NetworkStoreRepository {
                                 values.add(null);
                             }
                             values.add(false);
+                            values.add(null);
+                            values.add(null);
+                            values.add(null);
                         }
                         bindValues(preparedStmt, values, mapper);
                         preparedStmt.addBatch();
@@ -2713,7 +2727,7 @@ public class NetworkStoreRepository {
     }
 
     // using the request on a small number of ids and not on all elements
-    private <T extends AbstractRegulatingEquipmentAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipmentsWithIds(
+    private <T extends IdentifiableAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipmentsWithIds(
             List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
         // regulating points
         List<String> elementIds = elements.stream().map(Resource::getId).toList();
@@ -2723,14 +2737,13 @@ public class NetworkStoreRepository {
         elements.forEach(element -> {
             OwnerInfo ownerInfo = new OwnerInfo(element.getId(), type, networkUuid, variantNum);
             RegulatingOwnerInfo regulatingOwnerInfo = new RegulatingOwnerInfo(element.getId(), type, RegulatingTapChangerType.NONE, networkUuid, variantNum);
-            element.getAttributes().setRegulatingPoint(
-                regulatingPointAttributes.get(regulatingOwnerInfo));
+            setRegulatingPoint(element.getAttributes(), regulatingPointAttributes.get(regulatingOwnerInfo));
             element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(ownerInfo));
         });
     }
 
     // on all elements of the network
-    private <T extends AbstractRegulatingEquipmentAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipments(
+    private <T extends IdentifiableAttributes & RegulatedEquipmentAttributes> void setRegulatingPointAndRegulatingEquipments(
             List<Resource<T>> elements, UUID networkUuid, int variantNum, ResourceType type) {
         // regulating points
         Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPoints(networkUuid, variantNum, type);
@@ -2738,10 +2751,47 @@ public class NetworkStoreRepository {
         elements.forEach(element -> {
             OwnerInfo ownerInfo = new OwnerInfo(element.getId(), type, networkUuid, variantNum);
             RegulatingOwnerInfo regulatingOwnerInfo = new RegulatingOwnerInfo(element.getId(), type, RegulatingTapChangerType.NONE, networkUuid, variantNum);
-            element.getAttributes().setRegulatingPoint(
-                regulatingPointAttributes.get(regulatingOwnerInfo));
+            setRegulatingPoint(element.getAttributes(), regulatingPointAttributes.get(regulatingOwnerInfo));
             element.getAttributes().setRegulatingEquipments(regulatingEquipments.get(ownerInfo));
         });
+    }
+
+    private void setRegulatingPoint(IdentifiableAttributes attributes, RegulatingPointAttributes regulatingPoint) {
+        if (attributes instanceof AbstractRegulatingEquipmentAttributes regulatingEquipmentAttributes) {
+            regulatingEquipmentAttributes.setRegulatingPoint(regulatingPoint == null ? null : toLegacyRegulatingPoint(regulatingPoint));
+        }
+        if (attributes instanceof VoltageRegulationHolderAttributes voltageRegulationHolder) {
+            voltageRegulationHolder.setVoltageRegulation(regulatingPoint == null ? null : toVoltageRegulation(regulatingPoint));
+        }
+    }
+
+    private RegulatingPointAttributes toLegacyRegulatingPoint(RegulatingPointAttributes regulatingPoint) {
+        RegulatingPointAttributes legacyRegulatingPoint = new RegulatingPointAttributes();
+        legacyRegulatingPoint.setRegulatingEquipmentId(regulatingPoint.getRegulatingEquipmentId());
+        legacyRegulatingPoint.setRegulatingResourceType(regulatingPoint.getRegulatingResourceType());
+        legacyRegulatingPoint.setRegulatingTapChangerType(regulatingPoint.getRegulatingTapChangerType());
+        legacyRegulatingPoint.setLocalTerminal(regulatingPoint.getLocalTerminal());
+        legacyRegulatingPoint.setRegulatingTerminal(regulatingPoint.getRegulatingTerminal());
+        legacyRegulatingPoint.setRegulationMode(regulatingPoint.getRegulationMode());
+        legacyRegulatingPoint.setRegulatedResourceType(regulatingPoint.getRegulatedResourceType());
+        legacyRegulatingPoint.setRegulating(regulatingPoint.getRegulating());
+        return legacyRegulatingPoint;
+    }
+
+    private VoltageRegulationAttributes toVoltageRegulation(RegulatingPointAttributes regulatingPoint) {
+        if (regulatingPoint instanceof VoltageRegulationAttributes voltageRegulation) {
+            return voltageRegulation;
+        }
+        VoltageRegulationAttributes voltageRegulation = new VoltageRegulationAttributes();
+        voltageRegulation.setRegulatingEquipmentId(regulatingPoint.getRegulatingEquipmentId());
+        voltageRegulation.setRegulatingResourceType(regulatingPoint.getRegulatingResourceType());
+        voltageRegulation.setRegulatingTapChangerType(regulatingPoint.getRegulatingTapChangerType());
+        voltageRegulation.setLocalTerminal(regulatingPoint.getLocalTerminal());
+        voltageRegulation.setRegulatingTerminal(regulatingPoint.getRegulatingTerminal());
+        voltageRegulation.setRegulationMode(regulatingPoint.getRegulationMode());
+        voltageRegulation.setRegulatedResourceType(regulatingPoint.getRegulatedResourceType());
+        voltageRegulation.setRegulating(regulatingPoint.getRegulating());
+        return voltageRegulation;
     }
 
     // for two winding transformers
@@ -2827,13 +2877,13 @@ public class NetworkStoreRepository {
             RegulatingOwnerInfo ratioTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
                 transformerId, resourceType,
                 ratioRegulatingTapChangerType, networkUuid, variantNum);
-            ratioTapChangerAttributes.setRegulatingPoint(map.get(ratioTapChangerRegulatingOwnerInfo));
+            setTapChangerRegulatingPoint(ratioTapChangerAttributes, map.get(ratioTapChangerRegulatingOwnerInfo));
         }
         if (phaseTapChangerAttributes != null) {
             RegulatingOwnerInfo phaseTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
                 transformerId, resourceType,
                 phaseRegulatingTapChangerType, networkUuid, variantNum);
-            phaseTapChangerAttributes.setRegulatingPoint(map.get(phaseTapChangerRegulatingOwnerInfo));
+            setTapChangerRegulatingPoint(phaseTapChangerAttributes, map.get(phaseTapChangerRegulatingOwnerInfo));
         }
     }
 
@@ -2862,7 +2912,8 @@ public class NetworkStoreRepository {
         });
     }
 
-    protected <T extends AbstractRegulatingEquipmentAttributes> Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
+    protected <T extends IdentifiableAttributes & RegulatedEquipmentAttributes>
+            Map<RegulatingOwnerInfo, RegulatingPointAttributes> getRegulatingPointFromEquipments(UUID networkUuid, List<Resource<T>> resources) {
         Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
         if (!resources.isEmpty()) {
             for (Resource<T> resource : resources) {
@@ -2873,7 +2924,15 @@ public class NetworkStoreRepository {
                     networkUuid,
                     resource.getVariantNum()
                 );
-                map.put(info, resource.getAttributes().getRegulatingPoint());
+                IdentifiableAttributes attributes = resource.getAttributes();
+                RegulatingPointAttributes regulatingPoint = null;
+                if (attributes instanceof VoltageRegulationHolderAttributes voltageRegulationHolder) {
+                    regulatingPoint = voltageRegulationHolder.getVoltageRegulation();
+                }
+                if (regulatingPoint == null && attributes instanceof AbstractRegulatingEquipmentAttributes regulatingEquipmentAttributes) {
+                    regulatingPoint = regulatingEquipmentAttributes.getRegulatingPoint();
+                }
+                map.put(info, regulatingPoint);
             }
         }
         return map;
@@ -2923,7 +2982,7 @@ public class NetworkStoreRepository {
             RegulatingOwnerInfo ratioTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
                 transformerId, resourceType,
                 ratioRegulatingTapChangerType, networkUuid, variantNum);
-            map.put(ratioTapChangerRegulatingOwnerInfo, ratioTapChangerAttributes.getRegulatingPoint());
+            map.put(ratioTapChangerRegulatingOwnerInfo, getTapChangerRegulatingPoint(ratioTapChangerAttributes));
         }
         if (phaseTapChangerAttributes != null) {
             RegulatingOwnerInfo phaseTapChangerRegulatingOwnerInfo = new RegulatingOwnerInfo(
@@ -2938,7 +2997,6 @@ public class NetworkStoreRepository {
             Map<RegulatingOwnerInfo, RegulatingPointAttributes> map = new HashMap<>();
             while (resultSet.next()) {
                 RegulatingOwnerInfo owner = new RegulatingOwnerInfo();
-                RegulatingPointAttributes regulatingPointAttributes = new RegulatingPointAttributes();
                 // In order, from the QueryCatalog.buildRegulatingPointQuery SQL query :
                 // equipmentId, networkUuid, variantNum, regulatingEquipmentId, localTerminal and regulatingTerminal
                 String regulatingEquipmentId = resultSet.getString(3);
@@ -2947,13 +3005,18 @@ public class NetworkStoreRepository {
                 owner.setVariantNum(variantNumOverride);
                 owner.setEquipmentType(type);
                 String regulatingTapChangerType = resultSet.getString(4);
+                RegulatingTapChangerType tapChangerType = RegulatingTapChangerType.valueOf(regulatingTapChangerType);
+                RegulatingPointAttributes regulatingPointAttributes = isVoltageRegulationHolder(type)
+                    || tapChangerType.name().startsWith("RATIO_TAP_CHANGER")
+                    ? new VoltageRegulationAttributes()
+                    : new RegulatingPointAttributes();
                 // regulatingTapChangerType can not be null because it is part of primary key of table RegulatingPoint
                 // it will be NONE for injection
-                owner.setRegulatingTapChangerType(RegulatingTapChangerType.valueOf(regulatingTapChangerType));
+                owner.setRegulatingTapChangerType(tapChangerType);
                 regulatingPointAttributes.setRegulatingEquipmentId(regulatingEquipmentId);
                 regulatingPointAttributes.setRegulationMode(resultSet.getString(5));
                 regulatingPointAttributes.setRegulatingResourceType(type);
-                regulatingPointAttributes.setRegulatingTapChangerType(RegulatingTapChangerType.valueOf(regulatingTapChangerType));
+                regulatingPointAttributes.setRegulatingTapChangerType(tapChangerType);
                 Optional<String> localConnectableId = Optional.ofNullable(resultSet.getString(6));
                 if (localConnectableId.isPresent()) {
                     regulatingPointAttributes.setLocalTerminal(new TerminalRefAttributes(localConnectableId.get(), resultSet.getString(7)));
@@ -2963,10 +3026,31 @@ public class NetworkStoreRepository {
                     regulatingPointAttributes.setRegulatingTerminal(new TerminalRefAttributes(resultSet.getString(8), resultSet.getString(9)));
                 }
                 regulatingPointAttributes.setRegulating(resultSet.getBoolean(10));
+                if (regulatingPointAttributes instanceof VoltageRegulationAttributes voltageRegulation) {
+                    voltageRegulation.setTargetValue(resultSet.getDouble(11));
+                    voltageRegulation.setTargetDeadband(resultSet.getDouble(12));
+                    voltageRegulation.setSlope(resultSet.getDouble(13));
+                }
                 map.put(owner, regulatingPointAttributes);
             }
             return map;
         }
+    }
+
+    private boolean isVoltageRegulationHolder(ResourceType type) {
+        return type == ResourceType.GENERATOR
+            || type == ResourceType.BATTERY
+            || type == ResourceType.SHUNT_COMPENSATOR
+            || type == ResourceType.STATIC_VAR_COMPENSATOR
+            || type == ResourceType.VSC_CONVERTER_STATION;
+    }
+
+    private RegulatingPointAttributes getTapChangerRegulatingPoint(TapChangerAttributes tapChangerAttributes) {
+        if (tapChangerAttributes instanceof VoltageRegulationHolderAttributes voltageRegulationHolder
+            && voltageRegulationHolder.getVoltageRegulation() != null) {
+            return voltageRegulationHolder.getVoltageRegulation();
+        }
+        return tapChangerAttributes.getRegulatingPoint();
     }
 
     public Map<OwnerInfo, Set<RegulatingEquipmentIdentifier>> getRegulatingEquipments(UUID networkUuid, int variantNum, ResourceType type) {
@@ -3170,7 +3254,7 @@ public class NetworkStoreRepository {
         return map;
     }
 
-    private <T extends AbstractRegulatingEquipmentAttributes> void insertRegulatingPointIntoInjection(
+    private <T extends IdentifiableAttributes & RegulatedEquipmentAttributes> void insertRegulatingPointIntoInjection(
             UUID networkUuid, int variantNum, String equipmentId, Resource<T> resource, ResourceType resourceType) {
         Map<RegulatingOwnerInfo, RegulatingPointAttributes> regulatingPointAttributes = getRegulatingPointsWithInClause(networkUuid, variantNum,
             REGULATING_EQUIPMENT_ID, Collections.singletonList(equipmentId), resourceType);
@@ -3178,7 +3262,7 @@ public class NetworkStoreRepository {
             throw new PowsyblException("a regulating injection must have one regulating point");
         }
         regulatingPointAttributes.values().forEach(regulatingPointAttribute ->
-                resource.getAttributes().setRegulatingPoint(regulatingPointAttribute));
+                setRegulatingPoint(resource.getAttributes(), regulatingPointAttribute));
     }
 
     private void insertRegulatingPointIntoTwoWindingsTransformer(UUID networkUuid, int variantNum, String equipmentId, Resource<TwoWindingsTransformerAttributes> resource) {
@@ -3208,9 +3292,14 @@ public class NetworkStoreRepository {
     private void setTapChangerRegulatingPoint(TapChangerAttributes tapChangerAttributes, Map<RegulatingOwnerInfo, RegulatingPointAttributes> transformerRegulatingPointAttributes, RegulatingOwnerInfo
             regulatingOwnerInfo) {
         if (tapChangerAttributes != null) {
-            tapChangerAttributes.setRegulatingPoint(
-                transformerRegulatingPointAttributes.get(regulatingOwnerInfo)
-            );
+            setTapChangerRegulatingPoint(tapChangerAttributes, transformerRegulatingPointAttributes.get(regulatingOwnerInfo));
+        }
+    }
+
+    private void setTapChangerRegulatingPoint(TapChangerAttributes tapChangerAttributes, RegulatingPointAttributes regulatingPoint) {
+        tapChangerAttributes.setRegulatingPoint(regulatingPoint == null ? null : toLegacyRegulatingPoint(regulatingPoint));
+        if (tapChangerAttributes instanceof VoltageRegulationHolderAttributes voltageRegulationHolder) {
+            voltageRegulationHolder.setVoltageRegulation(regulatingPoint == null ? null : toVoltageRegulation(regulatingPoint));
         }
     }
 

@@ -19,9 +19,11 @@ import com.powsybl.commons.extensions.Extension;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
+import com.powsybl.iidm.network.regulation.VoltageRegulation;
 import com.powsybl.iidm.network.test.*;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.RestClientImpl;
+import com.powsybl.network.store.client.ResourceAttributesRestClientImpl;
 import com.powsybl.network.store.iidm.impl.NetworkImpl;
 import com.powsybl.network.store.model.BaseVoltageSourceAttribute;
 import com.powsybl.network.store.model.CgmesMetadataModelAttributes;
@@ -46,7 +48,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author Etienne Homer <etienne.homer at rte-france.com>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, ResourceAttributesRestClientImpl.class})})
 class NetworkStoreExtensionsIT {
 
     @LocalServerPort
@@ -639,16 +641,18 @@ class NetworkStoreExtensionsIT {
     }
 
     @Test
-    void voltagePerReactivePowerControlTest() {
+    void svcVoltageRegulationPersistenceTest() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
             StaticVarCompensator svc2 = network.getStaticVarCompensator("SVC2");
-            assertNull(svc2.getExtension(VoltagePerReactivePowerControl.class));
-            assertNull(svc2.getExtensionByName("voltagePerReactivePowerControl"));
-            assertTrue(svc2.getExtensions().isEmpty());
-            svc2.newExtension(VoltagePerReactivePowerControlAdder.class)
+            svc2.newVoltageRegulation()
+                    .withTargetValue(390)
+                    .withTargetDeadband(0.1)
                     .withSlope(0.3)
-                    .add();
+                    .withTerminal(svc2.getTerminal())
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .build();
             service.flush(network);
         }
 
@@ -656,11 +660,11 @@ class NetworkStoreExtensionsIT {
             Map<UUID, String> networkIds = service.getNetworkIds();
             Network network = service.getNetwork(networkIds.keySet().stream().findFirst().orElseThrow(AssertionError::new));
             StaticVarCompensator svc2 = network.getStaticVarCompensator("SVC2");
-            VoltagePerReactivePowerControl extension = svc2.getExtension(VoltagePerReactivePowerControl.class);
-            assertNotNull(extension);
-            assertEquals(0.3, extension.getSlope(), 0);
-            assertNotNull(svc2.getExtensionByName("voltagePerReactivePowerControl"));
-            assertEquals(1, svc2.getExtensions().size());
+            VoltageRegulation voltageRegulation = svc2.getVoltageRegulation();
+            assertNotNull(voltageRegulation);
+            assertEquals(390, voltageRegulation.getTargetValue(), 0);
+            assertEquals(0.1, voltageRegulation.getTargetDeadband(), 0);
+            assertEquals(0.3, voltageRegulation.getSlope(), 0);
         }
     }
 
@@ -807,34 +811,6 @@ class NetworkStoreExtensionsIT {
             assertNotNull(twt.getExtensionByName("twoWindingsTransformerPhaseAngleClock"));
             assertFalse(twt.getExtensions().isEmpty());
             assertEquals(1, twt.getExtension(TwoWindingsTransformerPhaseAngleClock.class).getPhaseAngleClock());
-        }
-    }
-
-    @Test
-    void svcVoltagePerReactivePowerExtensionTest() {
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Network network = SvcTestCaseFactory.create(service.getNetworkFactory());
-
-            StaticVarCompensator svc = network.getStaticVarCompensator("SVC2");
-            assertNull(svc.getExtension(VoltagePerReactivePowerControl.class));
-            assertNull(svc.getExtensionByName("voltagePerReactivePowerControl"));
-            assertTrue(svc.getExtensions().isEmpty());
-            svc.newExtension(VoltagePerReactivePowerControlAdder.class).withSlope(1).add();
-            assertNotNull(svc.getExtension(VoltagePerReactivePowerControl.class));
-            assertNotNull(svc.getExtensionByName("voltagePerReactivePowerControl"));
-            assertFalse(svc.getExtensions().isEmpty());
-            assertEquals(1, svc.getExtension(VoltagePerReactivePowerControl.class).getSlope(), 0.001);
-            service.flush(network);
-        }
-
-        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
-            Map<UUID, String> networkIds = service.getNetworkIds();
-            Network network = service.getNetwork(networkIds.keySet().stream().findFirst().orElseThrow(AssertionError::new));
-            StaticVarCompensator svc = network.getStaticVarCompensator("SVC2");
-            assertNotNull(svc.getExtension(VoltagePerReactivePowerControl.class));
-            assertNotNull(svc.getExtensionByName("voltagePerReactivePowerControl"));
-            assertFalse(svc.getExtensions().isEmpty());
-            assertEquals(1, svc.getExtension(VoltagePerReactivePowerControl.class).getSlope(), 0.001);
         }
     }
 
@@ -1240,11 +1216,11 @@ class NetworkStoreExtensionsIT {
 
             Network readNetwork = service.getNetwork(networkIds.keySet().stream().findFirst().get());
             Generator g = readNetwork.getGenerator("3a3b27be-b18b-4385-b557-6735d733baf0");
-            RemoteReactivePowerControl ext = g.getExtension(RemoteReactivePowerControl.class);
-            assertNotNull(ext);
-            assertEquals(115.5, ext.getTargetQ(), 0.0);
-            assertTrue(ext.isEnabled());
-            assertSame(readNetwork.getTwoWindingsTransformer("a708c3bc-465d-4fe7-b6ef-6fa6408a62b0").getTerminal2(), ext.getRegulatingTerminal());
+            VoltageRegulation voltageRegulation = g.getVoltageRegulation();
+            assertNotNull(voltageRegulation);
+            assertEquals(115.5, voltageRegulation.getTargetValue(), 0.0);
+            assertTrue(voltageRegulation.isRegulating());
+            assertSame(readNetwork.getTwoWindingsTransformer("a708c3bc-465d-4fe7-b6ef-6fa6408a62b0").getTerminal2(), voltageRegulation.getTerminal());
         }
     }
 
@@ -1503,19 +1479,19 @@ class NetworkStoreExtensionsIT {
             assertEquals("NHV1_NHV2_1", branchObservability.getExtendable().getId());
 
             assertTrue(branchObservability.isObservable());
-            assertEquals(0.02d, branchObservability.getQualityP1().getStandardDeviation(), 0d);
-            assertEquals(0.04d, branchObservability.getQualityP2().getStandardDeviation(), 0d);
-            assertTrue(branchObservability.getQualityP1().isRedundant().isPresent());
-            assertTrue(branchObservability.getQualityP1().isRedundant().get());
-            assertTrue(branchObservability.getQualityP2().isRedundant().isPresent());
-            assertFalse(branchObservability.getQualityP2().isRedundant().get());
+            assertEquals(0.02d, branchObservability.getQualityP1().orElseThrow().getStandardDeviation(), 0d);
+            assertEquals(0.04d, branchObservability.getQualityP2().orElseThrow().getStandardDeviation(), 0d);
+            assertTrue(branchObservability.getQualityP1().orElseThrow().isRedundant().isPresent());
+            assertTrue(branchObservability.getQualityP1().orElseThrow().isRedundant().get());
+            assertTrue(branchObservability.getQualityP2().orElseThrow().isRedundant().isPresent());
+            assertFalse(branchObservability.getQualityP2().orElseThrow().isRedundant().get());
 
-            assertEquals(0.5d, branchObservability.getQualityQ1().getStandardDeviation(), 0d);
-            assertEquals(1.0d, branchObservability.getQualityQ2().getStandardDeviation(), 0d);
-            assertTrue(branchObservability.getQualityQ1().isRedundant().isPresent());
-            assertFalse(branchObservability.getQualityQ1().isRedundant().get());
-            assertTrue(branchObservability.getQualityQ2().isRedundant().isPresent());
-            assertTrue(branchObservability.getQualityQ2().isRedundant().get());
+            assertEquals(0.5d, branchObservability.getQualityQ1().orElseThrow().getStandardDeviation(), 0d);
+            assertEquals(1.0d, branchObservability.getQualityQ2().orElseThrow().getStandardDeviation(), 0d);
+            assertTrue(branchObservability.getQualityQ1().orElseThrow().isRedundant().isPresent());
+            assertFalse(branchObservability.getQualityQ1().orElseThrow().isRedundant().get());
+            assertTrue(branchObservability.getQualityQ2().orElseThrow().isRedundant().isPresent());
+            assertTrue(branchObservability.getQualityQ2().orElseThrow().isRedundant().get());
         }
     }
 
@@ -1545,17 +1521,17 @@ class NetworkStoreExtensionsIT {
             assertEquals("GEN", generatorObservability.getExtendable().getId());
 
             assertFalse(generatorObservability.isObservable());
-            assertEquals(0.02d, generatorObservability.getQualityP().getStandardDeviation(), 0d);
-            assertTrue(generatorObservability.getQualityP().isRedundant().isPresent());
-            assertTrue(generatorObservability.getQualityP().isRedundant().get());
+            assertEquals(0.02d, generatorObservability.getQualityP().orElseThrow().getStandardDeviation(), 0d);
+            assertTrue(generatorObservability.getQualityP().orElseThrow().isRedundant().isPresent());
+            assertTrue(generatorObservability.getQualityP().orElseThrow().isRedundant().get());
 
-            assertEquals(0.03d, generatorObservability.getQualityQ().getStandardDeviation(), 0d);
-            assertTrue(generatorObservability.getQualityQ().isRedundant().isPresent());
-            assertFalse(generatorObservability.getQualityQ().isRedundant().get());
+            assertEquals(0.03d, generatorObservability.getQualityQ().orElseThrow().getStandardDeviation(), 0d);
+            assertTrue(generatorObservability.getQualityQ().orElseThrow().isRedundant().isPresent());
+            assertFalse(generatorObservability.getQualityQ().orElseThrow().isRedundant().get());
 
-            assertEquals(0.04d, generatorObservability.getQualityV().getStandardDeviation(), 0d);
-            assertTrue(generatorObservability.getQualityV().isRedundant().isPresent());
-            assertTrue(generatorObservability.getQualityV().isRedundant().get());
+            assertEquals(0.04d, generatorObservability.getQualityV().orElseThrow().getStandardDeviation(), 0d);
+            assertTrue(generatorObservability.getQualityV().orElseThrow().isRedundant().isPresent());
+            assertTrue(generatorObservability.getQualityV().orElseThrow().isRedundant().get());
         }
     }
 

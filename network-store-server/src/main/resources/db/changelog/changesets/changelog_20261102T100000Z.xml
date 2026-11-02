@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="20261102-1" author="powsybl">
+        <addColumn tableName="generator">
+            <column name="localtargetq" type="FLOAT8"/>
+            <column name="localtargetv" type="FLOAT8"/>
+        </addColumn>
+        <addColumn tableName="battery">
+            <column name="localtargetq" type="FLOAT8"/>
+            <column name="localtargetv" type="FLOAT8"/>
+        </addColumn>
+        <addColumn tableName="vscconverterstation">
+            <column name="localtargetq" type="FLOAT8"/>
+            <column name="localtargetv" type="FLOAT8"/>
+        </addColumn>
+        <addColumn tableName="staticvarcompensator">
+            <column name="localtargetq" type="FLOAT8"/>
+            <column name="localtargetv" type="FLOAT8"/>
+        </addColumn>
+        <addColumn tableName="shuntcompensator">
+            <column name="localtargetv" type="FLOAT8"/>
+        </addColumn>
+        <addColumn tableName="regulatingpoint">
+            <column name="targetvalue" type="FLOAT8"/>
+            <column name="targetdeadband" type="FLOAT8"/>
+            <column name="slope" type="FLOAT8"/>
+        </addColumn>
+
+        <sql>
+            UPDATE generator SET localtargetq = targetq, localtargetv = equivalentlocaltargetv;
+            UPDATE battery SET localtargetq = targetq;
+            UPDATE vscconverterstation SET localtargetq = reactivepowersetpoint, localtargetv = voltagesetpoint;
+            UPDATE staticvarcompensator SET localtargetq = reactivepowersetpoint, localtargetv = voltagesetpoint;
+            UPDATE shuntcompensator SET localtargetv = targetv;
+            UPDATE regulatingpoint rp SET targetvalue = CASE
+                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT g.targetv FROM generator g
+                    WHERE g.networkuuid = rp.networkuuid AND g.variantnum = rp.variantnum AND g.id = rp.regulatingequipmentid)
+                WHEN rp.regulationmode = 'REACTIVE_POWER' THEN (SELECT g.targetq FROM generator g
+                    WHERE g.networkuuid = rp.networkuuid AND g.variantnum = rp.variantnum AND g.id = rp.regulatingequipmentid)
+                ELSE NULL END
+                WHERE rp.regulatingequipmenttype = 'GENERATOR';
+            UPDATE regulatingpoint rp SET targetvalue = (SELECT b.targetq FROM battery b
+                WHERE b.networkuuid = rp.networkuuid AND b.variantnum = rp.variantnum AND b.id = rp.regulatingequipmentid)
+                WHERE rp.regulatingequipmenttype = 'BATTERY' AND rp.regulationmode = 'REACTIVE_POWER';
+            UPDATE regulatingpoint rp SET targetvalue = CASE
+                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT s.targetv FROM shuntcompensator s
+                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
+                ELSE NULL END,
+                targetdeadband = (SELECT s.targetdeadband FROM shuntcompensator s
+                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
+                WHERE rp.regulatingequipmenttype = 'SHUNT_COMPENSATOR';
+            UPDATE regulatingpoint rp SET targetvalue = CASE
+                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT v.voltagesetpoint FROM vscconverterstation v
+                    WHERE v.networkuuid = rp.networkuuid AND v.variantnum = rp.variantnum AND v.id = rp.regulatingequipmentid)
+                WHEN rp.regulationmode = 'REACTIVE_POWER' THEN (SELECT v.reactivepowersetpoint FROM vscconverterstation v
+                    WHERE v.networkuuid = rp.networkuuid AND v.variantnum = rp.variantnum AND v.id = rp.regulatingequipmentid)
+                ELSE NULL END
+                WHERE rp.regulatingequipmenttype = 'VSC_CONVERTER_STATION';
+            UPDATE regulatingpoint rp SET targetvalue = CASE
+                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT s.voltagesetpoint FROM staticvarcompensator s
+                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
+                WHEN rp.regulationmode = 'REACTIVE_POWER' THEN (SELECT s.reactivepowersetpoint FROM staticvarcompensator s
+                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
+                ELSE NULL END
+                WHERE rp.regulatingequipmenttype = 'STATIC_VAR_COMPENSATOR';
+        </sql>
+    </changeSet>
+</databaseChangeLog>

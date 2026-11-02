@@ -6,7 +6,7 @@
  */
 package com.powsybl.network.store.server;
 
-import com.powsybl.iidm.network.StaticVarCompensator;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.network.store.model.*;
 import com.powsybl.network.store.model.svattributes.*;
 import com.powsybl.network.store.server.dto.OwnerInfo;
@@ -797,11 +797,14 @@ class NetworkStoreRepositoryTest {
             .attributes(GeneratorAttributes.builder()
                     .voltageLevelId("vl1")
                     .name(generatorId)
-                    .regulatingPoint(RegulatingPointAttributes.builder()
+                    .voltageRegulation(VoltageRegulationAttributes.builder()
                         .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
                         .regulatedResourceType(ResourceType.GENERATOR)
                         .regulatingEquipmentId(generatorId)
                         .regulatingTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
+                        .targetValue(225)
+                        .targetDeadband(0.1)
+                        .slope(2.5)
                         .build())
                     .build())
             .build();
@@ -822,6 +825,9 @@ class NetworkStoreRepositoryTest {
         assertNull(generator.get().getAttributes().getRegulatingPoint().getRegulationMode());
         assertEquals(generatorId, generator.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(generator.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(225, generator.get().getAttributes().getVoltageRegulation().getTargetValue());
+        assertEquals(0.1, generator.get().getAttributes().getVoltageRegulation().getTargetDeadband());
+        assertEquals(2.5, generator.get().getAttributes().getVoltageRegulation().getSlope());
         assertEquals(1, generator.get().getAttributes().getRegulatingEquipments().size());
         assertTrue(generator.get().getAttributes().getRegulatingEquipments().contains(new RegulatingEquipmentIdentifier(generatorId, ResourceType.GENERATOR)));
 
@@ -835,6 +841,7 @@ class NetworkStoreRepositoryTest {
         assertNull(generatorVl.getAttributes().getRegulatingPoint().getRegulationMode());
         assertEquals(generatorId, generatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(generatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(225, generatorVl.getAttributes().getVoltageRegulation().getTargetValue());
 
         // update
         Resource<GeneratorAttributes> updatedGen = Resource.generatorBuilder()
@@ -843,12 +850,15 @@ class NetworkStoreRepositoryTest {
             .attributes(GeneratorAttributes.builder()
                 .voltageLevelId("vl1")
                 .name(generatorId)
-                .regulatingPoint(RegulatingPointAttributes.builder()
+                .voltageRegulation(VoltageRegulationAttributes.builder()
                         .localTerminal(TerminalRefAttributes.builder().connectableId(generatorId).build())
                         .regulatingEquipmentId(generatorId)
                         .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
-                    .regulatedResourceType(ResourceType.LOAD)
-                    .build())
+                        .regulatedResourceType(ResourceType.LOAD)
+                        .targetValue(220)
+                        .targetDeadband(0.2)
+                        .slope(3)
+                        .build())
                 .build())
             .build();
         networkStoreRepository.updateGenerators(NETWORK_UUID, List.of(updatedGen));
@@ -860,6 +870,9 @@ class NetworkStoreRepositoryTest {
         assertNull(generatorResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
         assertEquals(generatorId, generatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(generatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
+        assertEquals(220, generatorResult.get().getAttributes().getVoltageRegulation().getTargetValue());
+        assertEquals(0.2, generatorResult.get().getAttributes().getVoltageRegulation().getTargetDeadband());
+        assertEquals(3, generatorResult.get().getAttributes().getVoltageRegulation().getSlope());
         assertTrue(generatorResult.get().getAttributes().getRegulatingEquipments().isEmpty());
 
         Optional<Resource<LoadAttributes>> loadResult = networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId);
@@ -872,6 +885,44 @@ class NetworkStoreRepositoryTest {
         networkStoreRepository.deleteLoads(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(loadId));
         assertTrue(networkStoreRepository.getLoad(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, loadId).isEmpty());
         assertTrue(networkStoreRepository.getGenerator(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, generatorId).isEmpty());
+    }
+
+    @Test
+    void testBatteryVoltageRegulationPersistence() {
+        NetworkAttributes networkAttributes = new NetworkAttributes();
+        networkAttributes.setUuid(NETWORK_UUID);
+        networkStoreRepository.createNetworks(List.of(Resource.networkBuilder().attributes(networkAttributes).id("testId1").build()));
+
+        String batteryId = "battery1";
+        VoltageRegulationAttributes voltageRegulation = VoltageRegulationAttributes.builder()
+            .regulatingEquipmentId(batteryId)
+            .regulatedResourceType(ResourceType.BATTERY)
+            .regulationMode(RegulationMode.VOLTAGE.toString())
+            .targetValue(225)
+            .targetDeadband(0.1)
+            .slope(2.5)
+            .build();
+        Resource<BatteryAttributes> battery = Resource.batteryBuilder()
+            .id(batteryId)
+            .attributes(BatteryAttributes.builder()
+                .voltageLevelId("vl1")
+                .localTargetQ(10)
+                .localTargetV(220)
+                .voltageRegulation(voltageRegulation)
+                .build())
+            .build();
+        networkStoreRepository.createBatteries(NETWORK_UUID, List.of(battery));
+
+        BatteryAttributes storedAttributes = networkStoreRepository.getBattery(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId)
+            .orElseThrow().getAttributes();
+        assertEquals(10, storedAttributes.getLocalTargetQ());
+        assertEquals(220, storedAttributes.getLocalTargetV());
+        assertEquals(225, storedAttributes.getVoltageRegulation().getTargetValue());
+        assertEquals(0.1, storedAttributes.getVoltageRegulation().getTargetDeadband());
+        assertEquals(2.5, storedAttributes.getVoltageRegulation().getSlope());
+
+        networkStoreRepository.deleteBatteries(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, List.of(batteryId));
+        assertTrue(networkStoreRepository.getBattery(NETWORK_UUID, Resource.INITIAL_VARIANT_NUM, batteryId).isEmpty());
     }
 
     @Test
@@ -978,7 +1029,7 @@ class NetworkStoreRepositoryTest {
                 .regulatingPoint(RegulatingPointAttributes.builder()
                     .localTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
                     .regulatedResourceType(ResourceType.STATIC_VAR_COMPENSATOR)
-                    .regulationMode(StaticVarCompensator.RegulationMode.VOLTAGE.toString())
+                    .regulationMode(RegulationMode.VOLTAGE.toString())
                     .regulatingEquipmentId(staticVarCompensatorId)
                     .regulatingTerminal(TerminalRefAttributes.builder().connectableId(staticVarCompensatorId).build())
                     .build())
@@ -999,7 +1050,7 @@ class NetworkStoreRepositoryTest {
         assertTrue(staticVarCompensatorCreation.isPresent());
         assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
         assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
-        assertEquals(StaticVarCompensator.RegulationMode.VOLTAGE.toString(), staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(RegulationMode.VOLTAGE.toString(), staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getRegulationMode());
         assertEquals(staticVarCompensatorId, staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(staticVarCompensatorCreation.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
         assertEquals(1, staticVarCompensatorCreation.get().getAttributes().getRegulatingEquipments().size());
@@ -1013,7 +1064,7 @@ class NetworkStoreRepositoryTest {
         assertEquals(staticVarCompensatorId, staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingEquipmentId());
         assertEquals(staticVarCompensatorId, staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
         assertNull(staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
-        assertEquals(StaticVarCompensator.RegulationMode.VOLTAGE.toString(), staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(RegulationMode.VOLTAGE.toString(), staticVarCompensatorVl.getAttributes().getRegulatingPoint().getRegulationMode());
         assertEquals(staticVarCompensatorId, staticVarCompensatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(staticVarCompensatorVl.getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
 
@@ -1029,7 +1080,7 @@ class NetworkStoreRepositoryTest {
                         .regulatingEquipmentId(staticVarCompensatorId)
                         .regulatingTerminal(TerminalRefAttributes.builder().connectableId(loadId).build())
                     .regulatedResourceType(ResourceType.LOAD)
-                    .regulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER.toString())
+                    .regulationMode(RegulationMode.REACTIVE_POWER.toString())
                     .build())
                 .build())
             .build();
@@ -1040,7 +1091,7 @@ class NetworkStoreRepositoryTest {
         assertTrue(staticVarCompensatorResult.isPresent());
         assertEquals(loadId, staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getConnectableId());
         assertNull(staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulatingTerminal().getSide());
-        assertEquals(StaticVarCompensator.RegulationMode.REACTIVE_POWER.toString(), staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
+        assertEquals(RegulationMode.REACTIVE_POWER.toString(), staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getRegulationMode());
         assertEquals(staticVarCompensatorId, staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getConnectableId());
         assertNull(staticVarCompensatorResult.get().getAttributes().getRegulatingPoint().getLocalTerminal().getSide());
         assertTrue(staticVarCompensatorResult.get().getAttributes().getRegulatingEquipments().isEmpty());
