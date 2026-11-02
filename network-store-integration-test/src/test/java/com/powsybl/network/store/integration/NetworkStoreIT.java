@@ -20,10 +20,11 @@ import com.powsybl.entsoe.util.EntsoeGeographicalCode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ConnectablePosition;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.*;
 import com.powsybl.math.graph.TraverseResult;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.RestClientImpl;
+import com.powsybl.network.store.client.ResourceAttributesRestClientImpl;
 import com.powsybl.network.store.iidm.impl.*;
 import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
@@ -54,7 +55,7 @@ import static org.mockito.Mockito.*;
  * @author Etienne Homer <etienne.homer at rte-france.com>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, ResourceAttributesRestClientImpl.class})})
 class NetworkStoreIT {
 
     private static final double ESP = 0.000001;
@@ -228,7 +229,7 @@ class NetworkStoreIT {
             assertFalse(svc.isFictitious());
             assertEquals(0.0002, svc.getBmin(), 0.00001);
             assertEquals(0.0008, svc.getBmax(), 0.00001);
-            assertEquals(StaticVarCompensator.RegulationMode.VOLTAGE, svc.getRegulationMode());
+            assertEquals(RegulationMode.VOLTAGE, svc.getRegulationMode());
             assertEquals(390, svc.getVoltageSetpoint(), 0.1);
             assertEquals(200, svc.getReactivePowerSetpoint(), 0.1);
             assertEquals(435, svc.getTerminal().getP(), 0.1);
@@ -237,7 +238,7 @@ class NetworkStoreIT {
             svc.setFictitious(true);
             svc.setBmin(0.5);
             svc.setBmax(0.7);
-            svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
+            svc.setRegulationMode(RegulationMode.REACTIVE_POWER);
             svc.setVoltageSetpoint(400);
             svc.setReactivePowerSetpoint(220);
             svc.getTerminal().setP(450);
@@ -257,7 +258,7 @@ class NetworkStoreIT {
             assertTrue(svc.isFictitious());
             assertEquals(0.5, svc.getBmin(), 0.00001);
             assertEquals(0.7, svc.getBmax(), 0.00001);
-            assertEquals(StaticVarCompensator.RegulationMode.REACTIVE_POWER, svc.getRegulationMode());
+            assertEquals(RegulationMode.REACTIVE_POWER, svc.getRegulationMode());
             assertEquals(400, svc.getVoltageSetpoint(), 0.1);
             assertEquals(220, svc.getReactivePowerSetpoint(), 0.1);
             assertEquals(450, svc.getTerminal().getP(), 0.1);
@@ -921,7 +922,7 @@ class NetworkStoreIT {
             assertEquals(20, battery.getTargetQ(), 0.1);
 
             verify(mockedListener, times(1)).onUpdate(battery, "targetP", INITIAL_VARIANT_ID, 50d, 65d);
-            verify(mockedListener, times(1)).onUpdate(battery, "targetQ", INITIAL_VARIANT_ID, 10d, 20d);
+            verify(mockedListener, times(1)).onUpdate(battery, "localTargetQ", INITIAL_VARIANT_ID, 10d, 20d);
 
             battery.setMaxP(90);
             battery.setMinP(50);
@@ -2482,7 +2483,7 @@ class NetworkStoreIT {
                 .setBus("BUS")
                 .setBmin(0.0002)
                 .setBmax(0.0008)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(RegulationMode.VOLTAGE)
                 .setVoltageSetpoint(390)
                 .setRegulating(false)
                 .add();
@@ -4332,7 +4333,7 @@ class NetworkStoreIT {
     }
 
     @Test
-    void testEquivalentLocalTargetV() {
+    void testLocalTargetV() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             service.flush(network);
@@ -4344,11 +4345,10 @@ class NetworkStoreIT {
             NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
             Generator generator = network.getGenerator("GEN");
             assertNotNull(generator);
-            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
-            generator.setTargetV(200, 20);
-            assertEquals(20, generator.getEquivalentLocalTargetV());
-            generator.setTargetV(220);
-            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
+            generator.setLocalTargetV(20);
+            assertEquals(20, generator.getLocalTargetV());
+            generator.setLocalTargetV(220);
+            assertEquals(220, generator.getLocalTargetV());
         }
     }
 }

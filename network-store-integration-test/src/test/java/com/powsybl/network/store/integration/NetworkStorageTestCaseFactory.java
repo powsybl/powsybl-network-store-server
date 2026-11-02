@@ -52,7 +52,7 @@ final class NetworkStorageTestCaseFactory {
                 .setBmax(0.0008)
                 .setReactivePowerSetpoint(200)
                 .setRegulating(false)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
+                .setRegulationMode(com.powsybl.iidm.network.regulation.RegulationMode.VOLTAGE)
                 .setVoltageSetpoint(390)
                 .add();
         svc.getTerminal().setP(435);

@@ -234,9 +234,8 @@ public class Mappings {
         generatorMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, GeneratorAttributes::getQ, GeneratorAttributes::setQ));
         generatorMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, GeneratorAttributes::isFictitious, GeneratorAttributes::setFictitious));
         generatorMappings.addColumnMapping("targetP", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetP, GeneratorAttributes::setTargetP));
-        generatorMappings.addColumnMapping("targetQ", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetQ, GeneratorAttributes::setTargetQ));
-        generatorMappings.addColumnMapping("targetV", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetV, GeneratorAttributes::setTargetV));
-        generatorMappings.addColumnMapping("equivalentLocalTargetV", new ColumnMapping<>(Double.class, GeneratorAttributes::getEquivalentLocalTargetV, GeneratorAttributes::setEquivalentLocalTargetV));
+        generatorMappings.addColumnMapping("localTargetQ", new ColumnMapping<>(Double.class, GeneratorAttributes::getLocalTargetQ, GeneratorAttributes::setLocalTargetQ));
+        generatorMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, GeneratorAttributes::getLocalTargetV, GeneratorAttributes::setLocalTargetV));
         generatorMappings.addColumnMapping(RATED_S, new ColumnMapping<>(Double.class, GeneratorAttributes::getRatedS, GeneratorAttributes::setRatedS));
         generatorMappings.addColumnMapping(MINQ, new ColumnMapping<>(Double.class,
             (GeneratorAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits(
@@ -276,8 +275,6 @@ public class Mappings {
             }));
         generatorMappings.addColumnMapping("coordinatedReactiveControl", new ColumnMapping<>(CoordinatedReactiveControlAttributes.class, GeneratorAttributes::getCoordinatedReactiveControl,
                 GeneratorAttributes::setCoordinatedReactiveControl));
-        generatorMappings.addColumnMapping("remoteReactivePowerControl", new ColumnMapping<>(RemoteReactivePowerControlAttributes.class, GeneratorAttributes::getRemoteReactivePowerControl,
-                GeneratorAttributes::setRemoteReactivePowerControl));
         generatorMappings.addColumnMapping("entsoeCategory", new ColumnMapping<>(GeneratorEntsoeCategoryAttributes.class, GeneratorAttributes::getEntsoeCategoryAttributes,
                 GeneratorAttributes::setEntsoeCategoryAttributes));
         generatorMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, GeneratorAttributes::getNode, GeneratorAttributes::setNode));
@@ -384,7 +381,8 @@ public class Mappings {
         batteryMappings.addColumnMapping("minP", new ColumnMapping<>(Double.class, BatteryAttributes::getMinP, BatteryAttributes::setMinP));
         batteryMappings.addColumnMapping("maxP", new ColumnMapping<>(Double.class, BatteryAttributes::getMaxP, BatteryAttributes::setMaxP));
         batteryMappings.addColumnMapping("targetP", new ColumnMapping<>(Double.class, BatteryAttributes::getTargetP, BatteryAttributes::setTargetP));
-        batteryMappings.addColumnMapping("targetQ", new ColumnMapping<>(Double.class, BatteryAttributes::getTargetQ, BatteryAttributes::setTargetQ));
+        batteryMappings.addColumnMapping("localTargetQ", new ColumnMapping<>(Double.class, BatteryAttributes::getLocalTargetQ, BatteryAttributes::setLocalTargetQ));
+        batteryMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, BatteryAttributes::getLocalTargetV, BatteryAttributes::setLocalTargetV));
         batteryMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, BatteryAttributes::getP, BatteryAttributes::setP));
         batteryMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, BatteryAttributes::getQ, BatteryAttributes::setQ));
         batteryMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, BatteryAttributes::isFictitious, BatteryAttributes::setFictitious));
@@ -527,8 +525,7 @@ public class Mappings {
         shuntCompensatorMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getP, ShuntCompensatorAttributes::setP));
         shuntCompensatorMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getQ, ShuntCompensatorAttributes::setQ));
         shuntCompensatorMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, ShuntCompensatorAttributes::isFictitious, ShuntCompensatorAttributes::setFictitious));
-        shuntCompensatorMappings.addColumnMapping("targetV", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getTargetV, ShuntCompensatorAttributes::setTargetV));
-        shuntCompensatorMappings.addColumnMapping("targetDeadband", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getTargetDeadband, ShuntCompensatorAttributes::setTargetDeadband));
+        shuntCompensatorMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getLocalTargetV, ShuntCompensatorAttributes::setLocalTargetV));
         shuntCompensatorMappings.addColumnMapping("linearModel", new ColumnMapping<>(ShuntCompensatorModelAttributes.class, (ShuntCompensatorAttributes attributes) ->
             attributes.getModel() instanceof ShuntCompensatorLinearModelAttributes ? attributes.getModel() : null,
             (ShuntCompensatorAttributes attributes, ShuntCompensatorModelAttributes model) -> {
@@ -564,10 +561,10 @@ public class Mappings {
         vscConverterStationMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getP, VscConverterStationAttributes::setP));
         vscConverterStationMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getQ, VscConverterStationAttributes::setQ));
         vscConverterStationMappings.addColumnMapping("lossFactor", new ColumnMapping<>(Float.class, VscConverterStationAttributes::getLossFactor, VscConverterStationAttributes::setLossFactor));
-        vscConverterStationMappings.addColumnMapping("reactivePowerSetPoint", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getReactivePowerSetPoint,
-                VscConverterStationAttributes::setReactivePowerSetPoint));
-        vscConverterStationMappings.addColumnMapping("voltageSetPoint", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getVoltageSetPoint,
-                VscConverterStationAttributes::setVoltageSetPoint));
+        vscConverterStationMappings.addColumnMapping("localTargetQ", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getLocalTargetQ,
+                VscConverterStationAttributes::setLocalTargetQ));
+        vscConverterStationMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getLocalTargetV,
+                VscConverterStationAttributes::setLocalTargetV));
         vscConverterStationMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, VscConverterStationAttributes::isFictitious, VscConverterStationAttributes::setFictitious));
         vscConverterStationMappings.addColumnMapping(MINQ, new ColumnMapping<>(Double.class,
             (VscConverterStationAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits(
@@ -644,10 +641,10 @@ public class Mappings {
                 StaticVarCompensatorAttributes::setConnectableBus));
         staticVarCompensatorMappings.addColumnMapping("bmin", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getBmin, StaticVarCompensatorAttributes::setBmin));
         staticVarCompensatorMappings.addColumnMapping("bmax", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getBmax, StaticVarCompensatorAttributes::setBmax));
-        staticVarCompensatorMappings.addColumnMapping("voltageSetPoint", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getVoltageSetPoint,
-                StaticVarCompensatorAttributes::setVoltageSetPoint));
-        staticVarCompensatorMappings.addColumnMapping("reactivePowerSetPoint", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getReactivePowerSetPoint,
-                StaticVarCompensatorAttributes::setReactivePowerSetPoint));
+        staticVarCompensatorMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getLocalTargetV,
+                StaticVarCompensatorAttributes::setLocalTargetV));
+        staticVarCompensatorMappings.addColumnMapping("localTargetQ", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getLocalTargetQ,
+                StaticVarCompensatorAttributes::setLocalTargetQ));
         staticVarCompensatorMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getP, StaticVarCompensatorAttributes::setP));
         staticVarCompensatorMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getQ, StaticVarCompensatorAttributes::setQ));
         staticVarCompensatorMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, StaticVarCompensatorAttributes::isFictitious, StaticVarCompensatorAttributes::setFictitious));
@@ -658,8 +655,6 @@ public class Mappings {
                 StaticVarCompensatorAttributes::setAliasesWithoutType));
         staticVarCompensatorMappings.addColumnMapping(POSITION, new ColumnMapping<>(ConnectablePositionAttributes.class, StaticVarCompensatorAttributes::getPosition,
                 StaticVarCompensatorAttributes::setPosition));
-        staticVarCompensatorMappings.addColumnMapping("voltagePerReactivePowerControl", new ColumnMapping<>(VoltagePerReactivePowerControlAttributes.class,
-                StaticVarCompensatorAttributes::getVoltagePerReactiveControl, StaticVarCompensatorAttributes::setVoltagePerReactiveControl));
         staticVarCompensatorMappings.addColumnMapping("standbyAutomaton", new ColumnMapping<>(StandbyAutomatonAttributes.class, StaticVarCompensatorAttributes::getStandbyAutomaton,
                 StaticVarCompensatorAttributes::setStandbyAutomaton));
     }
@@ -817,14 +812,6 @@ public class Mappings {
                     attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
                 }
                 attributes.getRatioTapChangerAttributes().setLoadTapChangingCapabilities(value);
-            }));
-        twoWindingsTransformerMappings.addColumnMapping("ratioTapChangerRegulationValue", new ColumnMapping<>(Double.class,
-            (TwoWindingsTransformerAttributes attributes) -> attributes.getRatioTapChangerAttributes() != null ? attributes.getRatioTapChangerAttributes().getRegulationValue() : null,
-            (TwoWindingsTransformerAttributes attributes, Double value) -> {
-                if (attributes.getRatioTapChangerAttributes() == null) {
-                    attributes.setRatioTapChangerAttributes(new RatioTapChangerAttributes());
-                }
-                attributes.getRatioTapChangerAttributes().setRegulationValue(value);
             }));
     }
 
@@ -992,15 +979,6 @@ public class Mappings {
                         attributes.getLeg(i).setRatioTapChangerAttributes(new RatioTapChangerAttributes());
                     }
                     attributes.getLeg(i).getRatioTapChangerAttributes().setLoadTapChangingCapabilities(value);
-                }));
-            threeWindingsTransformerMappings.addColumnMapping("ratioTapChangerRegulationValue" + i, new ColumnMapping<>(Double.class,
-                (ThreeWindingsTransformerAttributes attributes) ->
-                        attributes.getLeg(i).getRatioTapChangerAttributes() != null ? attributes.getLeg(i).getRatioTapChangerAttributes().getRegulationValue() : null,
-                (ThreeWindingsTransformerAttributes attributes, Double value) -> {
-                    if (attributes.getLeg(i).getRatioTapChangerAttributes() == null) {
-                        attributes.getLeg(i).setRatioTapChangerAttributes(new RatioTapChangerAttributes());
-                    }
-                    attributes.getLeg(i).getRatioTapChangerAttributes().setRegulationValue(value);
                 }));
         });
     }
