@@ -6,7 +6,7 @@
  */
 package com.powsybl.network.store.integration;
 
-import com.powsybl.network.store.client.RestClient;
+import com.powsybl.network.store.client.ResourceAttributesRestClient;
 import lombok.experimental.Delegate;
 
 import java.util.Objects;
@@ -14,12 +14,12 @@ import java.util.Objects;
 /**
  * @author Geoffroy Jamgotchian <geoffroy.jamgotchian at rte-france.com>
  */
-abstract class AbstractForwardingRestClient implements RestClient {
+abstract class AbstractForwardingRestClient implements ResourceAttributesRestClient {
 
     @Delegate
-    private RestClient delegate;
+    private ResourceAttributesRestClient delegate;
 
-    AbstractForwardingRestClient(RestClient delegate) {
+    AbstractForwardingRestClient(ResourceAttributesRestClient delegate) {
         this.delegate = Objects.requireNonNull(delegate);
     }
 }

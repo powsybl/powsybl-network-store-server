@@ -23,7 +23,7 @@ import com.powsybl.iidm.network.extensions.ConnectablePosition;
 import com.powsybl.iidm.network.test.*;
 import com.powsybl.math.graph.TraverseResult;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.RestClientImpl;
+import com.powsybl.network.store.client.ResourceAttributesRestClientImpl;
 import com.powsybl.network.store.iidm.impl.*;
 import com.powsybl.network.store.model.NetworkAttributes;
 import com.powsybl.network.store.server.NetworkStoreApplication;
@@ -54,7 +54,7 @@ import static org.mockito.Mockito.*;
  * @author Etienne Homer <etienne.homer at rte-france.com>
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, RestClientImpl.class})})
+@ContextHierarchy({@ContextConfiguration(classes = {NetworkStoreApplication.class, NetworkStoreService.class, ResourceAttributesRestClientImpl.class})})
 class NetworkStoreIT {
 
     private static final double ESP = 0.000001;
