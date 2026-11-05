@@ -32,7 +32,7 @@ class TestRestClient extends AbstractForwardingRestClient {
     @Override
     public <T extends IdentifiableAttributes> Optional<Resource<T>> getOne(String target, String url, Object... uriVariables) {
         metrics.oneGetterCallCount++;
-        return super.getOne(target, url, uriVariables);
+        return super.<T>getOne(target, url, uriVariables);
     }
 
     @Override
@@ -44,7 +44,7 @@ class TestRestClient extends AbstractForwardingRestClient {
     @Override
     public <T extends IdentifiableAttributes> List<Resource<T>> getAll(String target, String url, Object... uriVariables) {
         metrics.allGetterCallCount++;
-        return super.getAll(target, url, uriVariables);
+        return super.<T>getAll(target, url, uriVariables);
     }
 
     @Override
