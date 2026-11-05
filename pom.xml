@@ -56,6 +56,8 @@
         <jib.from.image>powsybl/java:4.0.0</jib.from.image>
         <sirocco.version>1.0</sirocco.version>
         <powsybl-ws-dependencies.version>2.34.0</powsybl-ws-dependencies.version>
+        <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+        <powsybl-network-store.version>1.52.0</powsybl-network-store.version>
         <!-- FIXME : to remove when sonar version is updated on github actions -->
         <!-- https://community.sonarsource.com/t/stackoverflowerror-at-defaultinputcomponent-equals/20324 -->
         <!-- The versions are very different from this post. But the fix works again. Maybe a similar problem in sonar code -->
@@ -82,6 +84,25 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-iidm-impl</artifactId>
+                <version>${powsybl-network-store.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-model</artifactId>
+                <version>${powsybl-network-store.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-client</artifactId>
+                <version>${powsybl-network-store.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>com.powsybl</groupId>
                 <artifactId>powsybl-ws-dependencies</artifactId>
