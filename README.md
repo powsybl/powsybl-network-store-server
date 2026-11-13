@@ -41,7 +41,7 @@ This repository is a multi-module Maven project:
 |---|---|
 | `network-store-server` | The REST/DB server itself (this README's main subject). |
 | `network-store-integration-test` | Integration tests running the real server + client stack against a database. |
-| `network-store-iidm-tck` | Technology Compatibility Kit: reuses/parallels powsybl-core's IIDM behavioral test suite (e.g. `LineIT`, `VoltageLevelIT`, `NodeBreakerIT`, `ManipulationsOnVariantsIT`, extension tests) to validate that this store's IIDM implementation behaves identically to powsybl-core's reference in-memory implementation. |
+| `network-store-iidm-tck` | Technology Compatibility Kit: reuses/parallels powsybl-core's IIDM behavioral test suite (e.g. `LineIT`, `VoltageLevelIT`, `NodeBreakerIT`, `ManipulationsOnVariantsIT`, extension tests) to validate that this store's IIDM implementation behaves identically to powsybl-core's reference in-memory implementation. See [docs/IIDM_TCK.md](docs/IIDM_TCK.md). |
 | `network-store-tools` | Command-line tools plugged into PowSyBl's [`itools`](https://powsybl.readthedocs.io/projects/powsybl-core/en/stable/user/itools/index.html) framework (auto-discovered, no extra config needed beyond the standard `network-store` module — see [network-store-client configuration](https://github.com/powsybl/powsybl-network-store#standalone--platformconfig-configuration)). See details below. |
 
 The `network-store-client` library itself (the IIDM implementation consuming this server's REST API) lives in a separate module tree, [powsybl-network-store](https://github.com/powsybl/powsybl-network-store).
@@ -56,6 +56,21 @@ The `network-store-client` library itself (the IIDM implementation consuming thi
 | `network-store-script` | Load a stored network and run a Groovy script against it (`network` and `out` bound as script variables) — useful for ad hoc inspection or fixes without writing a dedicated Java tool. |
 
 These tools are primarily meant for local development, CI, and operational tasks (seeding test data, inspecting or cleaning up stored networks, running one-off diagnostic/fix scripts).
+
+---
+
+## IIDM TCK
+
+This repo validates its IIDM implementation using powsybl-core's TCK (Technology Compatibility
+Kit), end-to-end through the real REST/database stack. See [docs/IIDM_TCK.md](docs/IIDM_TCK.md)
+for details on how it's wired, and its known limitations.
+
+These are integration tests (`*IT`), skipped by default and run through the `failsafe` plugin's
+`verify` phase, gated behind the `tck` profile:
+
+```shell
+mvn verify -pl network-store-iidm-tck -am -P tck
+```
 
 ---
 
