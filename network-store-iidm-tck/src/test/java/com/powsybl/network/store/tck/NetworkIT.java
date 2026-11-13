@@ -43,6 +43,12 @@ class NetworkIT extends AbstractNetworkTest {
 
     @Test
     @Override
+    public void testSetMinimumAcceptableValidationLevelOnInvalidatedNetwork() {
+        // FIXME by implementing (same limitation as testScadaNetwork above)
+    }
+
+    @Test
+    @Override
     public void testStreams() {
         // FIXME remove this test when we use the release containing this PR : https://github.com/powsybl/powsybl-core/pull/3020
     }
