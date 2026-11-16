@@ -127,6 +127,7 @@ public class Mappings {
     private static final String CONNECTABLE_BUS_1 = "connectableBus1";
     private static final String CONNECTABLE_BUS_2 = "connectableBus2";
     private static final String FICTITIOUS = "fictitious";
+    private static final String EQUIVALENT = "equivalent";
     private static final String NODE = "node";
     private static final String NODE_1 = "node1";
     private static final String NODE_2 = "node2";
@@ -188,6 +189,7 @@ public class Mappings {
         lineMappings.addColumnMapping("q1", new ColumnMapping<>(Double.class, LineAttributes::getQ1, LineAttributes::setQ1));
         lineMappings.addColumnMapping("p2", new ColumnMapping<>(Double.class, LineAttributes::getP2, LineAttributes::setP2));
         lineMappings.addColumnMapping("q2", new ColumnMapping<>(Double.class, LineAttributes::getQ2, LineAttributes::setQ2));
+        lineMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, LineAttributes::isEquivalent, LineAttributes::setEquivalent));
         lineMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, LineAttributes::isFictitious, LineAttributes::setFictitious));
         lineMappings.addColumnMapping(NODE_1, new ColumnMapping<>(Integer.class, LineAttributes::getNode1, LineAttributes::setNode1));
         lineMappings.addColumnMapping(NODE_2, new ColumnMapping<>(Integer.class, LineAttributes::getNode2, LineAttributes::setNode2));
@@ -213,6 +215,7 @@ public class Mappings {
         loadMappings.addColumnMapping("loadType", new ColumnMapping<>(LoadType.class, LoadAttributes::getLoadType, LoadAttributes::setLoadType));
         loadMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, LoadAttributes::getP, LoadAttributes::setP));
         loadMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, LoadAttributes::getQ, LoadAttributes::setQ));
+        loadMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, LoadAttributes::isEquivalent, LoadAttributes::setEquivalent));
         loadMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, LoadAttributes::isFictitious, LoadAttributes::setFictitious));
         loadMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, LoadAttributes::getNode, LoadAttributes::setNode));
         loadMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, LoadAttributes::getProperties, LoadAttributes::setProperties));
@@ -232,6 +235,7 @@ public class Mappings {
         generatorMappings.addColumnMapping("energySource", new ColumnMapping<>(EnergySource.class, GeneratorAttributes::getEnergySource, GeneratorAttributes::setEnergySource));
         generatorMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, GeneratorAttributes::getP, GeneratorAttributes::setP));
         generatorMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, GeneratorAttributes::getQ, GeneratorAttributes::setQ));
+        generatorMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, GeneratorAttributes::isEquivalent, GeneratorAttributes::setEquivalent));
         generatorMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, GeneratorAttributes::isFictitious, GeneratorAttributes::setFictitious));
         generatorMappings.addColumnMapping("targetP", new ColumnMapping<>(Double.class, GeneratorAttributes::getTargetP, GeneratorAttributes::setTargetP));
         generatorMappings.addColumnMapping("localTargetQ", new ColumnMapping<>(Double.class, GeneratorAttributes::getLocalTargetQ, GeneratorAttributes::setLocalTargetQ));
@@ -385,6 +389,7 @@ public class Mappings {
         batteryMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, BatteryAttributes::getLocalTargetV, BatteryAttributes::setLocalTargetV));
         batteryMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, BatteryAttributes::getP, BatteryAttributes::setP));
         batteryMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, BatteryAttributes::getQ, BatteryAttributes::setQ));
+        batteryMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, BatteryAttributes::isEquivalent, BatteryAttributes::setEquivalent));
         batteryMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, BatteryAttributes::isFictitious, BatteryAttributes::setFictitious));
         batteryMappings.addColumnMapping(MINQ, new ColumnMapping<>(Double.class,
             (BatteryAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits(
@@ -434,6 +439,7 @@ public class Mappings {
     private void createBusbarSectionMappings() {
         busbarSectionMappings.addColumnMapping("name", new ColumnMapping<>(String.class, BusbarSectionAttributes::getName, BusbarSectionAttributes::setName));
         busbarSectionMappings.addColumnMapping(VOLTAGE_LEVEL_ID, new ColumnMapping<>(String.class, BusbarSectionAttributes::getVoltageLevelId, BusbarSectionAttributes::setVoltageLevelId));
+        busbarSectionMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, BusbarSectionAttributes::isEquivalent, BusbarSectionAttributes::setEquivalent));
         busbarSectionMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, BusbarSectionAttributes::isFictitious, BusbarSectionAttributes::setFictitious));
         busbarSectionMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, BusbarSectionAttributes::getNode, BusbarSectionAttributes::setNode));
         busbarSectionMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, BusbarSectionAttributes::getProperties, BusbarSectionAttributes::setProperties));
@@ -468,6 +474,7 @@ public class Mappings {
         boundaryLineMappings.addColumnMapping("q0", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getQ0, BoundaryLineAttributes::setQ0));
         boundaryLineMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getP, BoundaryLineAttributes::setP));
         boundaryLineMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, BoundaryLineAttributes::getQ, BoundaryLineAttributes::setQ));
+        boundaryLineMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, BoundaryLineAttributes::isEquivalent, BoundaryLineAttributes::setEquivalent));
         boundaryLineMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, BoundaryLineAttributes::isFictitious, BoundaryLineAttributes::setFictitious));
         boundaryLineMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, BoundaryLineAttributes::getNode, BoundaryLineAttributes::setNode));
         boundaryLineMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, BoundaryLineAttributes::getProperties, BoundaryLineAttributes::setProperties));
@@ -509,6 +516,7 @@ public class Mappings {
         groundMappings.addColumnMapping(CONNECTABLE_BUS, new ColumnMapping<>(String.class, GroundAttributes::getConnectableBus, GroundAttributes::setConnectableBus));
         groundMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, GroundAttributes::getP, GroundAttributes::setP));
         groundMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, GroundAttributes::getQ, GroundAttributes::setQ));
+        groundMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, GroundAttributes::isEquivalent, GroundAttributes::setEquivalent));
         groundMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, GroundAttributes::isFictitious, GroundAttributes::setFictitious));
         groundMappings.addColumnMapping(NODE, new ColumnMapping<>(Integer.class, GroundAttributes::getNode, GroundAttributes::setNode));
         groundMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, GroundAttributes::getProperties, GroundAttributes::setProperties));
@@ -524,6 +532,7 @@ public class Mappings {
         shuntCompensatorMappings.addColumnMapping(CONNECTABLE_BUS, new ColumnMapping<>(String.class, ShuntCompensatorAttributes::getConnectableBus, ShuntCompensatorAttributes::setConnectableBus));
         shuntCompensatorMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getP, ShuntCompensatorAttributes::setP));
         shuntCompensatorMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getQ, ShuntCompensatorAttributes::setQ));
+        shuntCompensatorMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, ShuntCompensatorAttributes::isEquivalent, ShuntCompensatorAttributes::setEquivalent));
         shuntCompensatorMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, ShuntCompensatorAttributes::isFictitious, ShuntCompensatorAttributes::setFictitious));
         shuntCompensatorMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, ShuntCompensatorAttributes::getLocalTargetV, ShuntCompensatorAttributes::setLocalTargetV));
         shuntCompensatorMappings.addColumnMapping("linearModel", new ColumnMapping<>(ShuntCompensatorModelAttributes.class, (ShuntCompensatorAttributes attributes) ->
@@ -565,6 +574,7 @@ public class Mappings {
                 VscConverterStationAttributes::setLocalTargetQ));
         vscConverterStationMappings.addColumnMapping("localTargetV", new ColumnMapping<>(Double.class, VscConverterStationAttributes::getLocalTargetV,
                 VscConverterStationAttributes::setLocalTargetV));
+        vscConverterStationMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, VscConverterStationAttributes::isEquivalent, VscConverterStationAttributes::setEquivalent));
         vscConverterStationMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, VscConverterStationAttributes::isFictitious, VscConverterStationAttributes::setFictitious));
         vscConverterStationMappings.addColumnMapping(MINQ, new ColumnMapping<>(Double.class,
             (VscConverterStationAttributes attributes) -> attributes.getReactiveLimits() instanceof MinMaxReactiveLimitsAttributes ? ((MinMaxReactiveLimitsAttributes) attributes.getReactiveLimits(
@@ -622,6 +632,7 @@ public class Mappings {
         lccConverterStationMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, LccConverterStationAttributes::getQ, LccConverterStationAttributes::setQ));
         lccConverterStationMappings.addColumnMapping("powerFactor", new ColumnMapping<>(Float.class, LccConverterStationAttributes::getPowerFactor, LccConverterStationAttributes::setPowerFactor));
         lccConverterStationMappings.addColumnMapping("lossFactor", new ColumnMapping<>(Float.class, LccConverterStationAttributes::getLossFactor, LccConverterStationAttributes::setLossFactor));
+        lccConverterStationMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, LccConverterStationAttributes::isEquivalent, LccConverterStationAttributes::setEquivalent));
         lccConverterStationMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, LccConverterStationAttributes::isFictitious, LccConverterStationAttributes::setFictitious));
         lccConverterStationMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, LccConverterStationAttributes::getNode, LccConverterStationAttributes::setNode));
         lccConverterStationMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, LccConverterStationAttributes::getProperties, LccConverterStationAttributes::setProperties));
@@ -647,6 +658,7 @@ public class Mappings {
                 StaticVarCompensatorAttributes::setLocalTargetQ));
         staticVarCompensatorMappings.addColumnMapping("p", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getP, StaticVarCompensatorAttributes::setP));
         staticVarCompensatorMappings.addColumnMapping("q", new ColumnMapping<>(Double.class, StaticVarCompensatorAttributes::getQ, StaticVarCompensatorAttributes::setQ));
+        staticVarCompensatorMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, StaticVarCompensatorAttributes::isEquivalent, StaticVarCompensatorAttributes::setEquivalent));
         staticVarCompensatorMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, StaticVarCompensatorAttributes::isFictitious, StaticVarCompensatorAttributes::setFictitious));
         staticVarCompensatorMappings.addColumnMapping("node", new ColumnMapping<>(Integer.class, StaticVarCompensatorAttributes::getNode, StaticVarCompensatorAttributes::setNode));
         staticVarCompensatorMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, StaticVarCompensatorAttributes::getProperties, StaticVarCompensatorAttributes::setProperties));
@@ -701,6 +713,8 @@ public class Mappings {
         twoWindingsTransformerMappings.addColumnMapping("q1", new ColumnMapping<>(Double.class, TwoWindingsTransformerAttributes::getQ1, TwoWindingsTransformerAttributes::setQ1));
         twoWindingsTransformerMappings.addColumnMapping("p2", new ColumnMapping<>(Double.class, TwoWindingsTransformerAttributes::getP2, TwoWindingsTransformerAttributes::setP2));
         twoWindingsTransformerMappings.addColumnMapping("q2", new ColumnMapping<>(Double.class, TwoWindingsTransformerAttributes::getQ2, TwoWindingsTransformerAttributes::setQ2));
+        twoWindingsTransformerMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, TwoWindingsTransformerAttributes::isEquivalent,
+                TwoWindingsTransformerAttributes::setEquivalent));
         twoWindingsTransformerMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, TwoWindingsTransformerAttributes::isFictitious,
                 TwoWindingsTransformerAttributes::setFictitious));
         twoWindingsTransformerMappings.addColumnMapping(NODE_1, new ColumnMapping<>(Integer.class, TwoWindingsTransformerAttributes::getNode1, TwoWindingsTransformerAttributes::setNode1));
@@ -825,6 +839,8 @@ public class Mappings {
         threeWindingsTransformerMappings.addColumnMapping("p3", new ColumnMapping<>(Double.class, ThreeWindingsTransformerAttributes::getP3, ThreeWindingsTransformerAttributes::setP3));
         threeWindingsTransformerMappings.addColumnMapping("q3", new ColumnMapping<>(Double.class, ThreeWindingsTransformerAttributes::getQ3, ThreeWindingsTransformerAttributes::setQ3));
         threeWindingsTransformerMappings.addColumnMapping("ratedU0", new ColumnMapping<>(Double.class, ThreeWindingsTransformerAttributes::getRatedU0, ThreeWindingsTransformerAttributes::setRatedU0));
+        threeWindingsTransformerMappings.addColumnMapping(EQUIVALENT, new ColumnMapping<>(Boolean.class, ThreeWindingsTransformerAttributes::isEquivalent,
+                ThreeWindingsTransformerAttributes::setEquivalent));
         threeWindingsTransformerMappings.addColumnMapping(FICTITIOUS, new ColumnMapping<>(Boolean.class, ThreeWindingsTransformerAttributes::isFictitious,
                 ThreeWindingsTransformerAttributes::setFictitious));
         threeWindingsTransformerMappings.addColumnMapping(PROPERTIES, new ColumnMapping<>(Map.class, ThreeWindingsTransformerAttributes::getProperties,

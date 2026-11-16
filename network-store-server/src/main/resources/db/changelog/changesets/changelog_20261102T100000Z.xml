@@ -4,69 +4,85 @@
                    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                    https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <!-- powsybl-core 7.4.0 voltage regulation model: local targets on the equipments,
+         target value, deadband and slope on the regulating point. An undefined value is NaN. -->
     <changeSet id="20261102-1" author="powsybl">
         <addColumn tableName="generator">
-            <column name="localtargetq" type="FLOAT8"/>
-            <column name="localtargetv" type="FLOAT8"/>
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
         <addColumn tableName="battery">
-            <column name="localtargetq" type="FLOAT8"/>
-            <column name="localtargetv" type="FLOAT8"/>
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
         <addColumn tableName="vscconverterstation">
-            <column name="localtargetq" type="FLOAT8"/>
-            <column name="localtargetv" type="FLOAT8"/>
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
         <addColumn tableName="staticvarcompensator">
-            <column name="localtargetq" type="FLOAT8"/>
-            <column name="localtargetv" type="FLOAT8"/>
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
         <addColumn tableName="shuntcompensator">
-            <column name="localtargetv" type="FLOAT8"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
         <addColumn tableName="regulatingpoint">
-            <column name="targetvalue" type="FLOAT8"/>
-            <column name="targetdeadband" type="FLOAT8"/>
-            <column name="slope" type="FLOAT8"/>
+            <column name="targetvalue" type="FLOAT8" defaultValue="NaN"/>
+            <column name="targetdeadband" type="FLOAT8" defaultValue="NaN"/>
+            <column name="slope" type="FLOAT8" defaultValue="NaN"/>
         </addColumn>
+    </changeSet>
 
-        <sql>
-            UPDATE generator SET localtargetq = targetq, localtargetv = equivalentlocaltargetv;
-            UPDATE battery SET localtargetq = targetq;
-            UPDATE vscconverterstation SET localtargetq = reactivepowersetpoint, localtargetv = voltagesetpoint;
-            UPDATE staticvarcompensator SET localtargetq = reactivepowersetpoint, localtargetv = voltagesetpoint;
-            UPDATE shuntcompensator SET localtargetv = targetv;
-            UPDATE regulatingpoint rp SET targetvalue = CASE
-                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT g.targetv FROM generator g
-                    WHERE g.networkuuid = rp.networkuuid AND g.variantnum = rp.variantnum AND g.id = rp.regulatingequipmentid)
-                WHEN rp.regulationmode = 'REACTIVE_POWER' THEN (SELECT g.targetq FROM generator g
-                    WHERE g.networkuuid = rp.networkuuid AND g.variantnum = rp.variantnum AND g.id = rp.regulatingequipmentid)
-                ELSE NULL END
-                WHERE rp.regulatingequipmenttype = 'GENERATOR';
-            UPDATE regulatingpoint rp SET targetvalue = (SELECT b.targetq FROM battery b
-                WHERE b.networkuuid = rp.networkuuid AND b.variantnum = rp.variantnum AND b.id = rp.regulatingequipmentid)
-                WHERE rp.regulatingequipmenttype = 'BATTERY' AND rp.regulationmode = 'REACTIVE_POWER';
-            UPDATE regulatingpoint rp SET targetvalue = CASE
-                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT s.targetv FROM shuntcompensator s
-                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
-                ELSE NULL END,
-                targetdeadband = (SELECT s.targetdeadband FROM shuntcompensator s
-                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
-                WHERE rp.regulatingequipmenttype = 'SHUNT_COMPENSATOR';
-            UPDATE regulatingpoint rp SET targetvalue = CASE
-                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT v.voltagesetpoint FROM vscconverterstation v
-                    WHERE v.networkuuid = rp.networkuuid AND v.variantnum = rp.variantnum AND v.id = rp.regulatingequipmentid)
-                WHEN rp.regulationmode = 'REACTIVE_POWER' THEN (SELECT v.reactivepowersetpoint FROM vscconverterstation v
-                    WHERE v.networkuuid = rp.networkuuid AND v.variantnum = rp.variantnum AND v.id = rp.regulatingequipmentid)
-                ELSE NULL END
-                WHERE rp.regulatingequipmenttype = 'VSC_CONVERTER_STATION';
-            UPDATE regulatingpoint rp SET targetvalue = CASE
-                WHEN rp.regulationmode = 'VOLTAGE' THEN (SELECT s.voltagesetpoint FROM staticvarcompensator s
-                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
-                WHEN rp.regulationmode = 'REACTIVE_POWER' THEN (SELECT s.reactivepowersetpoint FROM staticvarcompensator s
-                    WHERE s.networkuuid = rp.networkuuid AND s.variantnum = rp.variantnum AND s.id = rp.regulatingequipmentid)
-                ELSE NULL END
-                WHERE rp.regulatingequipmenttype = 'STATIC_VAR_COMPENSATOR';
-        </sql>
+    <!-- powsybl-core 7.4.0 "equivalent" flag of the connectables -->
+    <changeSet id="20261102-2" author="powsybl">
+        <addColumn tableName="generator">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="battery">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="load">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="shuntcompensator">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="staticvarcompensator">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="vscconverterstation">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="lccconverterstation">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="boundaryline">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="busbarsection">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="ground">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="line">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="twowindingstransformer">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="threewindingstransformer">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- The data migration is skipped if the database is not postgres because it uses json methods that are specific to postgres -->
+    <changeSet id="20261102-3" author="powsybl">
+        <sqlFile
+                dbms="postgresql"
+                path="voltage_regulation_migration_20261102T100000Z.sql"
+                relativeToChangelogFile="true"
+                splitStatements="true"
+                stripComments="true"/>
     </changeSet>
 </databaseChangeLog>

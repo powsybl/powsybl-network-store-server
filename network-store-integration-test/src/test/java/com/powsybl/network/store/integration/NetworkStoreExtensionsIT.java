@@ -1651,10 +1651,13 @@ class NetworkStoreExtensionsIT {
                     .setNode(1)
                     .setMaxP(20)
                     .setMinP(-20)
-                    .setVoltageRegulatorOn(true)
                     .setTargetP(100)
-                    .setTargetV(200)
-                    .setTargetQ(100)
+                    .setLocalTargetV(200)
+                    .setLocalTargetQ(100)
+                    .newVoltageRegulation()
+                        .withMode(RegulationMode.VOLTAGE)
+                        .withRegulating(true)
+                        .add()
                     .add();
             // Cache should be emptied when identifiable was removed
             assertNull(gen.getExtension(ActivePowerControl.class));
