@@ -8,6 +8,7 @@ package com.powsybl.network.store.integration;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.ResourceAttributesRestClientImpl;
 import com.powsybl.network.store.iidm.impl.ConfiguredBusImpl;
@@ -23,7 +24,6 @@ import org.springframework.test.context.ContextHierarchy;
 
 import java.util.NoSuchElementException;
 
-import static com.powsybl.iidm.network.RatioTapChanger.RegulationMode.VOLTAGE;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -100,7 +100,8 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl2.newGenerator().setId("G").setNode(0).add())
                 .getMessage().contains("connectable bus is not set"));
 
-        Generator gen = vl1.newGenerator().setId("G").setNode(0).setMinP(100).setMaxP(800).setTargetP(700).setVoltageRegulatorOn(true).setTargetV(380).setRatedS(5).add();
+        Generator gen = vl1.newGenerator().setId("G").setNode(0).setMinP(100).setMaxP(800).setTargetP(700).setLocalTargetV(380).setRatedS(5)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).add().add();
 
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().add()).getMessage().contains("Generator id is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setBus("b1").setConnectableBus("B1").add())
@@ -121,23 +122,25 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).add())
                 .getMessage().contains("active power setpoint"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700).add())
-                .getMessage().contains("voltage regulator status is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700).setVoltageRegulatorOn(true).add())
-                .getMessage().contains("voltage setpoint"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700).setVoltageRegulatorOn(false).add())
-                .getMessage().contains("reactive power setpoint"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(50).setTargetP(700).setVoltageRegulatorOn(false).setTargetQ(100).add())
+                .getMessage().contains("localTargetQ (voltageRegulation is not set)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).add().add())
+                .getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(false).add().add())
+                .getMessage().contains("localTargetQ (voltageRegulation is set with regulating false)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(50).setTargetP(700).setLocalTargetQ(100).add())
                 .getMessage().contains("invalid active limits"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700).setVoltageRegulatorOn(false).setTargetQ(100)
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newGenerator().setId("G1").setNode(1).setMinP(100).setMaxP(800).setTargetP(700).setLocalTargetQ(100)
                 .setRatedS(-5).add())
                 .getMessage().contains("Invalid value of rated S"));
 
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setEnergySource(null)).getMessage().contains("energy source is not set"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setMinP(1000)).getMessage().contains("invalid active limits"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> gen.setVoltageRegulatorOn(false)).getMessage().matches("(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> gen.getVoltageRegulation().setRegulating(false)).getMessage().contains("localTargetQ (voltageRegulation is set with regulating false)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setTargetP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)active power setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> gen.setTargetV(-100)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> gen.setLocalTargetV(-100)).getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setRatedS(-1)).getMessage().contains("Invalid value of rated S"));
     }
 
@@ -215,33 +218,30 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1)
                 .newLinearModel().setGPerSection(1).setBPerSection(2).setMaximumSectionCount(5).add()
                 .setSectionCount(3)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(-10)
+                .setLocalTargetV(-10)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(10).add()
                 .add())
-                .getMessage().matches("(.*)invalid value(.*)for voltage setpoint(.*)"));
+                .getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1)
                 .newLinearModel().setGPerSection(1).setBPerSection(2).setMaximumSectionCount(5).add()
                 .setSectionCount(3)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(380)
-                .setTargetDeadband(Double.NaN)
+                .setLocalTargetV(380)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(Double.NaN).add()
                 .add())
                 .getMessage().matches("(.*)Undefined value for target deadband of regulating shunt compensator(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1)
                 .newLinearModel().setGPerSection(1).setBPerSection(2).setMaximumSectionCount(5).add()
                 .setSectionCount(3)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(380)
-                .setTargetDeadband(-200)
+                .setLocalTargetV(380)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(-200).add()
                 .add())
-                .getMessage().matches("(.*)Unexpected value for target deadband of shunt compensator(.*)< 0(.*)"));
+                .getMessage().contains("Unexpected value for target deadband of ShuntCompensator"));
 
         ShuntCompensator shuntCompensator1 = vl1.newShuntCompensator().setId("SC1").setNode(1)
                 .newLinearModel().setGPerSection(1).setBPerSection(2).setMaximumSectionCount(5).add()
                 .setSectionCount(3)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(380)
-                .setTargetDeadband(10)
+                .setLocalTargetV(380)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(10).add()
                 .add();
 
         assertTrue(assertThrows(PowsyblException.class, () -> ((ShuntCompensatorLinearModelImpl) shuntCompensator1.getModel()).setMaximumSectionCount(2))
@@ -250,17 +250,15 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1)
                 .newNonLinearModel().add()
                 .setSectionCount(3)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(380)
-                .setTargetDeadband(10)
+                .setLocalTargetV(380)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(10).add()
                 .add())
                 .getMessage().matches("(.*)a shunt compensator must have at least one section(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newShuntCompensator().setId("SC1").setNode(1)
                 .newNonLinearModel().beginSection().endSection().add()
                 .setSectionCount(3)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(380)
-                .setTargetDeadband(10)
+                .setLocalTargetV(380)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(10).add()
                 .add())
                 .getMessage().matches("(.*)section susceptance is invalid(.*)"));
 
@@ -270,9 +268,8 @@ class NetworkStoreValidationTest {
                 .beginSection().setB(30).setG(40).endSection()
                 .add()
                 .setSectionCount(1)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(380)
-                .setTargetDeadband(10)
+                .setLocalTargetV(380)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTargetDeadband(10).add()
                 .add();
 
         assertTrue(assertThrows(PowsyblException.class, () -> ((ShuntCompensatorNonLinearModelImpl) shuntCompensator2.getModel()).getAllSections().get(0).setB(Double.NaN))
@@ -282,9 +279,9 @@ class NetworkStoreValidationTest {
 
         assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setSectionCount(-5)).getMessage().matches(
                 "(.*)the current number of section(.*)should be greater than or equal to 0(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setTargetV(-50)).getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"
-                ));
-        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setTargetDeadband(Double.NaN)).getMessage().matches("(.*)Undefined value for target deadband of regulating(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setLocalTargetV(-50)).getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.getVoltageRegulation().setTargetDeadband(Double.NaN)).getMessage().matches(
+                "(.*)Undefined value for target deadband of regulating(.*)"));
     }
 
     @Test
@@ -309,30 +306,24 @@ class NetworkStoreValidationTest {
         StaticVarCompensatorAdder adder4 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1);
         assertTrue(assertThrows(PowsyblException.class, adder4::add)
                 .getMessage().contains("bmax is invalid"));
-        StaticVarCompensatorAdder adder5 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulationMode(null);
-        assertTrue(assertThrows(PowsyblException.class, adder5::add)
-                .getMessage().contains("regulating is not set"));
-        StaticVarCompensatorAdder adder6 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(null);
-        assertTrue(assertThrows(PowsyblException.class, adder6::add)
-                .getMessage().contains("Regulation mode is invalid"));
-        StaticVarCompensatorAdder adder7 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
-                .VOLTAGE);
+        StaticVarCompensatorAdder adder7 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).add();
         assertTrue(assertThrows(PowsyblException.class, adder7::add)
-                .getMessage().matches("(.*)voltage setpoint(.*)"));
-        StaticVarCompensatorAdder adder8 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
-                .REACTIVE_POWER);
+                .getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
+        StaticVarCompensatorAdder adder8 = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10)
+                .newVoltageRegulation().withMode(RegulationMode.REACTIVE_POWER).withRegulating(true).add();
         assertTrue(assertThrows(PowsyblException.class, adder8::add)
-                .getMessage().matches("(.*)reactive power setpoint(.*)"));
+                .getMessage().contains("localTargetQ (voltageRegulation is set with REACTIVE_POWER mode and regulating true and the terminal is unset)"));
 
-        StaticVarCompensator svc = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setRegulating(true).setRegulationMode(StaticVarCompensator.RegulationMode
-                .REACTIVE_POWER).setReactivePowerSetpoint(10).add();
+        StaticVarCompensator svc = vl1.newStaticVarCompensator().setId("SVC1").setNode(1).setBmin(1).setBmax(10).setLocalTargetQ(10)
+                .newVoltageRegulation().withMode(RegulationMode.REACTIVE_POWER).withRegulating(true).add().add();
 
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmin(Double.NaN)).getMessage().contains("bmin is invalid"));
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmax(Double.NaN)).getMessage().contains("bmax is invalid"));
-        StaticVarCompensator svc1 = svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER).setRegulating(true);
-        assertTrue(assertThrows(PowsyblException.class, () -> svc1.setReactivePowerSetpoint(Double.NaN)).getMessage().matches("(.*)invalid value(.*)reactive power setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)).getMessage().matches("(.*)invalid value(.*)voltage setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setRegulationMode(null)).getMessage().contains("Regulation mode is invalid"));
+        svc.getVoltageRegulation().setMode(RegulationMode.REACTIVE_POWER).setRegulating(true);
+        assertTrue(assertThrows(PowsyblException.class, () -> svc.setLocalTargetQ(Double.NaN)).getMessage().contains("localTargetQ (voltageRegulation is set with REACTIVE_POWER mode and regulating true and the terminal is unset)"));
+        svc.getVoltageRegulation().setMode(RegulationMode.VOLTAGE);
+        assertTrue(assertThrows(PowsyblException.class, () -> svc.getVoltageRegulation().setMode(null)).getMessage().contains("Undefined value for voltageRegulation.regulationMode"));
     }
 
     @Test
@@ -378,11 +369,11 @@ class NetworkStoreValidationTest {
         BoundaryLineAdder.GenerationAdder blAdder2 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
             .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(true);
         assertTrue(assertThrows(PowsyblException.class, blAdder2::add)
-                .getMessage().contains("voltage setpoint"));
+                .getMessage().contains("localTargetV (VoltageRegulation with VOLTAGE mode)"));
         BoundaryLineAdder.GenerationAdder blAdder3 = vl1.newBoundaryLine().setId("BL1").setNode(1).setP0(1).setQ0(1).setR(1).setX(1).setG(1).setB(1)
             .newGeneration().setMinP(100).setMaxP(200).setTargetP(500).setVoltageRegulationOn(false).setTargetV(300);
         assertTrue(assertThrows(PowsyblException.class, blAdder3::add)
-                .getMessage().contains("reactive power setpoint"));
+                .getMessage().contains("targetQ (VoltageRegulation not set or set with regulating=false)"));
         CurrentLimitsAdder currentLimitsAdder = boundaryLine1.getOrCreateSelectedOperationalLimitsGroup().newCurrentLimits().setPermanentLimit(-5);
         assertTrue(assertThrows(PowsyblException.class, currentLimitsAdder::add)
                 .getMessage().contains("permanent limit must be >= 0"));
@@ -432,8 +423,8 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setTargetV(-100)).getMessage().matches(
                 "(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
         boundaryLine2.getGeneration().setVoltageRegulationOn(false);
-        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setTargetQ(Double.NaN)).getMessage().matches(
-                "(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> boundaryGeneration.setTargetQ(Double.NaN)).getMessage().contains(
+                "targetQ (VoltageRegulation not set or set with regulating=false)"));
     }
 
     @Test
@@ -504,31 +495,26 @@ class NetworkStoreValidationTest {
                 .beginStep().setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()
                 .beginStep().setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
                 .beginStep().setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
-                .setRegulating(true)
-            .setLoadTapChangingCapabilities(true)
-            .add())
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation().withRegulating(true).add()
+                .add())
                 .getMessage().contains("2 windings transformer '2WT': regulation mode of regulating ratio tap changer must be given"));
         assertTrue(assertThrows(PowsyblException.class, () -> t2e.newRatioTapChanger()
                 .setTapPosition(1)
                 .beginStep().setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()
                 .beginStep().setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
                 .beginStep().setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
-                .setRegulating(true)
-            .setLoadTapChangingCapabilities(true)
-            .setRegulationTerminal(t2e.getTerminal1())
-                .setTargetV(-10)
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTerminal(t2e.getTerminal1()).withTargetDeadband(1.0).withTargetValue(-10).add()
                 .add())
-                .getMessage().contains("bad target voltage"));
+                .getMessage().contains("voltageRegulation.targetValue (must be positive)"));
         assertTrue(assertThrows(PowsyblException.class, () -> t2e.newRatioTapChanger()
                 .setTapPosition(1)
                 .beginStep().setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()
                 .beginStep().setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
                 .beginStep().setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(true)
-                .setRegulationMode(VOLTAGE)
-                .setRegulationTerminal(t2e.getTerminal1())
-                .setTargetV(100)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTerminal(t2e.getTerminal1()).withTargetValue(100).add()
                 .add())
                 .getMessage().contains("Undefined value for target deadband of regulating"));
         assertTrue(assertThrows(PowsyblException.class, () -> t2e.newRatioTapChanger()
@@ -536,24 +522,22 @@ class NetworkStoreValidationTest {
                 .beginStep().setR(10).setX(10).setG(10).setB(10).setRho(10).endStep()
                 .beginStep().setR(20).setX(20).setG(20).setB(20).setRho(20).endStep()
                 .beginStep().setR(30).setX(30).setG(30).setB(30).setRho(30).endStep()
-                .setRegulating(true)
-                .setRegulationMode(VOLTAGE)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulationTerminal(t2e.getTerminal1())
-                .setTargetV(100)
-                .setTargetDeadband(-10)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).withTerminal(t2e.getTerminal1()).withTargetValue(100).withTargetDeadband(-10).add()
                 .add())
                 .getMessage().contains("Unexpected value for target deadband of"));
 
         RatioTapChanger ratioTapChanger = t2e.newRatioTapChanger()
                 .setLowTapPosition(0)
                 .setTapPosition(1)
-                .setLoadTapChangingCapabilities(false)
-                .setRegulating(true)
-            .setLoadTapChangingCapabilities(true)
-                .setTargetDeadband(1.0)
-                .setTargetV(220.0)
-                .setRegulationTerminal(t2e.getTerminal1())
+                .setLoadTapChangingCapabilities(true)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetDeadband(1.0)
+                    .withTargetValue(220.0)
+                    .withTerminal(t2e.getTerminal1())
+                    .add()
                 .beginStep()
                 .setR(39.78473)
                 .setX(39.784725)
@@ -577,10 +561,11 @@ class NetworkStoreValidationTest {
                 .endStep()
                 .add();
 
-        assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.setTargetV(Double.NaN)).getMessage().contains("2 windings transformer '2WT':"
+        assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.getVoltageRegulation().setTargetValue(Double.NaN)).getMessage().contains("2 windings transformer '2WT':"
                 + " a regulation value has to be set for a regulating ratio tap changer"));
-        assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.setTargetV(-50).setRegulating(true).setLoadTapChangingCapabilities(true)).getMessage().contains("bad target voltage "));
-        assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.setTargetDeadband(Double.NaN)).getMessage().contains("Undefined value for target deadband of regulating"));
+        assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.getVoltageRegulation().setTargetValue(-50)).getMessage().contains("voltageRegulation.targetValue (must be positive)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.getVoltageRegulation().setTargetDeadband(Double.NaN)).getMessage().contains("Undefined value for target" +
+                " deadband of regulating"));
         assertTrue(assertThrows(PowsyblException.class, () -> ratioTapChanger.setTapPosition(-1)).getMessage().contains("incorrect tap position "));
 
         assertTrue(assertThrows(PowsyblException.class, () -> t2e.newPhaseTapChanger().add()).getMessage().contains("tap position is not set"));
@@ -635,7 +620,7 @@ class NetworkStoreValidationTest {
                 .add())
                 .getMessage().contains("Unexpected value for target deadband of"));
 
-        ratioTapChanger.setRegulating(false);
+        ratioTapChanger.getVoltageRegulation().setRegulating(false);
         PhaseTapChanger phaseTapChanger = t2e.newPhaseTapChanger()
                 .setTapPosition(1)
                 .setLowTapPosition(0)
@@ -728,22 +713,22 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(200).add())
                 .getMessage().contains("loss factor must be >= 0 and <= 100"));
         assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(20).add())
-                .getMessage().contains("voltage regulator status is not set"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(20).setVoltageRegulatorOn(true).add())
-                .getMessage().contains("voltage setpoint"));
-        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(20).setVoltageRegulatorOn(false).add())
-                .getMessage().contains("reactive power setpoint"));
+                .getMessage().contains("localTargetQ (voltageRegulation is not set)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(20)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).add().add())
+                .getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(20)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(false).add().add())
+                .getMessage().contains("localTargetQ (voltageRegulation is set with regulating false)"));
 
-        VscConverterStation vscConverterStation1 = vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(24).setReactivePowerSetpoint(300).setVoltageRegulatorOn(true).setVoltageSetpoint(
-                290).add();
-        VscConverterStation vscConverterStation2 = vl2.newVscConverterStation().setId("VSC2").setNode(2).setLossFactor(17).setReactivePowerSetpoint(227).setVoltageRegulatorOn(false)
-                .setVoltageSetpoint(213).add();
-        vscConverterStation1.setVoltageRegulatorOn(true);
-        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setVoltageSetpoint(-50))
-                .getMessage().matches("(.*)voltage setpoint(.*)voltage regulator is on(.*)"));
-        vscConverterStation1.setVoltageRegulatorOn(false);
-        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setReactivePowerSetpoint(Double.NaN)).getMessage().matches(
-                "(.*)reactive power setpoint(.*)voltage regulator is off(.*)"));
+        VscConverterStation vscConverterStation1 = vl1.newVscConverterStation().setId("VSC1").setNode(1).setLossFactor(24).setLocalTargetQ(300).setLocalTargetV(290)
+                .newVoltageRegulation().withMode(RegulationMode.VOLTAGE).withRegulating(true).add().add();
+        VscConverterStation vscConverterStation2 = vl2.newVscConverterStation().setId("VSC2").setNode(2).setLossFactor(17).setLocalTargetQ(227)
+                .setLocalTargetV(213).add();
+        vscConverterStation1.getVoltageRegulation().setRegulating(true);
+        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setLocalTargetV(-50)).getMessage().contains("targetV (must be positive)"));
+        vscConverterStation1.getVoltageRegulation().setRegulating(false);
+        assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setLocalTargetQ(Double.NaN)).getMessage().contains("localTargetQ (voltageRegulation is set with regulating false)"));
         assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.setLossFactor(150)).getMessage().contains("loss factor must be >= 0 and <= 100"));
 
         assertTrue(assertThrows(PowsyblException.class, () -> vscConverterStation1.newReactiveCapabilityCurve().add())

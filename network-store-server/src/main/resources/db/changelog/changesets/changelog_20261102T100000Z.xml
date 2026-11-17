@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- powsybl-core 7.4.0 voltage regulation model: local targets on the equipments,
+         target value, deadband and slope on the regulating point. An undefined value is NaN. -->
+    <changeSet id="20261102-1" author="powsybl">
+        <addColumn tableName="generator">
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
+        </addColumn>
+        <addColumn tableName="battery">
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
+        </addColumn>
+        <addColumn tableName="vscconverterstation">
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
+        </addColumn>
+        <addColumn tableName="staticvarcompensator">
+            <column name="localtargetq" type="FLOAT8" defaultValue="NaN"/>
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
+        </addColumn>
+        <addColumn tableName="shuntcompensator">
+            <column name="localtargetv" type="FLOAT8" defaultValue="NaN"/>
+        </addColumn>
+        <addColumn tableName="regulatingpoint">
+            <column name="targetvalue" type="FLOAT8" defaultValue="NaN"/>
+            <column name="targetdeadband" type="FLOAT8" defaultValue="NaN"/>
+            <column name="slope" type="FLOAT8" defaultValue="NaN"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- powsybl-core 7.4.0 "equivalent" flag of the connectables -->
+    <changeSet id="20261102-2" author="powsybl">
+        <addColumn tableName="generator">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="battery">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="load">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="shuntcompensator">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="staticvarcompensator">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="vscconverterstation">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="lccconverterstation">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="boundaryline">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="busbarsection">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="ground">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="line">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="twowindingstransformer">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+        <addColumn tableName="threewindingstransformer">
+            <column name="equivalent" type="BOOLEAN" defaultValueBoolean="false"/>
+        </addColumn>
+    </changeSet>
+
+    <!-- The data migration is skipped if the database is not postgres because it uses json methods that are specific to postgres -->
+    <changeSet id="20261102-3" author="powsybl">
+        <sqlFile
+                dbms="postgresql"
+                path="voltage_regulation_migration_20261102T100000Z.sql"
+                relativeToChangelogFile="true"
+                splitStatements="true"
+                stripComments="true"/>
+    </changeSet>
+</databaseChangeLog>
