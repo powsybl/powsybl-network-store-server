@@ -82,6 +82,52 @@ class NetworkStoreExtensionsIT {
         }
     }
 
+    // Test added after bug found in powsyb-network-store-client with extensions when switching variant 
+    @Test
+    void activePowerControlExtensionFollowsVariantSwitchTest() {
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Network network = BatteryNetworkFactory.create(service.getNetworkFactory());
+            Battery battery = network.getBattery("BAT");
+            battery.newExtension(ActivePowerControlAdder.class)
+                    .withParticipate(true)
+                    .withDroop(4.0f)
+                    .withParticipationFactor(1.2)
+                    .add();
+            service.flush(network);
+
+            network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, "variant1");
+            network.getVariantManager().setWorkingVariant("variant1");
+            battery.getExtension(ActivePowerControl.class).setDroop(6.0f);
+            battery.getExtension(ActivePowerControl.class).setParticipate(false);
+            battery.getExtension(ActivePowerControl.class).setParticipationFactor(2.4);
+            network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+            service.flush(network);
+        }
+
+        try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
+            Map<UUID, String> networkIds = service.getNetworkIds();
+            Network network = service.getNetwork(networkIds.keySet().stream().findFirst().orElseThrow(AssertionError::new));
+            Battery battery = network.getBattery("BAT");
+
+            ActivePowerControl<Battery> extension = battery.getExtension(ActivePowerControl.class);
+            assertEquals(4.0, extension.getDroop(), 0);
+            assertTrue(extension.isParticipate());
+
+            network.getVariantManager().setWorkingVariant("variant1");
+
+            // both the extension created before the switch and a new one must read the second variant
+            assertEquals(6.0, extension.getDroop(), 0);
+            assertFalse(extension.isParticipate());
+            ActivePowerControl<Battery> extensionOfVariant1 = battery.getExtension(ActivePowerControl.class);
+            assertEquals(6.0, extensionOfVariant1.getDroop(), 0);
+            assertEquals(2.4, extensionOfVariant1.getParticipationFactor(), 0);
+
+            network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+            assertEquals(4.0, extension.getDroop(), 0);
+            assertEquals(1.2, extension.getParticipationFactor(), 0);
+        }
+    }
+
     @Test
     void testGeneratorStartup() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
@@ -891,7 +937,7 @@ class NetworkStoreExtensionsIT {
                     .withParticipate(false)
                     .withDroop(1.0f)
                     .add();
-            ActivePowerControl activePowerControl = battery.getExtension(ActivePowerControl.class);
+            AContructions des image en localctivePowerControl activePowerControl = battery.getExtension(ActivePowerControl.class);
             assertFalse(activePowerControl.isParticipate());
             assertEquals(1.0f, activePowerControl.getDroop(), 0.01);
 
