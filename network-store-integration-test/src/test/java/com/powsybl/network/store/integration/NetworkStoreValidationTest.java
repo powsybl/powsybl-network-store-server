@@ -140,7 +140,8 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setMaxP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)maximum P(.*)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.getVoltageRegulation().setRegulating(false)).getMessage().contains("localTargetQ (voltageRegulation is set with regulating false)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setTargetP(Double.NaN)).getMessage().matches("(.*)invalid value(.*)active power setpoint(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> gen.setLocalTargetV(-100)).getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> gen.setLocalTargetV(-100)).getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating " +
+                "true and the terminal is unset)"));
         assertTrue(assertThrows(PowsyblException.class, () -> gen.setRatedS(-1)).getMessage().contains("Invalid value of rated S"));
     }
 
@@ -279,7 +280,8 @@ class NetworkStoreValidationTest {
 
         assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setSectionCount(-5)).getMessage().matches(
                 "(.*)the current number of section(.*)should be greater than or equal to 0(.*)"));
-        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setLocalTargetV(-50)).getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE mode and regulating true and the terminal is unset)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.setLocalTargetV(-50)).getMessage().contains("localTargetV (voltageRegulation is set with VOLTAGE " +
+                "mode and regulating true and the terminal is unset)"));
         assertTrue(assertThrows(PowsyblException.class, () -> shuntCompensator2.getVoltageRegulation().setTargetDeadband(Double.NaN)).getMessage().matches(
                 "(.*)Undefined value for target deadband of regulating(.*)"));
     }
@@ -321,7 +323,8 @@ class NetworkStoreValidationTest {
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmin(Double.NaN)).getMessage().contains("bmin is invalid"));
         assertTrue(assertThrows(PowsyblException.class, () -> svc.setBmax(Double.NaN)).getMessage().contains("bmax is invalid"));
         svc.getVoltageRegulation().setMode(RegulationMode.REACTIVE_POWER).setRegulating(true);
-        assertTrue(assertThrows(PowsyblException.class, () -> svc.setLocalTargetQ(Double.NaN)).getMessage().contains("localTargetQ (voltageRegulation is set with REACTIVE_POWER mode and regulating true and the terminal is unset)"));
+        assertTrue(assertThrows(PowsyblException.class, () -> svc.setLocalTargetQ(Double.NaN)).getMessage().contains("localTargetQ (voltageRegulation is set with REACTIVE_POWER mode " +
+                "and regulating true and the terminal is unset)"));
         svc.getVoltageRegulation().setMode(RegulationMode.VOLTAGE);
         assertTrue(assertThrows(PowsyblException.class, () -> svc.getVoltageRegulation().setMode(null)).getMessage().contains("Undefined value for voltageRegulation.regulationMode"));
     }

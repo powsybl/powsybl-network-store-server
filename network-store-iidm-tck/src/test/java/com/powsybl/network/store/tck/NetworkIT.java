@@ -8,7 +8,6 @@ package com.powsybl.network.store.tck;
 
 import com.google.common.collect.Iterables;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.tck.AbstractNetworkTest;
 import com.powsybl.iidm.network.test.NetworkTest1Factory;
 import com.powsybl.iidm.network.util.Networks;
