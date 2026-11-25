@@ -20,6 +20,7 @@ import com.powsybl.entsoe.util.EntsoeGeographicalCode;
 import com.powsybl.ieeecdf.converter.IeeeCdfNetworkFactory;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.extensions.ConnectablePosition;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.*;
 import com.powsybl.math.graph.TraverseResult;
 import com.powsybl.network.store.client.NetworkStoreService;
@@ -228,18 +229,18 @@ class NetworkStoreIT {
             assertFalse(svc.isFictitious());
             assertEquals(0.0002, svc.getBmin(), 0.00001);
             assertEquals(0.0008, svc.getBmax(), 0.00001);
-            assertEquals(StaticVarCompensator.RegulationMode.VOLTAGE, svc.getRegulationMode());
-            assertEquals(390, svc.getVoltageSetpoint(), 0.1);
-            assertEquals(200, svc.getReactivePowerSetpoint(), 0.1);
+            assertEquals(RegulationMode.VOLTAGE, svc.getVoltageRegulation().getMode());
+            assertEquals(390, svc.getRegulatingTargetV(), 0.1);
+            assertEquals(200, svc.getRegulatingTargetQ(), 0.1);
             assertEquals(435, svc.getTerminal().getP(), 0.1);
             assertEquals(315, svc.getTerminal().getQ(), 0.1);
 
             svc.setFictitious(true);
             svc.setBmin(0.5);
             svc.setBmax(0.7);
-            svc.setRegulationMode(StaticVarCompensator.RegulationMode.REACTIVE_POWER);
-            svc.setVoltageSetpoint(400);
-            svc.setReactivePowerSetpoint(220);
+            svc.getVoltageRegulation().setMode(RegulationMode.REACTIVE_POWER);
+            svc.setLocalTargetV(400);
+            svc.setLocalTargetQ(220);
             svc.getTerminal().setP(450);
             svc.getTerminal().setQ(300);
 
@@ -257,9 +258,9 @@ class NetworkStoreIT {
             assertTrue(svc.isFictitious());
             assertEquals(0.5, svc.getBmin(), 0.00001);
             assertEquals(0.7, svc.getBmax(), 0.00001);
-            assertEquals(StaticVarCompensator.RegulationMode.REACTIVE_POWER, svc.getRegulationMode());
-            assertEquals(400, svc.getVoltageSetpoint(), 0.1);
-            assertEquals(220, svc.getReactivePowerSetpoint(), 0.1);
+            assertEquals(RegulationMode.REACTIVE_POWER, svc.getVoltageRegulation().getMode());
+            assertEquals(400, svc.getRegulatingTargetV(), 0.1);
+            assertEquals(220, svc.getRegulatingTargetQ(), 0.1);
             assertEquals(450, svc.getTerminal().getP(), 0.1);
             assertEquals(300, svc.getTerminal().getQ(), 0.1);
         }
@@ -314,9 +315,9 @@ class NetworkStoreIT {
             assertFalse(vscConverterStation.isFictitious());
             assertEquals("VSC1", vscConverterStation.getId());
             assertEquals(24, vscConverterStation.getLossFactor(), 0.1);
-            assertEquals(300, vscConverterStation.getReactivePowerSetpoint(), 0.1);
-            assertTrue(vscConverterStation.isVoltageRegulatorOn());
-            assertEquals(290, vscConverterStation.getVoltageSetpoint(), 0.1);
+            assertEquals(300, vscConverterStation.getRegulatingTargetQ(), 0.1);
+            assertTrue(vscConverterStation.isRegulatingWithMode(RegulationMode.VOLTAGE));
+            assertEquals(290, vscConverterStation.getRegulatingTargetV(), 0.1);
             assertEquals(445, vscConverterStation.getTerminal().getP(), 0.1);
             assertEquals(325, vscConverterStation.getTerminal().getQ(), 0.1);
             assertEquals(ReactiveLimitsKind.CURVE, vscConverterStation.getReactiveLimits().getKind());
@@ -332,9 +333,9 @@ class NetworkStoreIT {
             assertFalse(vscConverterStation2.isFictitious());
             assertEquals("VSC2", vscConverterStation2.getId());
             assertEquals(17, vscConverterStation2.getLossFactor(), 0.1);
-            assertEquals(227, vscConverterStation2.getReactivePowerSetpoint(), 0.1);
-            assertFalse(vscConverterStation2.isVoltageRegulatorOn());
-            assertEquals(213, vscConverterStation2.getVoltageSetpoint(), 0.1);
+            assertEquals(227, vscConverterStation2.getRegulatingTargetQ(), 0.1);
+            assertFalse(vscConverterStation2.isRegulatingWithMode(RegulationMode.VOLTAGE));
+            assertEquals(213, vscConverterStation2.getRegulatingTargetV(), 0.1);
             assertEquals(254, vscConverterStation2.getTerminal().getP(), 0.1);
             assertEquals(117, vscConverterStation2.getTerminal().getQ(), 0.1);
             assertEquals(ReactiveLimitsKind.MIN_MAX, vscConverterStation2.getReactiveLimits().getKind());
@@ -343,9 +344,9 @@ class NetworkStoreIT {
             assertEquals(103, minMaxLimits.getMinQ(), 0.1);
 
             vscConverterStation.setLossFactor(26);
-            vscConverterStation.setReactivePowerSetpoint(320);
-            vscConverterStation.setVoltageRegulatorOn(false);
-            vscConverterStation.setVoltageSetpoint(300);
+            vscConverterStation.setLocalTargetQ(320);
+            vscConverterStation.getVoltageRegulation().setRegulating(false);
+            vscConverterStation.setLocalTargetV(300);
             vscConverterStation.getTerminal().setP(452);
             vscConverterStation.getTerminal().setQ(318);
 
@@ -363,9 +364,9 @@ class NetworkStoreIT {
             assertNotNull(vscConverterStation);
 
             assertEquals(26, vscConverterStation.getLossFactor(), 0.1);
-            assertEquals(320, vscConverterStation.getReactivePowerSetpoint(), 0.1);
-            assertFalse(vscConverterStation.isVoltageRegulatorOn());
-            assertEquals(300, vscConverterStation.getVoltageSetpoint(), 0.1);
+            assertEquals(320, vscConverterStation.getRegulatingTargetQ(), 0.1);
+            assertFalse(vscConverterStation.isRegulatingWithMode(RegulationMode.VOLTAGE));
+            assertEquals(300, vscConverterStation.getRegulatingTargetV(), 0.1);
             assertEquals(452, vscConverterStation.getTerminal().getP(), 0.1);
             assertEquals(318, vscConverterStation.getTerminal().getQ(), 0.1);
 
@@ -899,7 +900,7 @@ class NetworkStoreIT {
                 .setConnectableBus("b1")
                 .setBus("b1")
                 .setTargetP(50)
-                .setTargetQ(10)
+                .setLocalTargetQ(10)
                 .setMinP(40)
                 .setMaxP(70)
                 .add();
@@ -908,20 +909,20 @@ class NetworkStoreIT {
 
             assertTrue(battery.isFictitious());
             assertEquals(50, battery.getTargetP(), 0.1);
-            assertEquals(10, battery.getTargetQ(), 0.1);
+            assertEquals(10, battery.getRegulatingTargetQ(), 0.1);
             assertEquals(40, battery.getMinP(), 0.1);
             assertEquals(70, battery.getMaxP(), 0.1);
 
             battery.setFictitious(false);
             battery.setTargetP(65);
-            battery.setTargetQ(20);
+            battery.setLocalTargetQ(20);
 
             assertFalse(battery.isFictitious());
             assertEquals(65, battery.getTargetP(), 0.1);
-            assertEquals(20, battery.getTargetQ(), 0.1);
+            assertEquals(20, battery.getRegulatingTargetQ(), 0.1);
 
             verify(mockedListener, times(1)).onUpdate(battery, "targetP", INITIAL_VARIANT_ID, 50d, 65d);
-            verify(mockedListener, times(1)).onUpdate(battery, "targetQ", INITIAL_VARIANT_ID, 10d, 20d);
+            verify(mockedListener, times(1)).onUpdate(battery, "localTargetQ", INITIAL_VARIANT_ID, 10d, 20d);
 
             battery.setMaxP(90);
             battery.setMinP(50);
@@ -1770,7 +1771,7 @@ class NetworkStoreIT {
 
             assertEquals(3, ratioTapChanger.getStepCount());
             assertEquals(0, ratioTapChanger.getLowTapPosition());
-            assertEquals(22, ratioTapChanger.getTargetDeadband(), .0001);
+            assertEquals(22, ratioTapChanger.getVoltageRegulation().getTargetDeadband(), .0001);
             assertEquals(2, ratioTapChanger.getHighTapPosition());
             assertEquals(0, ratioTapChanger.getTapPosition());
             assertTrue(ratioTapChanger.isRegulating());
@@ -1780,17 +1781,17 @@ class NetworkStoreIT {
             assertEqualsRatioTapChangerStep(ratioTapChanger.getCurrentStep(), 1.5, 0.5, 1., 0.99, 4.);
 
             ratioTapChanger.setLowTapPosition(-2);
-            ratioTapChanger.setRegulating(false);
+            ratioTapChanger.getVoltageRegulation().setRegulating(false);
             ratioTapChanger.setTapPosition(0);
-            ratioTapChanger.setTargetDeadband(13);
+            ratioTapChanger.getVoltageRegulation().setTargetDeadband(13);
             ratioTapChanger.setLoadTapChangingCapabilities(false);
-            ratioTapChanger.setTargetV(27);
+            ratioTapChanger.getVoltageRegulation().setTargetValue(27);
             assertEquals(-2, ratioTapChanger.getLowTapPosition());
-            assertEquals(13, ratioTapChanger.getTargetDeadband(), .0001);
+            assertEquals(13, ratioTapChanger.getVoltageRegulation().getTargetDeadband(), .0001);
             assertEquals(0, ratioTapChanger.getTapPosition());
             assertFalse(ratioTapChanger.hasLoadTapChangingCapabilities());
             assertFalse(ratioTapChanger.isRegulating());
-            assertEquals(27, ratioTapChanger.getTargetV(), .0001);
+            assertEquals(27, ratioTapChanger.getRegulatingTargetV(), .0001);
 
             RatioTapChangerStep ratioTapChangerStep = ratioTapChanger.getStep(0);
             ratioTapChangerStep.setB(21);
@@ -1805,12 +1806,12 @@ class NetworkStoreIT {
             assertEquals(25, ratioTapChanger.getStep(0).getX(), .0001);
             assertEquals(25, ratioTapChanger.getStep(0).getX(), .0001);
 
-            assertEquals(ratioTapChanger.getRegulationTerminal().getP(), twoWindingsTransformer.getTerminal2().getP(), 0);
-            assertEquals(ratioTapChanger.getRegulationTerminal().getQ(), twoWindingsTransformer.getTerminal2().getQ(), 0);
-            ratioTapChanger.setRegulationTerminal(twoWindingsTransformer.getTerminal1());
+            assertEquals(ratioTapChanger.getRegulatingTerminal().getP(), twoWindingsTransformer.getTerminal2().getP(), 0);
+            assertEquals(ratioTapChanger.getRegulatingTerminal().getQ(), twoWindingsTransformer.getTerminal2().getQ(), 0);
+            ratioTapChanger.getVoltageRegulation().setTerminal(twoWindingsTransformer.getTerminal1(), ratioTapChanger.getVoltageRegulation().getTargetValue());
             service.flush(readNetwork);
-            assertEquals(ratioTapChanger.getRegulationTerminal().getP(), twoWindingsTransformer.getTerminal1().getP(), 0);
-            assertEquals(ratioTapChanger.getRegulationTerminal().getQ(), twoWindingsTransformer.getTerminal1().getQ(), 0);
+            assertEquals(ratioTapChanger.getRegulatingTerminal().getP(), twoWindingsTransformer.getTerminal1().getP(), 0);
+            assertEquals(ratioTapChanger.getRegulatingTerminal().getQ(), twoWindingsTransformer.getTerminal1().getQ(), 0);
 
             twoWindingsTransformer.getTerminal1().setP(100.);
 
@@ -1857,17 +1858,17 @@ class NetworkStoreIT {
             generator.setMinP(-5);
             generator.setRatedS(2);
             generator.setTargetP(3);
-            generator.setTargetQ(4);
-            generator.setTargetV(6);
-            generator.setVoltageRegulatorOn(false);
+            generator.setLocalTargetQ(4);
+            generator.setLocalTargetV(6);
+            generator.getVoltageRegulation().setRegulating(false);
 
             assertEquals(5, generator.getMaxP(), .0001);
             assertEquals(-5, generator.getMinP(), .0001);
             assertEquals(2, generator.getRatedS(), .0001);
             assertEquals(3, generator.getTargetP(), .0001);
-            assertEquals(4, generator.getTargetQ(), .0001);
-            assertEquals(6, generator.getTargetV(), .0001);
-            assertFalse(generator.isVoltageRegulatorOn());
+            assertEquals(4, generator.getRegulatingTargetQ(), .0001);
+            assertEquals(6, generator.getRegulatingTargetV(), .0001);
+            assertFalse(generator.isRegulatingWithMode(RegulationMode.VOLTAGE));
 
             generator.setFictitious(true);
             generator.setEnergySource(EnergySource.NUCLEAR);
@@ -1875,9 +1876,9 @@ class NetworkStoreIT {
             generator.setMinP(100);
             generator.setRatedS(4);
             generator.setTargetP(1000);
-            generator.setTargetQ(300);
-            generator.setTargetV(389);
-            generator.setVoltageRegulatorOn(true);
+            generator.setLocalTargetQ(300);
+            generator.setLocalTargetV(389);
+            generator.getVoltageRegulation().setRegulating(true);
 
             service.flush(readNetwork);  // flush the network
         }
@@ -1896,9 +1897,9 @@ class NetworkStoreIT {
             assertEquals(100, generator.getMinP(), .0001);
             assertEquals(4, generator.getRatedS(), .0001);
             assertEquals(1000, generator.getTargetP(), .0001);
-            assertEquals(300, generator.getTargetQ(), .0001);
-            assertEquals(389, generator.getTargetV(), .0001);
-            assertTrue(generator.isVoltageRegulatorOn());
+            assertEquals(300, generator.getRegulatingTargetQ(), .0001);
+            assertEquals(389, generator.getRegulatingTargetV(), .0001);
+            assertTrue(generator.isRegulatingWithMode(RegulationMode.VOLTAGE));
 
             ReactiveLimits reactiveLimits = generator.getReactiveLimits();
 
@@ -2108,13 +2109,16 @@ class NetworkStoreIT {
             vl1.newGenerator()
                 .setId("g")
                 .setConnectableBus("b1")
-                .setRegulatingTerminal(network.getLine("l12").getTerminal1())
                 .setBus("b1")
                 .setTargetP(102.56)
-                .setTargetV(390)
                 .setMinP(0)
                 .setMaxP(500)
-                .setVoltageRegulatorOn(true)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTerminal(network.getLine("l12").getTerminal1())
+                    .withTargetValue(390)
+                    .add()
                 .add();
 
             service.flush(network);
@@ -2482,9 +2486,11 @@ class NetworkStoreIT {
                 .setBus("BUS")
                 .setBmin(0.0002)
                 .setBmax(0.0008)
-                .setRegulationMode(StaticVarCompensator.RegulationMode.VOLTAGE)
-                .setVoltageSetpoint(390)
-                .setRegulating(false)
+                .setLocalTargetV(390)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(false)
+                    .add()
                 .add();
             svcsVL3 = vl3.getConnectables(StaticVarCompensator.class);
             assertEquals(1, Iterables.size(svcsVL3));
@@ -2506,8 +2512,7 @@ class NetworkStoreIT {
                 .setName("Converter2")
                 .setConnectableBus("NHV1")
                 .setLossFactor(1.1f)
-                .setReactivePowerSetpoint(123)
-                .setVoltageRegulatorOn(false)
+                .setLocalTargetQ(123)
                 .add();
 
             vl1.getBusBreakerView().newBus()
@@ -2709,10 +2714,13 @@ class NetworkStoreIT {
                 .setId("SVC1")
                 .setName("SVC1")
                 .setConnectableBus("04878f11-c766-11e1-8775-005056c00008")
-                .setReactivePowerSetpoint(5.2f)
+                .setLocalTargetQ(5.2f)
                 .setBmax(0.5f)
                 .setBmin(0.1f)
-                .setRegulating(false)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(false)
+                    .add()
                 .add();
             svc.getTerminal().connect();
 
@@ -2728,8 +2736,7 @@ class NetworkStoreIT {
             VscConverterStation vsc = network.getVoltageLevel("04664b78-c766-11e1-8775-005056c00008").newVscConverterStation()
                 .setId("VSC1")
                 .setName("VSC1")
-                .setVoltageRegulatorOn(false)
-                .setReactivePowerSetpoint(4.5f)
+                .setLocalTargetQ(4.5f)
                 .setLossFactor(0.3f)
                 .setConnectableBus("04878f11-c766-11e1-8775-005056c00008")
                 .add();
@@ -2885,11 +2892,14 @@ class NetworkStoreIT {
         twt.newRatioTapChanger()
             .setLowTapPosition(0)
             .setTapPosition(0)
-            .setRegulating(true)
             .setLoadTapChangingCapabilities(true)
-            .setTargetV(200)
-            .setRegulationTerminal(twt.getTerminal2())
-            .setTargetDeadband(22)
+            .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .withTargetValue(200)
+                .withTerminal(twt.getTerminal2())
+                .withTargetDeadband(22)
+                .add()
             .beginStep()
             .setRho(0.99)
             .setR(1.)
@@ -2931,10 +2941,13 @@ class NetworkStoreIT {
             .setNode(1)
             .setMaxP(20)
             .setMinP(-20)
-            .setVoltageRegulatorOn(true)
             .setTargetP(100)
-            .setTargetV(200)
-            .setTargetQ(100)
+            .setLocalTargetV(200)
+            .setLocalTargetQ(100)
+            .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .add()
             .add();
         if (kind.equals(ReactiveLimitsKind.CURVE)) {
             generator.newReactiveCapabilityCurve()
@@ -2997,11 +3010,14 @@ class NetworkStoreIT {
             .setNode(3)
             .setMaxP(20)
             .setMinP(-20)
-            .setVoltageRegulatorOn(true)
             .setTargetP(100)
-            .setTargetQ(100)
-            .setTargetV(220)
+            .setLocalTargetQ(100)
+            .setLocalTargetV(220)
             .setRatedS(1)
+            .newVoltageRegulation()
+                .withMode(RegulationMode.VOLTAGE)
+                .withRegulating(true)
+                .add()
             .add();
         return network;
     }
@@ -3071,15 +3087,15 @@ class NetworkStoreIT {
             ShuntCompensator shunt1 = readNetwork.getShuntCompensatorStream().findFirst().get();
             assertEquals("SHUNT1", shunt1.getId());
             assertFalse(shunt1.isFictitious());
-            assertTrue(shunt1.isVoltageRegulatorOn());
+            assertTrue(shunt1.isRegulatingWithMode(RegulationMode.VOLTAGE));
             assertEquals(5, shunt1.getSectionCount());
             assertEquals(10, shunt1.getMaximumSectionCount());
             assertEquals(5, shunt1.getB(), 0.01);
             assertEquals(10, shunt1.getG(), 0.01);
             assertEquals(1, shunt1.getB(1), 0.01);
             assertEquals(2, shunt1.getG(1), 0.01);
-            assertEquals(380, shunt1.getTargetV(), 0.1);
-            assertEquals(10, shunt1.getTargetDeadband(), 0.1);
+            assertEquals(380, shunt1.getRegulatingTargetV(), 0.1);
+            assertEquals(10, shunt1.getVoltageRegulation().getTargetDeadband(), 0.1);
             assertEquals(200, shunt1.getTerminal().getQ(), 0.1);
             assertEquals(ShuntCompensatorModelType.LINEAR, shunt1.getModelType());
             ShuntCompensatorModel shuntModel = shunt1.getModel();
@@ -3087,10 +3103,10 @@ class NetworkStoreIT {
             assertEquals(1, ((ShuntCompensatorLinearModel) shuntModel).getBPerSection(), 0.001);
             assertEquals(2, shuntLinearModel.getGPerSection(), 0.001);
 
-            shunt1.setTargetV(420);
-            shunt1.setVoltageRegulatorOn(false);
+            shunt1.setLocalTargetV(420);
+            shunt1.getVoltageRegulation().setRegulating(false);
             shunt1.setSectionCount(8);
-            shunt1.setTargetDeadband(20);
+            shunt1.getVoltageRegulation().setTargetDeadband(20);
             shunt1.getTerminal().setQ(600);
             ((ShuntCompensatorLinearModel) shunt1.getModel()).setBPerSection(3);
             ((ShuntCompensatorLinearModel) shunt1.getModel()).setGPerSection(4);
@@ -3099,10 +3115,10 @@ class NetworkStoreIT {
             ShuntCompensator shunt2 = readNetwork.getShuntCompensatorStream().skip(1).findFirst().get();
             assertEquals("SHUNT2", shunt2.getId());
             assertFalse(shunt2.isFictitious());
-            assertFalse(shunt2.isVoltageRegulatorOn());
+            assertFalse(shunt2.isRegulatingWithMode(RegulationMode.VOLTAGE));
             assertEquals(3, shunt2.getSectionCount());
-            assertEquals(420, shunt2.getTargetV(), 0.1);
-            assertEquals(20, shunt2.getTargetDeadband(), 0.1);
+            assertEquals(420, shunt2.getRegulatingTargetV(), 0.1);
+            assertEquals(20, shunt2.getVoltageRegulation().getTargetDeadband(), 0.1);
             assertEquals(600, shunt2.getTerminal().getQ(), 0.1);
             assertEquals(ShuntCompensatorModelType.NON_LINEAR, shunt2.getModelType());
             assertEquals(1, ((ShuntCompensatorNonLinearModel) shunt2.getModel()).getAllSections().get(0).getB(), 0.001);
@@ -3117,10 +3133,10 @@ class NetworkStoreIT {
             ((ShuntCompensatorNonLinearModel) shunt2.getModel()).getAllSections().get(0).setG(12);
 
             shunt2.setFictitious(true);
-            shunt2.setTargetV(450);
-            shunt2.setVoltageRegulatorOn(true);
+            shunt2.setLocalTargetV(450);
+            shunt2.getVoltageRegulation().setRegulating(true);
             shunt2.setSectionCount(1);
-            shunt2.setTargetDeadband(80);
+            shunt2.getVoltageRegulation().setTargetDeadband(80);
             shunt2.getTerminal().setQ(800);
             shunt2.getModel().setProperty("property1", "value1");
             ((ShuntCompensatorNonLinearModel) shunt2.getModel()).getAllSections().get(0).setProperty("sectionProperty1", "sectionValue1");
@@ -3136,19 +3152,19 @@ class NetworkStoreIT {
             ShuntCompensator shunt1 = readNetwork.getShuntCompensatorStream().findFirst().get();
             assertNotNull(shunt1);
             assertFalse(shunt1.isFictitious());
-            assertFalse(shunt1.isVoltageRegulatorOn());
+            assertFalse(shunt1.isRegulatingWithMode(RegulationMode.VOLTAGE));
             assertEquals(8, shunt1.getSectionCount());
-            assertEquals(420, shunt1.getTargetV(), 0.1);
-            assertEquals(20, shunt1.getTargetDeadband(), 0.1);
+            assertEquals(420, shunt1.getRegulatingTargetV(), 0.1);
+            assertEquals(20, shunt1.getVoltageRegulation().getTargetDeadband(), 0.1);
             assertEquals(600, shunt1.getTerminal().getQ(), 0.1);
 
             ShuntCompensator shunt2 = readNetwork.getShuntCompensatorStream().skip(1).findFirst().get();
             assertNotNull(shunt2);
             assertTrue(shunt2.isFictitious());
-            assertTrue(shunt2.isVoltageRegulatorOn());
+            assertTrue(shunt2.isRegulatingWithMode(RegulationMode.VOLTAGE));
             assertEquals(1, shunt2.getSectionCount());
-            assertEquals(450, shunt2.getTargetV(), 0.1);
-            assertEquals(80, shunt2.getTargetDeadband(), 0.1);
+            assertEquals(450, shunt2.getRegulatingTargetV(), 0.1);
+            assertEquals(80, shunt2.getVoltageRegulation().getTargetDeadband(), 0.1);
             assertEquals(800, shunt2.getTerminal().getQ(), 0.1);
             assertEquals("value1", shunt2.getModel().getProperty("property1"));
             assertEquals("sectionValue1", shunt2.getModel(ShuntCompensatorNonLinearModel.class).getAllSections().get(0).getProperty("sectionProperty1"));
@@ -3207,14 +3223,14 @@ class NetworkStoreIT {
             Network network = service.getNetwork(networkIds.keySet().stream().findFirst().orElseThrow(AssertionError::new));
             ShuntCompensator sc = network.getShuntCompensator("SHUNT");
             assertNotNull(sc);
-            assertTrue(sc.isVoltageRegulatorOn());
-            assertEquals(200.0, sc.getTargetV(), 0);
-            assertEquals(5.0, sc.getTargetDeadband(), 0);
+            assertTrue(sc.isRegulatingWithMode(RegulationMode.VOLTAGE));
+            assertEquals(200.0, sc.getRegulatingTargetV(), 0);
+            assertEquals(5.0, sc.getVoltageRegulation().getTargetDeadband(), 0);
             assertEquals("LOAD", sc.getRegulatingTerminal().getConnectable().getId());
 
-            sc.setVoltageRegulatorOn(false);
-            sc.setTargetV(210.0);
-            sc.setTargetDeadband(3.0);
+            sc.getVoltageRegulation().setRegulating(false);
+            sc.getVoltageRegulation().setTargetValue(210.0);
+            sc.getVoltageRegulation().setTargetDeadband(3.0);
 
             service.flush(network);
         }
@@ -3226,9 +3242,9 @@ class NetworkStoreIT {
             assertEquals(1, network.getVoltageLevel("VL1").getShuntCompensatorCount());
             ShuntCompensator sc = network.getShuntCompensator("SHUNT");
             assertNotNull(sc);
-            assertFalse(sc.isVoltageRegulatorOn());
-            assertEquals(210.0, sc.getTargetV(), 0);
-            assertEquals(3.0, sc.getTargetDeadband(), 0);
+            assertFalse(sc.isRegulatingWithMode(RegulationMode.VOLTAGE));
+            assertEquals(210.0, sc.getRegulatingTargetV(), 0);
+            assertEquals(3.0, sc.getVoltageRegulation().getTargetDeadband(), 0);
         }
     }
 
@@ -4332,7 +4348,7 @@ class NetworkStoreIT {
     }
 
     @Test
-    void testEquivalentLocalTargetV() {
+    void testLocalTargetV() {
         try (NetworkStoreService service = createNetworkStoreService(randomServerPort)) {
             Network network = EurostagTutorialExample1Factory.create(service.getNetworkFactory());
             service.flush(network);
@@ -4344,11 +4360,10 @@ class NetworkStoreIT {
             NetworkImpl network = (NetworkImpl) service.getNetwork(networkUuid);
             Generator generator = network.getGenerator("GEN");
             assertNotNull(generator);
-            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
-            generator.setTargetV(200, 20);
-            assertEquals(20, generator.getEquivalentLocalTargetV());
-            generator.setTargetV(220);
-            assertTrue(Double.isNaN(generator.getEquivalentLocalTargetV()));
+            generator.setLocalTargetV(20);
+            assertEquals(20, generator.getLocalTargetV());
+            generator.setLocalTargetV(220);
+            assertEquals(220, generator.getLocalTargetV());
         }
     }
 }

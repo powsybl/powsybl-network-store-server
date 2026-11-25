@@ -564,18 +564,18 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + " ," + VARIANT_NUM_COLUMN + ", " + REGULATING_EQUIPMENT_ID + ", " + REGULATING_EQUIPMENT_TYPE_COLUMN + ", " +
             REGULATING_TAP_CHANGER_TYPE + ", " + REGULATION_MODE +
             ", localTerminalConnectableId, localTerminalSide, regulatingterminalconnectableid, regulatingterminalside, " +
-            REGULATED_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING + ")" +
-            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            REGULATED_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING + ", targetValue, targetDeadband, slope)" +
+            " values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
 
     public static String buildCloneRegulatingPointsQuery() {
         return "insert into " + REGULATING_POINT_TABLE + " (" + NETWORK_UUID_COLUMN + " ," + VARIANT_NUM_COLUMN + ", " +
              REGULATING_EQUIPMENT_ID + ", " + REGULATING_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING_TAP_CHANGER_TYPE + ", " + REGULATION_MODE +
             ", localTerminalConnectableId, localTerminalSide, regulatingTerminalConnectableId, regulatingTerminalSide, " +
-            REGULATED_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING + ") select ?, ?" + ", " + REGULATING_EQUIPMENT_ID + ", " +
+             REGULATED_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING + ", targetValue, targetDeadband, slope) select ?, ?" + ", " + REGULATING_EQUIPMENT_ID + ", " +
             REGULATING_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING_TAP_CHANGER_TYPE + ", " + REGULATION_MODE +
             ", localTerminalConnectableId, localTerminalSide, regulatingTerminalConnectableId, regulatingTerminalSide, "
-            + REGULATED_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING + " from " + REGULATING_POINT_TABLE + " where " + NETWORK_UUID_COLUMN +
+             + REGULATED_EQUIPMENT_TYPE_COLUMN + ", " + REGULATING + ", targetValue, targetDeadband, slope from " + REGULATING_POINT_TABLE + " where " + NETWORK_UUID_COLUMN +
             " = ? and " + VARIANT_NUM_COLUMN + " = ?";
     }
 
@@ -584,7 +584,7 @@ public final class QueryCatalog {
             NETWORK_UUID_COLUMN + ", " +
             VARIANT_NUM_COLUMN + ", " +
             REGULATING_EQUIPMENT_ID + ", " + REGULATING_TAP_CHANGER_TYPE + ", " + REGULATION_MODE + ", localterminalconnectableid, localterminalside, " +
-            "regulatingterminalconnectableid, regulatingterminalside, " + REGULATING +
+            "regulatingterminalconnectableid, regulatingterminalside, " + REGULATING + ", targetValue, targetDeadband, slope" +
             " from " + REGULATING_POINT_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
@@ -602,7 +602,7 @@ public final class QueryCatalog {
         return "select " + NETWORK_UUID_COLUMN + ", " +
             VARIANT_NUM_COLUMN + ", " +
             REGULATING_EQUIPMENT_ID + ", " + REGULATING_TAP_CHANGER_TYPE + ", " + REGULATION_MODE + ", localterminalconnectableid, localterminalside, " +
-            "regulatingterminalconnectableid, regulatingterminalside, " + REGULATING
+            "regulatingterminalconnectableid, regulatingterminalside, " + REGULATING + ", targetValue, targetDeadband, slope"
             + " from " + REGULATING_POINT_TABLE + " where " +
             NETWORK_UUID_COLUMN + " = ? and " +
             VARIANT_NUM_COLUMN + " = ? and " +
