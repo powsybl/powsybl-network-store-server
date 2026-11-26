@@ -15,8 +15,8 @@ import com.powsybl.iidm.network.extensions.ConnectablePosition;
 import com.powsybl.iidm.network.extensions.ConnectablePositionAdder;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
-import com.powsybl.network.store.client.RestClient;
-import com.powsybl.network.store.client.RestClientImpl;
+import com.powsybl.network.store.client.ResourceAttributesRestClient;
+import com.powsybl.network.store.client.ResourceAttributesRestClientImpl;
 import org.apache.commons.io.FilenameUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -35,7 +35,7 @@ final class TestUtils {
     }
 
     static NetworkStoreService createNetworkStoreService(RestClientMetrics metrics, int randomServerPort) {
-        RestClient restClient = new RestClientImpl(getBaseUrl(randomServerPort));
+        ResourceAttributesRestClient restClient = new ResourceAttributesRestClientImpl(getBaseUrl(randomServerPort));
         if (metrics != null) {
             restClient = new TestRestClient(restClient, metrics);
         }

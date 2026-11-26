@@ -6,7 +6,7 @@
  */
 package com.powsybl.network.store.integration;
 
-import com.powsybl.network.store.client.RestClient;
+import com.powsybl.network.store.client.ResourceAttributesRestClient;
 import com.powsybl.network.store.model.Attributes;
 import com.powsybl.network.store.model.ExtensionAttributes;
 import com.powsybl.network.store.model.IdentifiableAttributes;
@@ -24,7 +24,7 @@ class TestRestClient extends AbstractForwardingRestClient {
 
     private final RestClientMetrics metrics;
 
-    TestRestClient(RestClient delegate, RestClientMetrics metrics) {
+    TestRestClient(ResourceAttributesRestClient delegate, RestClientMetrics metrics) {
         super(delegate);
         this.metrics = Objects.requireNonNull(metrics);
     }
@@ -32,7 +32,7 @@ class TestRestClient extends AbstractForwardingRestClient {
     @Override
     public <T extends IdentifiableAttributes> Optional<Resource<T>> getOne(String target, String url, Object... uriVariables) {
         metrics.oneGetterCallCount++;
-        return super.getOne(target, url, uriVariables);
+        return super.<T>getOne(target, url, uriVariables);
     }
 
     @Override
@@ -44,7 +44,7 @@ class TestRestClient extends AbstractForwardingRestClient {
     @Override
     public <T extends IdentifiableAttributes> List<Resource<T>> getAll(String target, String url, Object... uriVariables) {
         metrics.allGetterCallCount++;
-        return super.getAll(target, url, uriVariables);
+        return super.<T>getAll(target, url, uriVariables);
     }
 
     @Override
